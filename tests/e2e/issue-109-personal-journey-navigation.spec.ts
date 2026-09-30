@@ -119,3 +119,30 @@ test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", a
   await expect(dialog.getByRole("button", { name: "Familjen" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Gruppval för omdöme");
 });
+
+
+test("personlig Topplista återanvänder filtren för upplevelse och tillfälle på 360 px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await openPersonalJourneyFromGroupMenu(page);
+
+  const personalNav = page.getByRole("navigation", { name: "Min matresa" });
+  await personalNav.getByRole("link", { name: "Matställen" }).click();
+  await expect(page).toHaveURL(/\/min-matresa\/matstallen\?demo=1/);
+
+  const leaderboard = page.getByTestId("occasion-leaderboard");
+  await expect(leaderboard).toBeVisible();
+  await leaderboard.getByRole("button", { name: "Visa topp 3" }).click();
+
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Avslappnat" }).click();
+  await expect(leaderboard.getByText("Kvartersbordet", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("Nudelhörnan", { exact: true })).toBeVisible();
+
+  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Middag" }).click();
+  await expect(leaderboard.getByText("Kvartersbordet", { exact: true })).toBeVisible();
+  await expect(leaderboard.getByText("Nudelhörnan", { exact: true })).toHaveCount(0);
+
+  await expectNoHorizontalOverflow(page, "Filtrerad personlig Topplista");
+});
