@@ -18,7 +18,7 @@ const SIZE_CLASS = {
   detail: "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
 } as const;
 
-const SOMETHING_EXTRA_CLASS: Record<PlaceIdentityMarkSize, string> = {
+const SOMETHING_EXTRA_CLASS: Record<keyof typeof SIZE_CLASS, string> = {
   sm: "-right-1 -top-1 h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5",
   md: "-right-1 -top-1 h-5 w-5 [&_svg]:h-3 [&_svg]:w-3",
   lg: "-right-1.5 -top-1.5 h-6 w-6 [&_svg]:h-3.5 [&_svg]:w-3.5",
