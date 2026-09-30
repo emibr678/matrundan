@@ -191,9 +191,9 @@ export function VisitDetailSheet({
                     <Badge
                       variant="outline"
                       className="rounded-full text-[10px] text-muted-foreground"
-                      title="Räknas inte mot gruppens progression"
+                      title="Påverkar inte nivåer eller utmärkelser"
                     >
-                      Utanför progression
+                      Påverkar inte nivåer
                     </Badge>
                   ) : null}
                 </div>
@@ -451,7 +451,7 @@ export function VisitDetailSheet({
           <AlertDialogHeader>
             <AlertDialogTitle>Radera besöket på {place?.name ?? "matstället"}?</AlertDialogTitle>
             <AlertDialogDescription>
-              Besöket, bilderna och alla omdömen tas bort. Gruppens progression räknas om. Om
+              Besöket, bilderna och alla omdömen tas bort. Nivåer och utmärkelser räknas om. Om
               besöket har lagts till i andra grupper försvinner det även där. Det går inte att
               ångra.
             </AlertDialogDescription>

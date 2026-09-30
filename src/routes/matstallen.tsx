@@ -559,7 +559,7 @@ function PlacesIndex() {
               <FilterGroup label="Saknar uppgifter">
                 <MultiChipRow
                   options={[
-                    { key: "cuisines", label: "Kök/inriktning" },
+                    { key: "cuisines", label: "Kök och inriktning" },
                     { key: "occasions", label: "Typ av upplevelse" },
                   ]}
                   values={missingFields}

@@ -98,10 +98,10 @@ test("Besök markerar bara aktuella pending-besök inom uppmärksamhetsfönstret
   });
   const repeatCafeVisits = page.getByRole("button", { name: /Öppna besöket på Kardemummaköket/ });
 
-  await expect(tacoVisit.getByText("Ditt omdöme saknas", { exact: true })).toBeVisible();
-  await expect(formerMemberVisit.getByText("Ditt omdöme saknas", { exact: true })).toBeVisible();
-  await expect(repeatCafeVisits.getByText("Ditt omdöme saknas", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Ditt omdöme saknas", { exact: true })).toHaveCount(2);
+  await expect(tacoVisit.getByText("Lämna ditt omdöme", { exact: true })).toBeVisible();
+  await expect(formerMemberVisit.getByText("Lämna ditt omdöme", { exact: true })).toBeVisible();
+  await expect(repeatCafeVisits.getByText("Lämna ditt omdöme", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Lämna ditt omdöme", { exact: true })).toHaveCount(2);
   await expectNoHorizontalOverflow(page, "Besök med pending-markeringar på 360 px");
 });
 
@@ -111,13 +111,13 @@ test("Matstället leder till samma pending-besök i stället för nyregistrering
 
   const pending = page.getByLabel("Omdöme att komplettera på matstället");
   await expect(pending).toBeVisible();
-  await expect(pending.getByText("Ditt omdöme saknas", { exact: true })).toBeVisible();
+  await expect(pending.getByText("Lämna ditt omdöme", { exact: true })).toBeVisible();
   await expect(pending.getByRole("button", { name: "Lämna omdöme" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Registrera besök igen" })).toBeVisible();
 
   const pendingVisitRow = page
     .getByRole("button", { name: /Öppna besök av/ })
-    .filter({ hasText: "Ditt omdöme saknas" });
+    .filter({ hasText: "Lämna ditt omdöme" });
   await expect(pendingVisitRow).toHaveCount(1);
   await expectNoLocatorOverflow(pending, "pending-signalen på matstället");
   await expectNoHorizontalOverflow(page, "matställe med pending-omdöme på 360 px");

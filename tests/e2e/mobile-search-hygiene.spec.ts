@@ -106,7 +106,7 @@ test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy"
     detailsDialog.getByRole("button", { name: "Registrera besök", exact: true }),
   ).toHaveCount(0);
   await expect(
-    detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }),
+    detailsDialog.getByRole("button", { name: /Har stället stängt eller är något fel\?/ }),
   ).toBeVisible();
   await expect(
     detailsDialog.getByText("Valfritt – kan fyllas i efter ett besök.", { exact: true }),
@@ -189,13 +189,19 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await placeSuggestionButton(searchDialog).click();
   const detailsDialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await detailsDialog.getByRole("button", { name: /Stängt eller fel uppgifter\?/ }).click();
+  await detailsDialog
+    .getByRole("button", { name: /Har stället stängt eller är något fel\?/ })
+    .click();
 
-  const issueDialog = page.getByRole("dialog", { name: "Stängt eller fel uppgifter?" });
+  const issueDialog = page.getByRole("dialog", {
+    name: "Har stället stängt eller är något fel?",
+  });
   await issueDialog.getByRole("button", { name: /Rapportera felaktiga uppgifter/ }).click();
 
   const reportDialog = page.getByRole("dialog", { name: "Rapportera felaktiga uppgifter" });
-  await expect(reportDialog.getByText(/granskas av gruppens admin/)).toBeVisible();
+  await expect(
+    reportDialog.getByText(/granskas av gruppens ägare och administratörer/),
+  ).toBeVisible();
   await expect(reportDialog.getByLabel("Dölj även träffen för gruppen")).toBeChecked();
   await reportDialog
     .getByLabel("Vad har du sett?")

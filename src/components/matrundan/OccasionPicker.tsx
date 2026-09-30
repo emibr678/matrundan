@@ -86,8 +86,8 @@ export function OccasionGuideContent({
       </div>
       {showConclusion ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Klassificeringen hjälper gruppen att hitta rätt sorts matställe för stunden och gör
-          betygen lättare att förstå och jämföra.
+          Valen hjälper gruppen att hitta rätt sorts matställe för stunden och gör betygen lättare
+          att förstå och jämföra.
         </p>
       ) : null}
     </div>

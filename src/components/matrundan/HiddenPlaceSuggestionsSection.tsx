@@ -119,7 +119,7 @@ export function HiddenPlaceSuggestionsSection() {
             <EyeOff className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <p className="text-xs leading-relaxed text-muted-foreground">
               Dolda träffar visas inte i den här gruppens söklista eller på kartan. Öppna en träff
-              för att kontrollera underlaget, rapportera felaktig information eller återställa den.
+              för att kontrollera uppgifterna, rapportera fel eller visa den i sökningen igen.
             </p>
           </div>
 
@@ -232,8 +232,8 @@ export function HiddenPlaceSuggestionsSection() {
               ) : null}
 
               <p className="text-xs leading-relaxed text-muted-foreground">
-                En rapport granskas privat av gruppens admin. Döljningen är en separat, reversibel
-                inställning för den här gruppen.
+                En rapport granskas privat av gruppens ägare och administratörer. Du kan alltid visa
+                träffen i sökningen igen.
               </p>
             </div>
 

@@ -185,7 +185,7 @@ export function VisitReviewsSection({
             ) : (
               <div className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MessageCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                <p>Det här besöket är scorelöst. Kommentarer sparas som minnen utan stjärnbetyg.</p>
+                <p>Det här besöket har inget betyg. Kommentarer sparas som minnen.</p>
               </div>
             )}
 

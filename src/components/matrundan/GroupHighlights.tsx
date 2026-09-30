@@ -20,9 +20,9 @@ const CATEGORIES: {
   label: string;
   suffix: string;
 }[] = [
-  { id: "visits", label: "Deltagna besök", suffix: "besök" },
+  { id: "visits", label: "Besök", suffix: "besök" },
   { id: "newPlaces", label: "Nya ställen", suffix: "st" },
-  { id: "breadth", label: "Köksbredd", suffix: "kök" },
+  { id: "breadth", label: "Olika kök", suffix: "kök" },
 ];
 
 export function GroupHighlights() {

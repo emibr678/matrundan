@@ -295,7 +295,7 @@ test("grupp och sökområden sparas separat i nya inställningsmenyn", async ({ 
     /^Sökområden/,
     /Medlemmar och inbjudningar/,
     /Matställen/,
-    /Besök och progression/,
+    /Besök, nivåer och utmärkelser/,
     /Lämna eller hantera gruppen/,
   ]) {
     await expect(menu.getByRole("button", { name })).toBeVisible();

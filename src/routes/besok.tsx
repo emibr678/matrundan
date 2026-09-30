@@ -160,7 +160,7 @@ function VisitHistory() {
                           </p>
                           {ownReviewPending ? (
                             <span className="mt-1 inline-flex max-w-full rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary">
-                              Ditt omdöme saknas
+                              Lämna ditt omdöme
                             </span>
                           ) : null}
                         </div>

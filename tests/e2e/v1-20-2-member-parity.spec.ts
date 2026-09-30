@@ -52,7 +52,7 @@ test("exempelgruppen använder samma medlemsprofil och rollhantering som live", 
   await profileButton.click();
   const profile = page.getByRole("dialog", { name: "Robin", exact: true });
   await expect(profile.getByRole("heading", { name: "Robin", exact: true })).toBeVisible();
-  await expect(profile.getByText("Deltagna besök", { exact: true })).toBeVisible();
+  await expect(profile.getByText("Besök", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(settings).toBeVisible();
 

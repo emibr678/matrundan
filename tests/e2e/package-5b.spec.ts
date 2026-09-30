@@ -40,7 +40,9 @@ async function readExistingCount(dialog: Locator) {
 }
 
 async function selectForBulk(dialog: Locator, name: string) {
-  await dialog.getByRole("checkbox", { name: `Välj ${name} för masstillägg`, exact: true }).click();
+  await dialog
+    .getByRole("checkbox", { name: `Välj ${name} för att lägga till flera`, exact: true })
+    .click();
 }
 
 test("normalläget är enkelt och flera sökträffar kan väljas i ett separat läge", async ({
@@ -92,7 +94,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByText("1 ställe valt", { exact: true })).toBeVisible();
   await expect(
     dialog.getByRole("checkbox", {
-      name: "Välj Päronträdets Trattoria för masstillägg",
+      name: "Välj Päronträdets Trattoria för att lägga till flera",
       exact: true,
     }),
   ).toBeChecked();
@@ -131,7 +133,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(existing).toHaveAttribute("data-state", "open");
   await expect(
     dialog.getByRole("checkbox", {
-      name: "Välj Päronträdets Trattoria för masstillägg",
+      name: "Välj Päronträdets Trattoria för att lägga till flera",
       exact: true,
     }),
   ).toHaveCount(0);

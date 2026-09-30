@@ -77,8 +77,8 @@ const VIEW_COPY: Record<SettingsView, { title: string; description: string }> = 
     description: "Dolda sökträffar som gäller den här gruppen.",
   },
   progression: {
-    title: "Besök och progression",
-    description: "Hur gruppens besök räknas.",
+    title: "Besök, nivåer och utmärkelser",
+    description: "Vilka besök som påverkar nivåer och utmärkelser.",
   },
   status: {
     title: "Lämna eller hantera gruppen",
@@ -293,8 +293,8 @@ function SettingsMenu({
       {showProgression ? (
         <MenuRow
           icon={SlidersHorizontal}
-          title="Besök och progression"
-          description="Hur gruppens besök räknas"
+          title="Besök, nivåer och utmärkelser"
+          description="Vilka besök som påverkar nivåer och utmärkelser"
           onClick={() => onSelect("progression")}
         />
       ) : null}
@@ -355,7 +355,7 @@ function ProgressionSettingsSection({ groupId }: { groupId: string }) {
       });
       await refreshGroups();
       window.dispatchEvent(new CustomEvent("matrundan:reload"));
-      toast.success("Progressionsinställningen är uppdaterad.");
+      toast.success("Inställningen för delade besök är uppdaterad.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte spara inställningen.");
     } finally {
@@ -369,7 +369,7 @@ function ProgressionSettingsSection({ groupId }: { groupId: string }) {
       <Card className="space-y-3 rounded-2xl border-border/70 p-4">
         <div className="flex items-start justify-between gap-3">
           <Label htmlFor="gs-share-counts" className="text-sm font-normal">
-            Räkna delade besök i progression
+            Låt delade besök påverka nivåer och utmärkelser
           </Label>
           <Switch
             id="gs-share-counts"
@@ -380,7 +380,7 @@ function ProgressionSettingsSection({ groupId }: { groupId: string }) {
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
           Delade besök syns alltid i historik, besöksstatus och betyg. Inställningen påverkar bara
-          framtida nivåer och märken.
+          framtida nivåer och utmärkelser.
         </p>
         <div className="flex justify-end">
           <Button disabled={busy || enabled === saved} onClick={() => void save()}>
