@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { emojiForCategory, safeParse } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import {
   hideDemoPlaceSuggestion,
   hideGroupPlaceSuggestion,
@@ -58,9 +59,11 @@ function suggestionHasOpeningHours(suggestion: PlaceSuggestion): boolean {
 
 function PendingPlaceSummary({
   pending,
+  cuisines,
   reportablePending,
 }: {
   pending: PlaceSuggestion;
+  cuisines: readonly string[];
   reportablePending: ReportablePlaceSuggestion;
 }) {
   const websiteUrl = suggestionWebsite(pending);
@@ -76,7 +79,7 @@ function PendingPlaceSummary({
         >
           <PlaceIdentityMark
             category={pending.category}
-            symbol={emojiForCategory(pending.category)}
+            symbol={resolvePlaceSymbol({ category: pending.category, cuisines })}
             size="detail"
           />
           <div className="min-w-0 self-center">
@@ -368,7 +371,11 @@ export function AddPlaceResultDialogs({
               </DialogDescription>
             </DialogHeader>
 
-            <PendingPlaceSummary pending={pending} reportablePending={reportablePending} />
+            <PendingPlaceSummary
+              pending={pending}
+              cuisines={cuisines}
+              reportablePending={reportablePending}
+            />
 
             <div className="space-y-5 border-t border-border/60 pt-5">
               <FoodTagMultiSelect
