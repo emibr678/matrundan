@@ -117,7 +117,6 @@ describe("place-symbol", () => {
     }
   });
 
-
   test("förstår alias via den gemensamma food-tag-taxonomin", () => {
     expect(
       resolvePlaceSymbol({
