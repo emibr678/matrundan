@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(47);
+SELECT plan(48);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -370,6 +370,13 @@ SELECT is(
   (public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer,
   1,
   'own global stats count each canonical participation once'
+);
+
+
+SELECT is(
+  (public.get_personal_journey_stats_v1('visits')->'self'->>'groupCount')::integer,
+  2,
+  'own global stats include the user active group count'
 );
 
 SELECT is(

@@ -110,10 +110,13 @@ const personalJourneyGlobalStatsSchema = z.object({
   visits: z.number().int().nonnegative(),
   uniquePlaces: z.number().int().nonnegative(),
   uniqueCuisines: z.number().int().nonnegative(),
+  groupCount: z.number().int().nonnegative(),
   badgeIds: z.array(globalBadgeIdSchema),
 });
 
-const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema.extend({
+const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema
+  .omit({ groupCount: true })
+  .extend({
   isSelf: z.boolean(),
   rank: z.number().int().positive(),
   value: z.number().int().nonnegative(),

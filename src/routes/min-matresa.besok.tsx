@@ -209,6 +209,7 @@ function PersonalJourneyStatsRoute() {
                   void navigate({
                     search: { ...search, metric: metric.id, visit: undefined },
                     state: (previous) => previous,
+                    resetScroll: false,
                   })
                 }
                 className={[

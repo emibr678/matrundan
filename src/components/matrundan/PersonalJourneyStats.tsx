@@ -86,7 +86,7 @@ function BadgeList({ badgeIds }: { badgeIds: PersonalJourneyGlobalStats["badgeId
           <Badge
             key={badgeId}
             variant="secondary"
-            className="rounded-full px-2.5 py-1 text-xs"
+            className="gap-1.5 rounded-full px-2.5 py-1 text-xs"
             title={GLOBAL_BADGE_COPY[badgeId]}
           >
             <span aria-hidden="true">{badge.emoji}</span>
@@ -123,10 +123,11 @@ export function PersonalJourneyOwnStats({
         </div>
       ) : null}
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-4 gap-1.5">
         <StatBox label="Besök" value={stats.visits} />
         <StatBox label="Ställen" value={stats.uniquePlaces} />
         <StatBox label="Kök" value={stats.uniqueCuisines} />
+        <StatBox label="Grupper" value={stats.groupCount} />
       </div>
 
       <div className="mt-3">
@@ -164,7 +165,7 @@ export function PersonalJourneyPeopleRanking({
           key={`${person.displayName}-${person.rank}-${index}`}
           type="button"
           onClick={() => onSelect(person)}
-          className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border/70 bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border/60 bg-card/65 px-3 py-2.5 text-left transition-colors hover:bg-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
             {person.rank}
