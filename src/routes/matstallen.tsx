@@ -8,10 +8,7 @@ import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { ExamplePlaceMap } from "@/components/matrundan/ExamplePlaceMap";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
-import {
-  PlaceLeaderboard,
-  type PlaceLeaderboardItem,
-} from "@/components/matrundan/PlaceLeaderboard";
+import { PlaceLeaderboard } from "@/components/matrundan/PlaceLeaderboard";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -276,17 +273,15 @@ function PlacesIndex() {
               }
             : null
         }
-        items={topRated.map(
-          ({ place, rating, rank }): PlaceLeaderboardItem => ({
-            id: place.id,
-            name: place.name,
-            rating: rating.overall,
-            reviewCount: rating.count,
-            rank,
-            visitCount: rating.visitCount,
-            leading: <PlaceThumb place={place} size="sm" />,
-          }),
-        )}
+        items={topRated.map(({ place, rating, rank }) => ({
+          id: place.id,
+          name: place.name,
+          rating: rating.overall,
+          reviewCount: rating.count,
+          rank,
+          visitCount: rating.visitCount,
+          leading: <PlaceThumb place={place} size="sm" />,
+        }))}
         open={topOpen}
         onOpenChange={setTopOpen}
         occasions={topOccasions}

@@ -25,9 +25,7 @@ export function PlaceSummary({
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
-            <h3 className="truncate font-display text-lg font-semibold leading-tight">
-              {name}
-            </h3>
+            <h3 className="truncate font-display text-lg font-semibold leading-tight">{name}</h3>
             {meta ? <div className="mt-0.5 text-xs text-muted-foreground">{meta}</div> : null}
           </div>
           {trailing ? <div className="shrink-0">{trailing}</div> : null}
