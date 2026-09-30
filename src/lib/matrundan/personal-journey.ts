@@ -47,6 +47,7 @@ export const personalJourneyVisitSchema = z.object({
   id: z.string().uuid(),
   placeId: z.string().uuid(),
   placeName: z.string(),
+  category: z.string().nullable().optional().default(null),
   address: z.string(),
   area: z.string().nullable(),
   city: z.string(),

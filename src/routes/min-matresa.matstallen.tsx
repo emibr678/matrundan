@@ -127,7 +127,7 @@ function PersonalJourneyToplist() {
       <header>
         <h2 className="font-display text-2xl font-semibold md:text-3xl">Topplista</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Rankar ställen som har synliga omdömen i dina grupper.
+          Ställen med omdömen från dina grupper, högst betyg först.
         </p>
       </header>
 
