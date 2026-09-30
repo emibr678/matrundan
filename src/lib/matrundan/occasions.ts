@@ -24,6 +24,10 @@ export function normalizeOccasionClassification(value: readonly unknown[]): Occa
   return OCCASION_VALUES.filter((occasion) => selected.has(occasion)).slice(0, 2);
 }
 
+export function hasSomethingExtraExperience(value: readonly unknown[]): boolean {
+  return normalizeOccasionClassification(value).includes("middag");
+}
+
 export function toggleOccasionSelection(
   value: readonly Occasion[],
   occasion: Occasion,
