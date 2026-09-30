@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  hasSomethingExtraExperience,
   normalizeOccasionClassification,
   rankPlacesForOccasion,
   rankPlacesForOccasions,
@@ -40,6 +41,13 @@ describe("sammanhangskategorier", () => {
       "avslappnat",
       "middag",
     ]);
+  });
+
+  test("identifierar Något extra som en separat presentationssignal", () => {
+    expect(hasSomethingExtraExperience(["middag"])).toBe(true);
+    expect(hasSomethingExtraExperience(["avslappnat", "middag"])).toBe(true);
+    expect(hasSomethingExtraExperience(["snabbt", "avslappnat"])).toBe(false);
+    expect(hasSomethingExtraExperience([])).toBe(false);
   });
 
   test("direkt flerval lägger till, tar bort och stoppar ett tredje val", () => {
