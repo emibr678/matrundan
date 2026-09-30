@@ -1,4 +1,5 @@
 import type { MultiAreaPlaceSuggestion } from "./geoapify.functions";
+export { emojiForCategory } from "./place-symbol";
 import type { PlaceSuggestion } from "./places-provider";
 import type { AppState, Occasion, Place, PlaceCategory, SearchArea } from "./types";
 
@@ -173,13 +174,3 @@ export function safeParse(raw?: string): unknown {
   }
 }
 
-export function emojiForCategory(category: PlaceCategory) {
-  return {
-    restaurang: "🍽️",
-    café: "☕",
-    bageri: "🥐",
-    snabbmat: "🍔",
-    pub: "🍺",
-    matvagn: "🌭",
-  }[category];
-}
