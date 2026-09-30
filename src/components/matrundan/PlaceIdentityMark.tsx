@@ -1,3 +1,4 @@
+import { Sparkles } from "lucide-react";
 import type { PlaceCategory } from "@/lib/matrundan/types";
 import { cn } from "@/lib/utils";
 
@@ -17,17 +18,27 @@ const SIZE_CLASS = {
   detail: "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
 } as const;
 
+const SOMETHING_EXTRA_CLASS: Record<PlaceIdentityMarkSize, string> = {
+  sm: "-right-1 -top-1 h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5",
+  md: "-right-1 -top-1 h-5 w-5 [&_svg]:h-3 [&_svg]:w-3",
+  lg: "-right-1.5 -top-1.5 h-6 w-6 [&_svg]:h-3.5 [&_svg]:w-3.5",
+  detail:
+    "-right-1 -top-1 h-5 w-5 min-[390px]:-right-1.5 min-[390px]:-top-1.5 min-[390px]:h-6 min-[390px]:w-6 [&_svg]:h-3 [&_svg]:w-3 min-[390px]:[&_svg]:h-3.5 min-[390px]:[&_svg]:w-3.5",
+};
+
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
 
 export function PlaceIdentityMark({
   category,
   symbol,
   size = "md",
+  showSomethingExtra = false,
   className,
 }: {
   category: PlaceCategory;
   symbol?: string | null;
   size?: PlaceIdentityMarkSize;
+  showSomethingExtra?: boolean;
   className?: string;
 }) {
   const visibleSymbol = symbol?.trim() || "🍽️";
@@ -47,6 +58,17 @@ export function PlaceIdentityMark({
       >
         <span className="drop-shadow-sm">{visibleSymbol}</span>
       </div>
+      {showSomethingExtra ? (
+        <span
+          data-slot="place-identity-something-extra"
+          className={cn(
+            "absolute z-10 grid place-items-center rounded-full border border-mustard/60 bg-background/95 text-mustard-foreground shadow-sm",
+            SOMETHING_EXTRA_CLASS[size],
+          )}
+        >
+          <Sparkles strokeWidth={2.25} />
+        </span>
+      ) : null}
     </div>
   );
 }
