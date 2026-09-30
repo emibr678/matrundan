@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(39);
+SELECT plan(47);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -21,7 +21,8 @@ INSERT INTO public.groups (id, name, created_by)
 VALUES
   ('10910000-0000-4000-8000-000000000001', 'Enskede', '10900000-0000-4000-8000-000000000002'),
   ('10910000-0000-4000-8000-000000000002', 'Hemlig grupp', '10900000-0000-4000-8000-000000000003'),
-  ('10910000-0000-4000-8000-000000000003', 'Arkiverad resa', '10900000-0000-4000-8000-000000000002');
+  ('10910000-0000-4000-8000-000000000003', 'Arkiverad resa', '10900000-0000-4000-8000-000000000002'),
+  ('10910000-0000-4000-8000-000000000004', 'Vännens privata grupp', '10900000-0000-4000-8000-000000000002');
 
 INSERT INTO public.memberships (group_id, user_id, role, status)
 VALUES
@@ -29,7 +30,8 @@ VALUES
   ('10910000-0000-4000-8000-000000000001', '10900000-0000-4000-8000-000000000001', 'member', 'active'),
   ('10910000-0000-4000-8000-000000000002', '10900000-0000-4000-8000-000000000003', 'owner', 'active'),
   ('10910000-0000-4000-8000-000000000003', '10900000-0000-4000-8000-000000000002', 'owner', 'active'),
-  ('10910000-0000-4000-8000-000000000003', '10900000-0000-4000-8000-000000000001', 'member', 'active');
+  ('10910000-0000-4000-8000-000000000003', '10900000-0000-4000-8000-000000000001', 'member', 'active'),
+  ('10910000-0000-4000-8000-000000000004', '10900000-0000-4000-8000-000000000002', 'owner', 'active');
 
 INSERT INTO public.places (id, name, category, address, area, city, added_by)
 VALUES
@@ -44,7 +46,26 @@ VALUES
   (
     '10920000-0000-4000-8000-000000000003', 'Andra stället', 'café',
     'Testgatan 3', 'Söder', 'Stockholm', '10900000-0000-4000-8000-000000000001'
+  ),
+  (
+    '10920000-0000-4000-8000-000000000004', 'Vännens privata ställe', 'restaurang',
+    'Privatvägen 4', 'Öster', 'Stockholm', '10900000-0000-4000-8000-000000000002'
   );
+
+UPDATE public.places
+SET cuisines = CASE id
+  WHEN '10920000-0000-4000-8000-000000000001' THEN ARRAY['svenskt', 'italienskt']::text[]
+  WHEN '10920000-0000-4000-8000-000000000002' THEN ARRAY['franskt']::text[]
+  WHEN '10920000-0000-4000-8000-000000000003' THEN ARRAY['japanskt']::text[]
+  WHEN '10920000-0000-4000-8000-000000000004' THEN ARRAY['mexikanskt']::text[]
+  ELSE cuisines
+END
+WHERE id IN (
+  '10920000-0000-4000-8000-000000000001',
+  '10920000-0000-4000-8000-000000000002',
+  '10920000-0000-4000-8000-000000000003',
+  '10920000-0000-4000-8000-000000000004'
+);
 
 INSERT INTO public.group_places (group_id, place_id, added_by, notes, occasions)
 VALUES
@@ -74,6 +95,13 @@ VALUES
     '10920000-0000-4000-8000-000000000002',
     '10900000-0000-4000-8000-000000000003',
     'Hemligt',
+    ARRAY['avslappnat']::text[]
+  ),
+  (
+    '10910000-0000-4000-8000-000000000004',
+    '10920000-0000-4000-8000-000000000004',
+    '10900000-0000-4000-8000-000000000002',
+    'Privat för vännen',
     ARRAY['avslappnat']::text[]
   );
 
@@ -107,6 +135,14 @@ VALUES
     'middag',
     false,
     '10900000-0000-4000-8000-000000000003'
+  ),
+  (
+    '10930000-0000-4000-8000-000000000003',
+    '10920000-0000-4000-8000-000000000004',
+    current_date - 3,
+    'middag',
+    false,
+    '10900000-0000-4000-8000-000000000002'
   );
 
 INSERT INTO public.visit_group_links (visit_id, group_id, link_type, linked_by)
@@ -128,13 +164,20 @@ VALUES
     '10910000-0000-4000-8000-000000000002',
     'original',
     '10900000-0000-4000-8000-000000000003'
+  ),
+  (
+    '10930000-0000-4000-8000-000000000003',
+    '10910000-0000-4000-8000-000000000004',
+    'original',
+    '10900000-0000-4000-8000-000000000002'
   );
 
 INSERT INTO public.visit_participants (visit_id, user_id)
 VALUES
   ('10930000-0000-4000-8000-000000000001', '10900000-0000-4000-8000-000000000001'),
   ('10930000-0000-4000-8000-000000000001', '10900000-0000-4000-8000-000000000002'),
-  ('10930000-0000-4000-8000-000000000002', '10900000-0000-4000-8000-000000000003');
+  ('10930000-0000-4000-8000-000000000002', '10900000-0000-4000-8000-000000000003'),
+  ('10930000-0000-4000-8000-000000000003', '10900000-0000-4000-8000-000000000002');
 
 INSERT INTO public.reviews (
   id, visit_id, user_id, overall, taste, value, service, atmosphere, review_model, comment
@@ -255,6 +298,30 @@ SELECT ok(
   'anon cannot execute the personal Topplista'
 );
 
+
+SELECT ok(
+  pg_catalog.has_function_privilege(
+    'authenticated', 'public.get_personal_journey_stats_v1(text)', 'EXECUTE'
+  ),
+  'authenticated can execute global personal stats'
+);
+
+SELECT ok(
+  NOT pg_catalog.has_function_privilege(
+    'anon', 'public.get_personal_journey_stats_v1(text)', 'EXECUTE'
+  ),
+  'anon cannot execute global personal stats'
+);
+
+SELECT ok(
+  NOT pg_catalog.has_function_privilege(
+    'authenticated',
+    'public.personal_journey_can_view_global_stats_v1(uuid,uuid)',
+    'EXECUTE'
+  ),
+  'global stats relationship helper remains internal'
+);
+
 SELECT is(
   to_regprocedure('public.get_personal_journey_overview_v1(uuid)'),
   NULL::regprocedure,
@@ -296,6 +363,38 @@ SELECT is(
   (public.get_personal_journey_overview_v1()->'summary'->>'attendedVisitCount')::integer,
   1,
   'the same canonical visit is counted once across groups'
+);
+
+
+SELECT is(
+  (public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer,
+  1,
+  'own global stats count each canonical participation once'
+);
+
+SELECT is(
+  (
+    SELECT (person->>'visits')::integer
+    FROM jsonb_array_elements(public.get_personal_journey_stats_v1('visits')->'leaderboard') person
+    WHERE person->>'displayName' = 'Vännen'
+  ),
+  2,
+  'a shared-group contact exposes a global visit total including their private groups'
+);
+
+SELECT ok(
+  NOT EXISTS (
+    SELECT 1
+    FROM jsonb_array_elements(public.get_personal_journey_stats_v1('visits')->'leaderboard') person
+    WHERE person->>'displayName' = 'Utomstående'
+  ),
+  'users without an active shared group are excluded from global stats'
+);
+
+SELECT ok(
+  public.get_personal_journey_stats_v1('visits')::text NOT LIKE '%Vännens privata grupp%'
+  AND public.get_personal_journey_stats_v1('visits')::text NOT LIKE '%Vännens privata ställe%',
+  'global totals do not expose private group or place details'
 );
 
 SELECT is(
@@ -488,6 +587,13 @@ SELECT is(
   jsonb_array_length(public.list_personal_journey_visits_v1()->'items'),
   0,
   'membership loss immediately removes visit access'
+);
+
+
+SELECT is(
+  jsonb_array_length(public.get_personal_journey_stats_v1('visits')->'leaderboard'),
+  1,
+  'losing the last active shared group removes access to another user global stats'
 );
 
 RESET ROLE;

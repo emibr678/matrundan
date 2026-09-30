@@ -11,6 +11,10 @@ const insightsMigration = readFileSync(
   resolve(root, "supabase/migrations/20260929055634_personal_journey_insights_v1.sql"),
   "utf8",
 );
+const statsMigration = readFileSync(
+  resolve(root, "supabase/migrations/20260930205500_personal_journey_global_stats_v1.sql"),
+  "utf8",
+);
 const preflight = readFileSync(
   resolve(root, "supabase/production-preflight-personal-journey.sql"),
   "utf8",
@@ -72,5 +76,22 @@ describe("Min matresa-databaskontrakt", () => {
     expect(insightsMigration).toContain("FROM PUBLIC, anon;");
     expect(insightsMigration).toContain("TO authenticated, service_role;");
     expect(insightsMigration).toContain("_uid uuid := auth.uid()");
+  });
+
+
+  test("global statistik kräver aktiv gemensam grupp men exponerar inga gruppdetaljer", () => {
+    expect(statsMigration).toContain("shared_group.lifecycle_status = 'active'");
+    expect(statsMigration).toContain("subject_membership.status = 'active'");
+    expect(statsMigration).toContain("personal_journey_can_view_global_stats_v1");
+    expect(statsMigration).not.toContain("'groupName'");
+    expect(statsMigration).not.toContain("'placeName'");
+    expect(statsMigration).not.toContain("'visitedOn'");
+  });
+
+  test("global statistik räknar kanoniska deltaganden och håller access-helpern privat", () => {
+    expect(statsMigration).toContain("count(DISTINCT visit_id)");
+    expect(statsMigration).toContain("count(DISTINCT place_id)");
+    expect(statsMigration).toContain("FROM PUBLIC, anon, authenticated");
+    expect(statsMigration).toContain("TO authenticated, service_role");
   });
 });
