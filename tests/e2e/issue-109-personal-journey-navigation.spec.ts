@@ -120,7 +120,6 @@ test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", a
   await expectNoHorizontalOverflow(page, "Gruppval för omdöme");
 });
 
-
 test("personlig Topplista återanvänder filtren för upplevelse och tillfälle på 360 px", async ({
   page,
 }) => {
