@@ -47,9 +47,14 @@ function PrivacyPage() {
           <p>
             I <span className="font-medium">Min matresa</span> kan du se en personlig
             sammanställning av sådant som du redan har rätt att se i dina egna grupper.
-            Sammanställningen skapar inte en ny grupp och gör inte innehållet synligt för fler
-            personer. Om ditt medlemskap upphör försvinner den gruppens innehåll ur din
-            sammanställning.
+            Sammanställningen skapar inte en ny grupp. Om ditt medlemskap upphör försvinner den
+            gruppens privata innehåll ur din sammanställning.
+          </p>
+          <p>
+            Personer som du delar minst en aktiv grupp med kan se sparsam samlad statistik om din
+            Matrundan-aktivitet, till exempel antal besök, olika ställen och olika kök. De ser inte
+            vilka andra grupper, ställen, besök, betyg, kommentarer eller bilder som ligger bakom
+            totalsiffrorna.
           </p>
         </PrivacySection>
 

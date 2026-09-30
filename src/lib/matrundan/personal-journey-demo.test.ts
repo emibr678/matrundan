@@ -3,6 +3,7 @@ import {
   DEMO_PERSONAL_JOURNEY_OVERVIEW,
   demoPersonalJourneyPlace,
   demoPersonalJourneyPlaces,
+  demoPersonalJourneyStats,
   demoPersonalJourneyToplist,
   demoPersonalJourneyVisit,
   demoPersonalJourneyVisits,
@@ -67,6 +68,22 @@ describe("Min matresa-demo", () => {
     expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
 
     expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
+  });
+
+  test("visar global statistik och rankar personer med samma återanvända kontrakt", () => {
+    const visits = demoPersonalJourneyStats("visits");
+    expect(visits.self.visits).toBe(17);
+    expect(visits.self.badgeIds).toContain("regular");
+    expect(visits.leaderboard.map((person) => person.displayName)).toEqual([
+      "Sam",
+      "Alex",
+      "Nora",
+    ]);
+    expect(visits.leaderboard.find((person) => person.isSelf)?.rank).toBe(2);
+
+    const cuisines = demoPersonalJourneyStats("cuisines");
+    expect(cuisines.leaderboard[0]?.displayName).toBe("Sam");
+    expect(cuisines.leaderboard[0]?.value).toBe(11);
   });
 
   test("fortsätter sorterade listor från en stabil cursor", () => {

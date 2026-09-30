@@ -153,6 +153,36 @@ Det gäller särskilt tabeller eller vyer som kan innehålla:
 - förbättringsunderlag;
 - historiska administrativa händelser.
 
+## Global personstatistik inom det privata nätverket
+
+Matrundans gruppinnehåll är fortsatt privat och gruppen är den primära
+integritetsgränsen. **Lågupplöst härledd personstatistik** är ett avgränsat
+undantag: en användare får se totalsiffror för en annan användare när de delar
+minst en aktiv grupp.
+
+Den globala personstatistiken:
+
+- härleds server-side från faktiska kanoniska deltaganden över personens grupper;
+- räknar samma kanoniska besök högst en gång men räknar verkliga återbesök;
+- får omfatta totalsiffror som besök, unika ställen, köksbredd, nivå och
+  uttryckligen godkända utmärkelser;
+- får inte avslöja vilka andra grupper, ställen, besöksdatum, betyg,
+  kommentarer, bilder, medlemskap eller andra personer som ligger bakom
+  totalsiffrorna;
+- får inte returnera interna användar-ID:n när presentationen inte behöver dem;
+- upphör att vara läsbar för en annan användare när den sista gemensamma aktiva
+  grupprelationen upphör.
+
+Behörighetsregeln ägs av en serverfunktion så att ett framtida användarval för
+att dölja den samlade statistiken kan läggas till på samma gräns utan att skapa
+en parallell statistikmodell. Den egna globala statistiken ska fortsatt kunna
+beräknas även om användaren senare väljer att inte dela den med andra.
+
+Detta gör inte privata recensioner eller aktiviteter sociala: betyg,
+kommentarer, bilder, konkret besökshistorik och gruppmedlemskap följer fortsatt
+sina befintliga grupp- och synlighetsgränser. Gamificationen ska fortsatt vara
+varm, diskret och sekundär.
+
 ## Kontoradering och kontoägarskap
 
 Kontoradering använder `prepare_own_account_deletion(jsonb, boolean)` som
