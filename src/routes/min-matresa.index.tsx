@@ -1,13 +1,15 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { ArrowRight, CalendarDays, MapPin, MessageSquarePlus, RotateCcw } from "lucide-react";
+import { ArrowRight, CalendarDays, MessageSquarePlus, RotateCcw } from "lucide-react";
+import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
 import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
+import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
 import {
   loadPersonalJourneyOverview,
   type PersonalJourneyGroup,
@@ -17,6 +19,7 @@ import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
+import type { PlaceCategory } from "@/lib/matrundan/types";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 
 export const Route = createFileRoute("/min-matresa/")({
@@ -186,7 +189,6 @@ function PersonalJourneyOverview() {
             <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full">
               <Link
                 to="/min-matresa/matstallen"
-                search={{ sort: "rating" }}
                 state={(previous) => previous}
               >
                 Visa alla <ArrowRight className="h-4 w-4" />
@@ -194,22 +196,28 @@ function PersonalJourneyOverview() {
             </Button>
           </div>
           <PlaceLeaderboardRows
-            items={data.topRatedPlaces.map((place) => ({
-              id: place.id,
-              name: place.name,
-              rating: place.rating ?? 0,
-              reviewCount: place.reviewCount,
-              leading: (
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <MapPin className="h-4 w-4" aria-hidden="true" />
-                </span>
-              ),
-              context: formatPersonalJourneyGroups(place.groups),
-            }))}
+            items={data.topRatedPlaces.map((place, index) => {
+              const category = place.category as PlaceCategory;
+              return {
+                id: place.id,
+                name: place.name,
+                rating: place.rating ?? 0,
+                reviewCount: place.reviewCount,
+                rank: index + 1,
+                leading: (
+                  <PlaceIdentityMark
+                    category={category}
+                    symbol={emojiForCategory(category)}
+                    size="sm"
+                  />
+                ),
+                context: formatPersonalJourneyGroups(place.groups),
+              };
+            })}
             onOpen={(place) =>
               void navigate({
                 to: "/min-matresa/matstallen",
-                search: { place: place.id, sort: "rating" },
+                search: { place: place.id },
                 state: (previous) => previous,
               })
             }

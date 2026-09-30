@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { CalendarDays, Home, MapPin, MoveLeft } from "lucide-react";
+import { CalendarDays, Home, MoveLeft, Trophy } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,7 @@ const personalJourneySearchSchema = z.object({
 
 const PERSONAL_NAV = [
   { to: "/min-matresa", label: "Översikt", icon: Home },
-  { to: "/min-matresa/matstallen", label: "Matställen", icon: MapPin },
+  { to: "/min-matresa/matstallen", label: "Topplista", icon: Trophy },
   { to: "/min-matresa/besok", label: "Besök", icon: CalendarDays },
 ] as const;
 

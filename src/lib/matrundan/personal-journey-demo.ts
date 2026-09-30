@@ -4,6 +4,7 @@ import type {
   PersonalJourneyPlace,
   PersonalJourneyPlaceCursor,
   PersonalJourneyPlaceDetail,
+  PersonalJourneyToplistCursor,
   PersonalJourneyVisit,
   PersonalJourneyVisitDetail,
 } from "./personal-journey";
@@ -126,39 +127,36 @@ function toDemoLeaderboardPlace(
   rating: number,
   reviewCount: number,
   visitCount: number,
+  rank: number,
 ): PersonalJourneyLeaderboardPlace {
-  return { ...place, rating, reviewCount, visitCount };
+  return { ...place, rating, reviewCount, visitCount, rank };
 }
 
 export function demoPersonalJourneyToplist({
+  query = "",
   occasions = [],
   mealTypes = [],
   takeawayOnly = false,
-  limit = 3,
+  cursor = null,
+  limit = 20,
 }: {
+  query?: string;
   occasions?: Occasion[];
   mealTypes?: RankableVisitMeal[];
   takeawayOnly?: boolean;
+  cursor?: PersonalJourneyToplistCursor | null;
   limit?: number;
 } = {}) {
-  const overall = [...DEMO_PERSONAL_JOURNEY_PLACES]
+  const normalized = query.trim().toLocaleLowerCase("sv-SE");
+  const matching = [...DEMO_PERSONAL_JOURNEY_PLACES]
     .filter((place): place is PersonalJourneyPlace & { rating: number } => place.rating != null)
-    .sort(
-      (left, right) =>
-        right.rating - left.rating ||
-        right.reviewCount - left.reviewCount ||
-        left.name.localeCompare(right.name, "sv"),
-    );
-  const leader = overall[0]
-    ? toDemoLeaderboardPlace(
-        overall[0],
-        overall[0].rating,
-        overall[0].reviewCount,
-        DEMO_PERSONAL_JOURNEY_VISITS.filter((visit) => visit.placeId === overall[0].id).length,
-      )
-    : null;
-
-  const selected = overall
+    .filter(
+      (place) =>
+        !normalized ||
+        [place.name, place.address, place.area, place.city]
+          .filter(Boolean)
+          .some((value) => value!.toLocaleLowerCase("sv-SE").includes(normalized)),
+    )
     .filter(
       (place) =>
         occasions.length === 0 ||
@@ -172,9 +170,7 @@ export function demoPersonalJourneyToplist({
           (!takeawayOnly || visit.isTakeaway),
       );
       if (mealTypes.length === 0 && !takeawayOnly) {
-        return [
-          toDemoLeaderboardPlace(place, place.rating, place.reviewCount, relevantVisits.length),
-        ];
+        return [{ place, rating: place.rating, reviewCount: place.reviewCount, visitCount: relevantVisits.length }];
       }
       const scored = relevantVisits.filter(
         (visit): visit is typeof visit & { rating: number } =>
@@ -184,17 +180,40 @@ export function demoPersonalJourneyToplist({
       const reviewCount = scored.reduce((sum, visit) => sum + visit.reviewCount, 0);
       const rating =
         scored.reduce((sum, visit) => sum + visit.rating * visit.reviewCount, 0) / reviewCount;
-      return [toDemoLeaderboardPlace(place, rating, reviewCount, scored.length)];
+      return [{ place, rating, reviewCount, visitCount: scored.length }];
     })
     .sort(
       (left, right) =>
         right.rating - left.rating ||
         right.reviewCount - left.reviewCount ||
-        left.name.localeCompare(right.name, "sv"),
+        left.place.name.localeCompare(right.place.name, "sv"),
     )
-    .slice(0, limit);
+    .map((item, index) =>
+      toDemoLeaderboardPlace(
+        item.place,
+        item.rating,
+        item.reviewCount,
+        item.visitCount,
+        index + 1,
+      ),
+    );
 
-  return { leader, items: selected };
+  const cursorIndex = cursor ? matching.findIndex((place) => place.id === cursor.id) : -1;
+  const startIndex = cursorIndex >= 0 ? cursorIndex + 1 : 0;
+  const items = matching.slice(startIndex, startIndex + limit);
+  const lastItem = items.at(-1);
+  return {
+    items,
+    nextCursor:
+      lastItem && startIndex + limit < matching.length
+        ? {
+            rating: lastItem.rating,
+            reviewCount: lastItem.reviewCount,
+            name: lastItem.name,
+            id: lastItem.id,
+          }
+        : null,
+  };
 }
 
 export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {

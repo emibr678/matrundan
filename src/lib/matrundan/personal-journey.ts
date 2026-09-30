@@ -29,6 +29,7 @@ export type PersonalJourneyPlace = z.infer<typeof personalJourneyPlaceSchema>;
 
 const personalJourneyLeaderboardPlaceSchema = personalJourneyPlaceSchema.extend({
   rating: z.coerce.number(),
+  rank: z.number().int().positive(),
   visitCount: z.number().int().nonnegative(),
 });
 
@@ -107,6 +108,13 @@ const placeCursorSchema = z.object({
   id: z.string().uuid(),
 });
 
+const toplistCursorSchema = z.object({
+  rating: z.number(),
+  reviewCount: z.number().int().nonnegative(),
+  name: z.string(),
+  id: z.string().uuid(),
+});
+
 const visitPageSchema = z.object({
   items: z.array(personalJourneyVisitSchema),
   nextCursor: visitCursorSchema.nullable(),
@@ -140,6 +148,7 @@ export type PersonalJourneyPendingReview = z.infer<typeof pendingReviewSchema>;
 export const personalJourneyPlaceSortSchema = z.enum(["rating", "recent", "name"]);
 export type PersonalJourneyPlaceSort = z.infer<typeof personalJourneyPlaceSortSchema>;
 export type PersonalJourneyPlaceCursor = z.infer<typeof placeCursorSchema>;
+export type PersonalJourneyToplistCursor = z.infer<typeof toplistCursorSchema>;
 export type PersonalJourneyVisitCursor = z.infer<typeof visitCursorSchema>;
 
 export async function loadPersonalJourneyOverview(): Promise<PersonalJourneyOverview> {
@@ -185,27 +194,33 @@ export async function loadPersonalJourneyPlaces({
 }
 
 export async function loadPersonalJourneyToplist({
+  query = "",
   occasions = [],
   mealTypes = [],
   takeawayOnly = false,
-  limit = 3,
+  cursor = null,
+  limit = 20,
 }: {
+  query?: string;
   occasions?: string[];
   mealTypes?: string[];
   takeawayOnly?: boolean;
+  cursor?: PersonalJourneyToplistCursor | null;
   limit?: number;
 } = {}) {
   return rpcClient.call(
     "get_personal_journey_toplist_v1",
     {
+      _query: query || null,
       _occasions: occasions,
       _meal_types: mealTypes,
       _takeaway_only: takeawayOnly,
+      _cursor: cursor,
       _limit: limit,
     },
     z.object({
-      leader: personalJourneyLeaderboardPlaceSchema.nullable(),
       items: z.array(personalJourneyLeaderboardPlaceSchema),
+      nextCursor: toplistCursorSchema.nullable(),
     }),
     "Kunde inte läsa Topplistan i Min matresa. Försök igen.",
   );

@@ -27,12 +27,14 @@ export interface PlaceLeaderboardItem {
 export function PlaceLeaderboardRows({
   items,
   onOpen,
+  layout = "grid",
 }: {
   items: PlaceLeaderboardItem[];
   onOpen: (item: PlaceLeaderboardItem) => void;
+  layout?: "grid" | "list";
 }) {
   return (
-    <div className="grid min-w-0 gap-2 md:grid-cols-3">
+    <div className={layout === "list" ? "grid min-w-0 gap-2" : "grid min-w-0 gap-2 md:grid-cols-3"}>
       {items.map((item, index) => (
         <button
           key={item.id}
@@ -65,6 +67,105 @@ export function PlaceLeaderboardRows({
           <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         </button>
       ))}
+    </div>
+  );
+}
+
+export function PlaceLeaderboardFilters({
+  occasions,
+  onToggleOccasion,
+  meals,
+  onToggleMeal,
+  takeawayOnly,
+  onToggleTakeaway,
+}: {
+  occasions: Occasion[];
+  onToggleOccasion: (occasion: Occasion) => void;
+  meals: RankableVisitMeal[];
+  onToggleMeal: (meal: RankableVisitMeal) => void;
+  takeawayOnly: boolean;
+  onToggleTakeaway: () => void;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <div>
+        <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
+          <span>Typ av upplevelse</span>
+          <span className="-my-1.5 inline-flex">
+            <OccasionGuide compact />
+          </span>
+        </div>
+        <div
+          className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
+          role="group"
+          aria-label="Filtrera topplistan på Typ av upplevelse. Inget val visar alla."
+        >
+          {OCCASION_VALUES.map((occasion) => {
+            const active = occasions.includes(occasion);
+            return (
+              <button
+                key={occasion}
+                type="button"
+                onClick={() => onToggleOccasion(occasion)}
+                aria-pressed={active}
+                aria-label={`Filtrera topplistan på ${OCCASION_LABEL[occasion]}`}
+                className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Badge
+                  variant={active ? "default" : "outline"}
+                  className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                >
+                  {OCCASION_LABEL[occasion]}
+                </Badge>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div>
+        <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
+        <div
+          className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
+          role="group"
+          aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
+        >
+          {RANKABLE_VISIT_MEALS.map((meal) => {
+            const active = meals.includes(meal);
+            return (
+              <button
+                key={meal}
+                type="button"
+                onClick={() => onToggleMeal(meal)}
+                aria-pressed={active}
+                aria-label={`Filtrera topplistan på ${VISIT_MEAL_LABEL[meal]}`}
+                className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Badge
+                  variant={active ? "default" : "outline"}
+                  className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+                >
+                  {VISIT_MEAL_LABEL[meal]}
+                </Badge>
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={onToggleTakeaway}
+            aria-pressed={takeawayOnly}
+            aria-label="Filtrera topplistan på hämtmat"
+            className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <Badge
+              variant={takeawayOnly ? "default" : "outline"}
+              className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
+            >
+              Hämtmat
+            </Badge>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -157,86 +258,14 @@ export function PlaceLeaderboard({
         </div>
 
         <CollapsibleContent className="pt-1.5">
-          <div className="space-y-1.5">
-            <div>
-              <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                <span>Typ av upplevelse</span>
-                <span className="-my-1.5 inline-flex">
-                  <OccasionGuide compact />
-                </span>
-              </div>
-              <div
-                className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
-                role="group"
-                aria-label="Filtrera topplistan på Typ av upplevelse. Inget val visar alla."
-              >
-                {OCCASION_VALUES.map((occasion) => {
-                  const active = occasions.includes(occasion);
-                  return (
-                    <button
-                      key={occasion}
-                      type="button"
-                      onClick={() => onToggleOccasion(occasion)}
-                      aria-pressed={active}
-                      aria-label={`Filtrera topplistan på ${OCCASION_LABEL[occasion]}`}
-                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Badge
-                        variant={active ? "default" : "outline"}
-                        className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                      >
-                        {OCCASION_LABEL[occasion]}
-                      </Badge>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
-              <div
-                className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
-                role="group"
-                aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
-              >
-                {RANKABLE_VISIT_MEALS.map((meal) => {
-                  const active = meals.includes(meal);
-                  return (
-                    <button
-                      key={meal}
-                      type="button"
-                      onClick={() => onToggleMeal(meal)}
-                      aria-pressed={active}
-                      aria-label={`Filtrera topplistan på ${VISIT_MEAL_LABEL[meal]}`}
-                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Badge
-                        variant={active ? "default" : "outline"}
-                        className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                      >
-                        {VISIT_MEAL_LABEL[meal]}
-                      </Badge>
-                    </button>
-                  );
-                })}
-                <button
-                  type="button"
-                  onClick={onToggleTakeaway}
-                  aria-pressed={takeawayOnly}
-                  aria-label="Filtrera topplistan på hämtmat"
-                  className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                  <Badge
-                    variant={takeawayOnly ? "default" : "outline"}
-                    className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                  >
-                    Hämtmat
-                  </Badge>
-                </button>
-              </div>
-            </div>
-          </div>
+          <PlaceLeaderboardFilters
+            occasions={occasions}
+            onToggleOccasion={onToggleOccasion}
+            meals={meals}
+            onToggleMeal={onToggleMeal}
+            takeawayOnly={takeawayOnly}
+            onToggleTakeaway={onToggleTakeaway}
+          />
 
           <div className="mt-3">
             {items.length > 0 ? (
