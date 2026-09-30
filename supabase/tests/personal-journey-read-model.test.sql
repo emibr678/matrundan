@@ -240,7 +240,7 @@ SELECT ok(
 SELECT ok(
   pg_catalog.has_function_privilege(
     'authenticated',
-    'public.get_personal_journey_toplist_v1(text[],text[],boolean,integer)',
+    'public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)',
     'EXECUTE'
   ),
   'authenticated can execute the personal Topplista'
@@ -249,7 +249,7 @@ SELECT ok(
 SELECT ok(
   NOT pg_catalog.has_function_privilege(
     'anon',
-    'public.get_personal_journey_toplist_v1(text[],text[],boolean,integer)',
+    'public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)',
     'EXECUTE'
   ),
   'anon cannot execute the personal Topplista'
@@ -311,29 +311,40 @@ SELECT is(
 );
 
 SELECT is(
-  public.get_personal_journey_toplist_v1(ARRAY['avslappnat'], ARRAY['middag'], false, 3)
+  public.get_personal_journey_toplist_v1(NULL, ARRAY['avslappnat'], ARRAY['middag'], false, NULL, 3)
     ->'items'->0->>'id',
   '10920000-0000-4000-8000-000000000001',
   'Topplista filters by a readable group experience and visit context'
 );
 
 SELECT is(
+  (
+    public.get_personal_journey_toplist_v1(
+      NULL, ARRAY[]::text[], ARRAY[]::text[], false, NULL, 1
+    )->'items'->0->>'rank'
+  )::integer,
+  1,
+  'Topplista returns a stable absolute rank'
+);
+
+
+SELECT is(
   jsonb_array_length(
-    public.get_personal_journey_toplist_v1(ARRAY['snabbt'], ARRAY['middag'], false, 3)->'items'
+    public.get_personal_journey_toplist_v1(NULL, ARRAY['snabbt'], ARRAY['middag'], false, NULL, 3)->'items'
   ),
   0,
   'Topplista does not invent ratings for an experience without matching scored visits'
 );
 
 SELECT throws_ok(
-  $SELECT public.get_personal_journey_toplist_v1(ARRAY['hemlig'], ARRAY[]::text[], false, 3)$,
+  $SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY['hemlig'], ARRAY[]::text[], false, NULL, 3)$,
   'P0001',
   'Ogiltig typ av upplevelse',
   'unknown experience filters are rejected server-side'
 );
 
 SELECT throws_ok(
-  $SELECT public.get_personal_journey_toplist_v1(ARRAY[]::text[], ARRAY['kväll'], false, 3)$,
+  $SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY[]::text[], ARRAY['kväll'], false, NULL, 3)$,
   'P0001',
   'Ogiltigt tillfälle',
   'unknown Topplista meal filters are rejected server-side'
