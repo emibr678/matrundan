@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -16,6 +15,58 @@ import type {
   PersonalJourneyStatsLeaderboardEntry,
   PersonalJourneyStatsMetric,
 } from "@/lib/matrundan/personal-journey";
+
+export const PERSONAL_STATS_METRICS: readonly {
+  id: PersonalJourneyStatsMetric;
+  label: string;
+  value: (stats: PersonalJourneyGlobalStats) => number;
+}[] = [
+  { id: "visits", label: "Besök", value: (stats) => stats.visits },
+  { id: "places", label: "Ställen", value: (stats) => stats.uniquePlaces },
+  { id: "cuisines", label: "Kök", value: (stats) => stats.uniqueCuisines },
+] as const;
+
+function StatBox({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="rounded-xl bg-muted/60 px-3 py-2.5 text-center">
+      <div className="font-display text-xl font-semibold">{value}</div>
+      <div className="text-[11px] text-muted-foreground">{label}</div>
+    </div>
+  );
+}
+
+function LevelLine({ visits }: { visits: number }) {
+  const level = levelForCount(visits);
+  const progress =
+    level.nextThreshold == null
+      ? 100
+      : Math.max(
+          0,
+          Math.min(
+            100,
+            ((visits - level.threshold) / (level.nextThreshold - level.threshold)) * 100,
+          ),
+        );
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between gap-3 text-xs">
+        <span className="flex items-center gap-1.5 font-medium">
+          <Sparkles className="h-3.5 w-3.5 text-primary" aria-hidden="true" />
+          {level.name}
+        </span>
+        {level.nextThreshold != null ? (
+          <span className="text-muted-foreground">
+            {visits}/{level.nextThreshold} till {level.nextName}
+          </span>
+        ) : (
+          <span className="text-muted-foreground">Högsta nivån</span>
+        )}
+      </div>
+      <Progress value={progress} className="h-1.5" />
+    </div>
+  );
+}
 
 export function PersonalJourneyOwnStats({
   stats,
@@ -51,7 +102,8 @@ export function PersonalJourneyOwnStats({
 
       <div className="mt-3">
         <LevelLine visits={stats.visits} />
-      </div>    </Card>
+      </div>
+    </Card>
   );
 }
 

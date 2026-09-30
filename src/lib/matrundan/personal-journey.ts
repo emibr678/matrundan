@@ -114,10 +114,10 @@ const personalJourneyGlobalStatsSchema = z.object({
 const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema
   .omit({ groupCount: true })
   .extend({
-  isSelf: z.boolean(),
-  rank: z.number().int().positive(),
-  value: z.number().int().nonnegative(),
-});
+    isSelf: z.boolean(),
+    rank: z.number().int().positive(),
+    value: z.number().int().nonnegative(),
+  });
 
 const personalJourneyStatsSchema = z.object({
   self: personalJourneyGlobalStatsSchema,
