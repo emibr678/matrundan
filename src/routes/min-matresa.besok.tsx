@@ -7,10 +7,16 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck } from "lucide-react";
+import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck, UsersRound } from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
 import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
+import {
+  PERSONAL_STATS_METRICS,
+  PersonalJourneyOwnStats,
+  PersonalJourneyPeopleRanking,
+  PersonalJourneyPersonStatsDialog,
+} from "@/components/matrundan/PersonalJourneyStats";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,11 +30,15 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { appPageTitle } from "@/lib/app-environment";
 import {
+  loadPersonalJourneyStats,
   loadPersonalJourneyVisit,
   loadPersonalJourneyVisits,
+  personalJourneyStatsMetricSchema,
   type PersonalJourneyGroup,
+  type PersonalJourneyStatsLeaderboardEntry,
 } from "@/lib/matrundan/personal-journey";
 import {
+  demoPersonalJourneyStats,
   demoPersonalJourneyVisit,
   demoPersonalJourneyVisits,
 } from "@/lib/matrundan/personal-journey-demo";
@@ -38,9 +48,10 @@ import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
 import { formatRating } from "@/lib/matrundan/version";
 
-const defaults = { participated: true };
+const defaults = { participated: true, metric: "visits" as const };
 const searchSchema = z.object({
   participated: fallback(z.boolean(), true).default(true),
+  metric: fallback(personalJourneyStatsMetricSchema, "visits").default("visits"),
   visit: z.string().uuid().optional(),
 });
 
@@ -49,17 +60,17 @@ export const Route = createFileRoute("/min-matresa/besok")({
   search: { middlewares: [stripSearchParams(defaults)] },
   head: () => ({
     meta: [
-      { title: appPageTitle("Mina besök") },
+      { title: appPageTitle("Statistik") },
       {
         name: "description",
-        content: "Besök som är synliga för dig genom dina grupper, utan dubbletter.",
+        content: "Din samlade Matrundan-statistik, personer du delar grupper med och din besökshistorik.",
       },
     ],
   }),
-  component: PersonalJourneyVisits,
+  component: PersonalJourneyStatsRoute,
 });
 
-function PersonalJourneyVisits() {
+function PersonalJourneyStatsRoute() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/min-matresa/besok" });
   const location = useRouterState({ select: (state) => state.location });
@@ -69,6 +80,18 @@ function PersonalJourneyVisits() {
     visitId: string;
     groups: PersonalJourneyGroup[];
   } | null>(null);
+  const [selectedPerson, setSelectedPerson] =
+    React.useState<PersonalJourneyStatsLeaderboardEntry | null>(null);
+
+  const stats = useQuery({
+    queryKey: ["personal-journey", "stats", mode, search.metric],
+    retry: false,
+    queryFn: () =>
+      mode === "demo"
+        ? Promise.resolve(demoPersonalJourneyStats(search.metric))
+        : loadPersonalJourneyStats(search.metric),
+  });
+
   const visits = useInfiniteQuery({
     queryKey: ["personal-journey", "visits", mode, search.participated],
     retry: false,
@@ -80,6 +103,7 @@ function PersonalJourneyVisits() {
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
   const items = visits.data?.pages.flatMap((page) => page.items) ?? [];
+
   const detail = useQuery({
     queryKey: ["personal-journey", "visit", mode, search.visit],
     retry: false,
@@ -125,92 +149,180 @@ function PersonalJourneyVisits() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-6 pt-3">
+    <div className="mx-auto max-w-3xl space-y-6 pb-6 pt-3">
       <header>
-        <h2 className="font-display text-2xl font-semibold md:text-3xl">Mina besök</h2>
+        <h2 className="font-display text-2xl font-semibold md:text-3xl">Statistik</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Samma besök visas bara en gång, även när det delas mellan flera grupper.
+          Din samlade matresa och lite vänskaplig jämförelse med Matrundare du känner.
         </p>
       </header>
 
-      <Card className="rounded-2xl border-border/70 p-3">
-        <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
-          <span>
-            <span className="flex items-center gap-2 text-sm font-medium">
-              <UserRoundCheck className="h-4 w-4 text-primary" aria-hidden="true" />
-              Bara besök jag var med på
-            </span>
-            <span className="mt-0.5 block text-xs text-muted-foreground">
-              Stäng av för att även se andra synliga gruppbesök.
-            </span>
-          </span>
-          <Switch
-            checked={search.participated}
-            onCheckedChange={(checked) =>
-              void navigate({
-                search: { participated: checked, visit: undefined },
-                state: (previous) => previous,
-              })
-            }
-            aria-label="Bara besök jag var med på"
-          />
-        </label>
-      </Card>
+      <section aria-labelledby="own-stats-heading">
+        <h3 id="own-stats-heading" className="sr-only">
+          Din statistik
+        </h3>
+        {stats.isPending ? (
+          <Card className="animate-pulse rounded-2xl p-5 text-sm text-muted-foreground">
+            Hämtar statistik…
+          </Card>
+        ) : stats.isError ? (
+          <Card className="rounded-2xl border-destructive/30 p-4">
+            <p className="text-sm font-medium">Statistiken kunde inte hämtas</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Besökshistoriken går fortfarande att använda nedan.
+            </p>
+            <Button className="mt-3" size="sm" variant="outline" onClick={() => void stats.refetch()}>
+              <RotateCcw className="h-4 w-4" /> Försök igen
+            </Button>
+          </Card>
+        ) : (
+          <PersonalJourneyOwnStats stats={stats.data.self} />
+        )}
+      </section>
 
-      {visits.isPending ? (
-        <Card className="animate-pulse rounded-2xl p-6 text-sm text-muted-foreground">
-          Hämtar besök…
-        </Card>
-      ) : visits.isError ? (
-        <Card className="rounded-2xl border-destructive/30 p-6 text-center">
-          <p className="text-sm text-muted-foreground">Besöken kunde inte hämtas.</p>
-          <Button className="mt-3" variant="outline" onClick={() => void visits.refetch()}>
-            <RotateCcw className="h-4 w-4" /> Försök igen
-          </Button>
-        </Card>
-      ) : items.length === 0 ? (
-        <Card className="rounded-2xl border-dashed p-7 text-center">
-          <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
-          <h2 className="mt-2 font-medium">Inga besök att visa</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {search.participated
-              ? "Inga synliga besök är markerade med dig som deltagare."
-              : "Besök från dina grupper visas här när de finns."}
-          </p>
-        </Card>
-      ) : (
-        <>
-          <p className="text-xs text-muted-foreground" aria-live="polite">
-            {items.length} {items.length === 1 ? "besök visat" : "besök visade"}
-          </p>
-          <div className="space-y-2">
-            {items.map((visit) => (
-              <PersonalJourneyVisitCard
-                key={visit.id}
-                visit={visit}
-                onOpen={() =>
+      {stats.data ? (
+        <section aria-labelledby="people-stats-heading">
+          <div className="mb-3">
+            <div className="flex items-center gap-2">
+              <UsersRound className="h-4 w-4 text-primary" aria-hidden="true" />
+              <h3 id="people-stats-heading" className="font-display text-xl font-semibold">
+                Matrundare du känner
+              </h3>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Du och personer du delar minst en aktiv grupp med. Siffrorna är samlade över hela
+              personens Matrundan.
+            </p>
+          </div>
+
+          <div
+            className="mb-3 grid grid-cols-3 gap-1 rounded-xl bg-muted/60 p-1"
+            role="group"
+            aria-label="Välj statistikmått"
+          >
+            {PERSONAL_STATS_METRICS.map((metric) => (
+              <button
+                key={metric.id}
+                type="button"
+                aria-pressed={search.metric === metric.id}
+                onClick={() =>
                   void navigate({
-                    search: { ...search, visit: visit.id },
+                    search: { ...search, metric: metric.id, visit: undefined },
                     state: (previous) => previous,
                   })
                 }
-              />
+                className={[
+                  "min-h-10 rounded-lg px-2 text-xs font-medium transition-colors",
+                  search.metric === metric.id
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground",
+                ].join(" ")}
+              >
+                {metric.label}
+              </button>
             ))}
           </div>
-          {visits.hasNextPage ? (
-            <div className="flex justify-center pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                disabled={visits.isFetchingNextPage}
-                onClick={() => void visits.fetchNextPage()}
-              >
-                {visits.isFetchingNextPage ? "Hämtar…" : "Visa fler"}
-              </Button>
+
+          <PersonalJourneyPeopleRanking
+            people={stats.data.leaderboard}
+            metric={search.metric}
+            onSelect={setSelectedPerson}
+          />
+        </section>
+      ) : null}
+
+      <section aria-labelledby="visit-history-heading">
+        <div className="mb-3">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 text-primary" aria-hidden="true" />
+            <h3 id="visit-history-heading" className="font-display text-xl font-semibold">
+              Besökshistorik
+            </h3>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Samma faktiska besök visas bara en gång även om det delas mellan grupper.
+          </p>
+        </div>
+
+        <Card className="mb-3 rounded-2xl border-border/70 p-3">
+          <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
+            <span>
+              <span className="flex items-center gap-2 text-sm font-medium">
+                <UserRoundCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+                Bara besök jag var med på
+              </span>
+              <span className="mt-0.5 block text-xs text-muted-foreground">
+                Stäng av för att även se andra synliga gruppbesök.
+              </span>
+            </span>
+            <Switch
+              checked={search.participated}
+              onCheckedChange={(checked) =>
+                void navigate({
+                  search: { ...search, participated: checked, visit: undefined },
+                  state: (previous) => previous,
+                })
+              }
+              aria-label="Bara besök jag var med på"
+            />
+          </label>
+        </Card>
+
+        {visits.isPending ? (
+          <Card className="animate-pulse rounded-2xl p-6 text-sm text-muted-foreground">
+            Hämtar besök…
+          </Card>
+        ) : visits.isError ? (
+          <Card className="rounded-2xl border-destructive/30 p-6 text-center">
+            <p className="text-sm text-muted-foreground">Besöken kunde inte hämtas.</p>
+            <Button className="mt-3" variant="outline" onClick={() => void visits.refetch()}>
+              <RotateCcw className="h-4 w-4" /> Försök igen
+            </Button>
+          </Card>
+        ) : items.length === 0 ? (
+          <Card className="rounded-2xl border-dashed p-7 text-center">
+            <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" aria-hidden="true" />
+            <h4 className="mt-2 font-medium">Inga besök att visa</h4>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {search.participated
+                ? "Inga synliga besök är markerade med dig som deltagare."
+                : "Besök från dina grupper visas här när de finns."}
+            </p>
+          </Card>
+        ) : (
+          <>
+            <p className="mb-2 text-xs text-muted-foreground" aria-live="polite">
+              {items.length} {items.length === 1 ? "besök visat" : "besök visade"}
+            </p>
+            <div className="space-y-2">
+              {items.map((visit) => (
+                <PersonalJourneyVisitCard
+                  key={visit.id}
+                  visit={visit}
+                  onOpen={() =>
+                    void navigate({
+                      search: { ...search, visit: visit.id },
+                      state: (previous) => previous,
+                    })
+                  }
+                />
+              ))}
             </div>
-          ) : null}
-        </>
-      )}
+            {visits.hasNextPage ? (
+              <div className="flex justify-center pt-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={visits.isFetchingNextPage}
+                  onClick={() => void visits.fetchNextPage()}
+                >
+                  {visits.isFetchingNextPage ? "Hämtar…" : "Visa fler"}
+                </Button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </section>
 
       <Dialog
         open={Boolean(search.visit)}
@@ -324,6 +436,14 @@ function PersonalJourneyVisits() {
           )}
         </DialogContent>
       </Dialog>
+
+      <PersonalJourneyPersonStatsDialog
+        person={selectedPerson}
+        open={Boolean(selectedPerson)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedPerson(null);
+        }}
+      />
 
       <PersonalJourneyReviewGroupDialog
         open={Boolean(reviewGroupChoice)}
