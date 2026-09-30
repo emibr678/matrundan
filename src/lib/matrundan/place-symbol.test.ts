@@ -65,6 +65,12 @@ describe("place-symbol", () => {
         cuisines: ["Pizza", "Sushi"],
       }),
     ).toBe("🍽️");
+    expect(
+      resolvePlaceSymbol({
+        category: "restaurang",
+        cuisines: ["Pizza", "Sushi", "Italienskt"],
+      }),
+    ).toBe("🍽️");
   });
 
   test("använder ett tydligt kök när ingen konkret inriktning finns", () => {
