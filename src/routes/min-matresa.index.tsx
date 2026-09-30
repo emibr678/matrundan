@@ -6,16 +6,21 @@ import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
 import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
+import { PersonalJourneyOwnStats } from "@/components/matrundan/PersonalJourneyStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
 import {
   loadPersonalJourneyOverview,
+  loadPersonalJourneyStats,
   type PersonalJourneyGroup,
   type PersonalJourneyPendingReview,
 } from "@/lib/matrundan/personal-journey";
-import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
+import {
+  DEMO_PERSONAL_JOURNEY_OVERVIEW,
+  demoPersonalJourneyStats,
+} from "@/lib/matrundan/personal-journey-demo";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
@@ -54,6 +59,14 @@ function PersonalJourneyOverview() {
   const { mode, activeGroupId, selectGroup } = useSession();
   const [reviewGroupChoice, setReviewGroupChoice] =
     React.useState<PersonalJourneyPendingReview | null>(null);
+  const stats = useQuery({
+    queryKey: ["personal-journey", "stats", mode, "visits"],
+    retry: false,
+    queryFn: () =>
+      mode === "demo"
+        ? Promise.resolve(demoPersonalJourneyStats("visits"))
+        : loadPersonalJourneyStats("visits"),
+  });
   const overview = useQuery({
     queryKey: ["personal-journey", "overview", mode],
     retry: false,
@@ -121,13 +134,19 @@ function PersonalJourneyOverview() {
           En snabb överblick över det du behöver följa upp, ställena med högst betyg och dina
           senaste besök.
         </p>
-        <p className="mt-2 text-xs font-medium text-muted-foreground">
-          {summaryText(
-            data.summary.attendedVisitCount,
-            data.summary.attendedPlaceCount,
-            data.summary.readableGroupCount,
-          )}
-        </p>
+        {stats.data ? (
+          <div className="mt-3">
+            <PersonalJourneyOwnStats stats={stats.data.self} compact />
+          </div>
+        ) : (
+          <p className="mt-2 text-xs font-medium text-muted-foreground">
+            {summaryText(
+              data.summary.attendedVisitCount,
+              data.summary.attendedPlaceCount,
+              data.summary.readableGroupCount,
+            )}
+          </p>
+        )}
       </div>
 
       {data.pendingReviews.length > 0 ? (
@@ -235,7 +254,7 @@ function PersonalJourneyOverview() {
           </div>
           <Button asChild variant="ghost" size="sm" className="rounded-full">
             <Link to="/min-matresa/besok" state={(previous) => previous}>
-              Visa alla <ArrowRight className="h-4 w-4" />
+              Visa statistik <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>

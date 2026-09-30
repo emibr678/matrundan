@@ -6,7 +6,7 @@ import {
   useNavigate,
   useRouterState,
 } from "@tanstack/react-router";
-import { CalendarDays, Home, MoveLeft, Trophy } from "lucide-react";
+import { Activity, Home, MoveLeft, Trophy } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -24,7 +24,7 @@ const personalJourneySearchSchema = z.object({
 const PERSONAL_NAV = [
   { to: "/min-matresa", label: "Översikt", icon: Home },
   { to: "/min-matresa/matstallen", label: "Topplista", icon: Trophy },
-  { to: "/min-matresa/besok", label: "Besök", icon: CalendarDays },
+  { to: "/min-matresa/besok", label: "Statistik", icon: Activity },
 ] as const;
 
 export const Route = createFileRoute("/min-matresa")({
@@ -48,7 +48,6 @@ function PersonalJourneyLayout() {
     availableGroups[0] ??
     null;
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
-  const groupEmoji = activeGroup?.emoji ?? fallbackGroup?.emoji ?? state.group.emoji ?? "🍽️";
 
   function keepReturnContext(previous: typeof location.state) {
     return {
@@ -97,9 +96,7 @@ function PersonalJourneyLayout() {
           onClick={exitPersonalJourney}
         >
           <MoveLeft className="h-4 w-4 shrink-0" />
-          <span className="truncate">
-            Tillbaka till {groupEmoji} {groupName}
-          </span>
+          <span className="truncate">{groupName}</span>
         </Button>
 
         <div className="mt-1">

@@ -5,6 +5,8 @@ import type {
   PersonalJourneyPlaceCursor,
   PersonalJourneyPlaceDetail,
   PersonalJourneyToplistCursor,
+  PersonalJourneyStats,
+  PersonalJourneyStatsMetric,
   PersonalJourneyVisit,
   PersonalJourneyVisitDetail,
 } from "./personal-journey";
@@ -215,6 +217,71 @@ export function demoPersonalJourneyToplist({
             id: lastItem.id,
           }
         : null,
+  };
+}
+
+const DEMO_GLOBAL_PEOPLE = [
+  {
+    displayName: "Alex",
+    avatarEmoji: "😋",
+    visits: 17,
+    uniquePlaces: 12,
+    uniqueCuisines: 8,
+    badgeIds: ["first-round", "world-taster", "broad-register", "regular"] as const,
+    isSelf: true,
+  },
+  {
+    displayName: "Sam",
+    avatarEmoji: "🍜",
+    visits: 24,
+    uniquePlaces: 18,
+    uniqueCuisines: 11,
+    badgeIds: ["first-round", "world-taster", "broad-register"] as const,
+    isSelf: false,
+  },
+  {
+    displayName: "Nora",
+    avatarEmoji: "🥐",
+    visits: 9,
+    uniquePlaces: 8,
+    uniqueCuisines: 6,
+    badgeIds: ["first-round", "world-taster"] as const,
+    isSelf: false,
+  },
+];
+
+export function demoPersonalJourneyStats(
+  metric: PersonalJourneyStatsMetric = "visits",
+): PersonalJourneyStats {
+  const valueFor = (person: (typeof DEMO_GLOBAL_PEOPLE)[number]) =>
+    metric === "visits"
+      ? person.visits
+      : metric === "places"
+        ? person.uniquePlaces
+        : person.uniqueCuisines;
+  const sorted = DEMO_GLOBAL_PEOPLE.map((person) => ({ ...person, value: valueFor(person) })).sort(
+    (left, right) =>
+      right.value - left.value || left.displayName.localeCompare(right.displayName, "sv"),
+  );
+  let previousValue: number | null = null;
+  let previousRank = 0;
+  const leaderboard = sorted.map((person, index) => {
+    const rank = previousValue !== null && person.value === previousValue ? previousRank : index + 1;
+    previousValue = person.value;
+    previousRank = rank;
+    return { ...person, badgeIds: [...person.badgeIds], rank };
+  });
+  const self = leaderboard.find((person) => person.isSelf)!;
+  return {
+    self: {
+      displayName: self.displayName,
+      avatarEmoji: self.avatarEmoji,
+      visits: self.visits,
+      uniquePlaces: self.uniquePlaces,
+      uniqueCuisines: self.uniqueCuisines,
+      badgeIds: [...self.badgeIds],
+    },
+    leaderboard,
   };
 }
 

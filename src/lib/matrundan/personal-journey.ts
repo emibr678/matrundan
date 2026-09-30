@@ -100,6 +100,30 @@ const personalJourneyVisitDetailSchema = personalJourneyVisitSchema
 
 export type PersonalJourneyVisitDetail = z.infer<typeof personalJourneyVisitDetailSchema>;
 
+export const personalJourneyStatsMetricSchema = z.enum(["visits", "places", "cuisines"]);
+
+const globalBadgeIdSchema = z.enum(["first-round", "world-taster", "broad-register", "regular"]);
+
+const personalJourneyGlobalStatsSchema = z.object({
+  displayName: z.string(),
+  avatarEmoji: z.string().nullable(),
+  visits: z.number().int().nonnegative(),
+  uniquePlaces: z.number().int().nonnegative(),
+  uniqueCuisines: z.number().int().nonnegative(),
+  badgeIds: z.array(globalBadgeIdSchema),
+});
+
+const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema.extend({
+  isSelf: z.boolean(),
+  rank: z.number().int().positive(),
+  value: z.number().int().nonnegative(),
+});
+
+const personalJourneyStatsSchema = z.object({
+  self: personalJourneyGlobalStatsSchema,
+  leaderboard: z.array(personalJourneyStatsLeaderboardEntrySchema),
+});
+
 const visitCursorSchema = z.object({ visitedOn: z.string(), id: z.string().uuid() });
 const placeCursorSchema = z.object({
   rating: z.number().nullable(),
@@ -145,12 +169,29 @@ const overviewSchema = z.object({
 });
 
 export type PersonalJourneyOverview = z.infer<typeof overviewSchema>;
+export type PersonalJourneyStatsMetric = z.infer<typeof personalJourneyStatsMetricSchema>;
+export type PersonalJourneyGlobalStats = z.infer<typeof personalJourneyGlobalStatsSchema>;
+export type PersonalJourneyStatsLeaderboardEntry = z.infer<
+  typeof personalJourneyStatsLeaderboardEntrySchema
+>;
+export type PersonalJourneyStats = z.infer<typeof personalJourneyStatsSchema>;
 export type PersonalJourneyPendingReview = z.infer<typeof pendingReviewSchema>;
 export const personalJourneyPlaceSortSchema = z.enum(["rating", "recent", "name"]);
 export type PersonalJourneyPlaceSort = z.infer<typeof personalJourneyPlaceSortSchema>;
 export type PersonalJourneyPlaceCursor = z.infer<typeof placeCursorSchema>;
 export type PersonalJourneyToplistCursor = z.infer<typeof toplistCursorSchema>;
 export type PersonalJourneyVisitCursor = z.infer<typeof visitCursorSchema>;
+
+export async function loadPersonalJourneyStats(
+  metric: PersonalJourneyStatsMetric = "visits",
+): Promise<PersonalJourneyStats> {
+  return rpcClient.call(
+    "get_personal_journey_stats_v1",
+    { _metric: metric },
+    personalJourneyStatsSchema,
+    "Kunde inte läsa din statistik. Försök igen.",
+  );
+}
 
 export async function loadPersonalJourneyOverview(): Promise<PersonalJourneyOverview> {
   return rpcClient.call(
