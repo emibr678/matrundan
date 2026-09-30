@@ -129,7 +129,7 @@ export function PlaceLocationRefresh() {
     ? placeLocationLabel(details.location)
     : "Ingen säker adress hittad";
   const currentWebsiteLabel = websiteUrl ?? "Ingen webbplats för gruppen";
-  const externalWebsiteLabel = details?.website ?? "Ingen webbplats i kartdatan";
+  const externalWebsiteLabel = details?.website ?? "Ingen webbplats hittad";
   const currentOpeningHoursLabel = openingHoursSummary(openingHours, details?.timezone ?? null);
   const externalOpeningHoursLabel = openingHoursSummary(
     details?.openingHours ?? null,
