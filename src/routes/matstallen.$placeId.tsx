@@ -318,8 +318,8 @@ function PlaceDetail() {
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold">
                       {pendingReviewVisits.length === 1
-                        ? "Ditt omdöme saknas"
-                        : `${pendingReviewVisits.length} besök här väntar på ditt omdöme`}
+                        ? "Lämna ditt omdöme"
+                        : `${pendingReviewVisits.length} besök här att tycka till om`}
                     </p>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       {pendingReviewVisits.length === 1
@@ -415,7 +415,7 @@ function PlaceDetail() {
                     ? "Du kan utforska stället och gruppens påhittade besök, men inte ändra exempeldata."
                     : `Tidigare besök, betyg, kommentarer och favoriter finns kvar.${
                         placeRemoved && !groupArchived
-                          ? " En ägare eller admin kan lägga tillbaka stället för nya besök och planering."
+                          ? " En ägare eller administratör kan lägga tillbaka stället för nya besök och planering."
                           : " Återaktivera gruppen för att göra ändringar."
                       }`}
                 </p>
@@ -502,7 +502,7 @@ function PlaceDetail() {
                       {pendingReview ? (
                         <div className="mt-1 flex items-center gap-1 text-xs font-medium text-primary">
                           <MessageCircle className="h-3.5 w-3.5 shrink-0" />
-                          <span>Ditt omdöme saknas</span>
+                          <span>Lämna ditt omdöme</span>
                         </div>
                       ) : null}
                       <div className="mt-1 flex flex-wrap gap-1">
