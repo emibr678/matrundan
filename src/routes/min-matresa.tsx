@@ -48,6 +48,7 @@ function PersonalJourneyLayout() {
     availableGroups[0] ??
     null;
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
+  const groupEmoji = activeGroup?.emoji ?? fallbackGroup?.emoji ?? state.group.emoji ?? "🍽️";
 
   function keepReturnContext(previous: typeof location.state) {
     return {
@@ -96,7 +97,9 @@ function PersonalJourneyLayout() {
           onClick={exitPersonalJourney}
         >
           <MoveLeft className="h-4 w-4 shrink-0" />
-          <span className="truncate">Till {groupName}</span>
+          <span className="truncate">
+            Tillbaka till {groupEmoji} {groupName}
+          </span>
         </Button>
 
         <div className="mt-1">

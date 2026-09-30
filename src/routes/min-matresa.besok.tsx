@@ -38,9 +38,9 @@ import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
 import { formatRating } from "@/lib/matrundan/version";
 
-const defaults = { participated: false };
+const defaults = { participated: true };
 const searchSchema = z.object({
-  participated: fallback(z.boolean(), false).default(false),
+  participated: fallback(z.boolean(), true).default(true),
   visit: z.string().uuid().optional(),
 });
 
@@ -133,14 +133,15 @@ function PersonalJourneyVisits() {
         </p>
       </header>
 
-      <Card className="rounded-2xl border-border/70 p-4">
+      <Card className="rounded-2xl border-border/70 p-3">
         <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
           <span>
             <span className="flex items-center gap-2 text-sm font-medium">
-              <UserRoundCheck className="h-4 w-4 text-primary" aria-hidden="true" /> Jag var med
+              <UserRoundCheck className="h-4 w-4 text-primary" aria-hidden="true" />
+              Bara besök jag var med på
             </span>
             <span className="mt-0.5 block text-xs text-muted-foreground">
-              Visa bara besök där du står som deltagare.
+              Stäng av för att även se andra synliga gruppbesök.
             </span>
           </span>
           <Switch
@@ -151,7 +152,7 @@ function PersonalJourneyVisits() {
                 state: (previous) => previous,
               })
             }
-            aria-label="Visa bara besök jag deltog i"
+            aria-label="Bara besök jag var med på"
           />
         </label>
       </Card>
@@ -182,7 +183,7 @@ function PersonalJourneyVisits() {
           <p className="text-xs text-muted-foreground" aria-live="polite">
             {items.length} {items.length === 1 ? "besök visat" : "besök visade"}
           </p>
-          <div className="space-y-3">
+          <div className="space-y-2">
             {items.map((visit) => (
               <PersonalJourneyVisitCard
                 key={visit.id}

@@ -1,4 +1,5 @@
-import { CalendarDays, Heart, MapPin, UserRoundCheck } from "lucide-react";
+import { Heart, MapPin, UserRoundCheck } from "lucide-react";
+import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { Card } from "@/components/ui/card";
 import { PlaceSummary, VisitSummary } from "./SummaryCardContent";
 import type {
@@ -7,7 +8,9 @@ import type {
   PersonalJourneyVisit,
 } from "@/lib/matrundan/personal-journey";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
+import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
+import type { PlaceCategory } from "@/lib/matrundan/types";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
 
 function GroupContext({ groups }: { groups: PersonalJourneyGroup[] }) {
@@ -69,17 +72,16 @@ export function PersonalJourneyVisitCard({
   onOpen?: () => void;
 }) {
   const context = `${visitMealLabel(visit.mealType)}${visit.isTakeaway ? " · Hämtmat" : ""}`;
+  const category = (visit.category ?? "restaurang") as PlaceCategory;
   const content = (
-    <Card className="rounded-2xl border-border/70 p-3 transition-colors hover:bg-accent/35">
+    <Card className="rounded-2xl border-border/70 p-2.5 transition-colors hover:bg-accent/35">
       <VisitSummary
         placeName={visit.placeName}
         meta={`${formatOwnVisitDate(visit.visitedOn)} · ${context}`}
         rating={visit.rating}
         reviewCount={visit.reviewCount}
         leading={
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-secondary text-secondary-foreground">
-            <CalendarDays className="h-4 w-4" aria-hidden="true" />
-          </div>
+          <PlaceIdentityMark category={category} symbol={emojiForCategory(category)} size="sm" />
         }
         trailing={
           visit.participated ? (

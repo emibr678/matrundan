@@ -118,8 +118,8 @@ function PersonalJourneyOverview() {
     <div className="mx-auto max-w-3xl space-y-5 pb-6 pt-4">
       <div>
         <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Här samlas ställena ni uppskattat mest, sådant du behöver följa upp och din senaste
-          gemensamma mathistorik.
+          En snabb överblick över det du behöver följa upp, ställena med högst betyg och dina
+          senaste besök.
         </p>
         <p className="mt-2 text-xs font-medium text-muted-foreground">
           {summaryText(
@@ -241,7 +241,7 @@ function PersonalJourneyOverview() {
         </div>
         {data.recentVisits.length > 0 ? (
           <div className="space-y-3">
-            {data.recentVisits.map((visit) => (
+            {data.recentVisits.slice(0, 2).map((visit) => (
               <PersonalJourneyVisitCard
                 key={visit.id}
                 visit={visit}
