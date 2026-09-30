@@ -161,7 +161,7 @@ export function PersonalJourneyPeopleRanking({
     <div className="space-y-2">
       {people.map((person, index) => (
         <button
-          key={\`\${person.displayName}-\${person.rank}-\${index}\`}
+          key={`${person.displayName}-${person.rank}-${index}`}
           type="button"
           onClick={() => onSelect(person)}
           className="flex min-h-14 w-full items-center gap-3 rounded-2xl border border-border/70 bg-card px-3 py-2.5 text-left transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -183,7 +183,7 @@ export function PersonalJourneyPeopleRanking({
             </span>
             <span className="block truncate text-xs text-muted-foreground">
               {levelForCount(person.visits).name}
-              {person.badgeIds.length > 0 ? \` · \${person.badgeIds.length} utmärkelser\` : ""}
+              {person.badgeIds.length > 0 ? ` · ${person.badgeIds.length} utmärkelser` : ""}
             </span>
           </span>
           <span className="shrink-0 text-right">
