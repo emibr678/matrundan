@@ -127,7 +127,7 @@ export function PlaceLocationRefresh() {
   const currentLocationLabel = placeLocationLabel(effectivePlace) || "Ingen säker adress";
   const externalLocationLabel = details?.location
     ? placeLocationLabel(details.location)
-    : "Ingen säker adress i kartdatan";
+    : "Ingen säker adress hittad";
   const currentWebsiteLabel = websiteUrl ?? "Ingen webbplats för gruppen";
   const externalWebsiteLabel = details?.website ?? "Ingen webbplats i kartdatan";
   const currentOpeningHoursLabel = openingHoursSummary(openingHours, details?.timezone ?? null);
@@ -225,7 +225,7 @@ export function PlaceLocationRefresh() {
                 }
               >
                 <ComparisonValue label="I Matrundan" value={currentLocationLabel} />
-                <ComparisonValue label="I kartdatan" value={externalLocationLabel} />
+                <ComparisonValue label="Hittad adress" value={externalLocationLabel} />
               </InfoSection>
 
               <InfoSection

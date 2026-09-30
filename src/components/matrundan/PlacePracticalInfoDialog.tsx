@@ -428,7 +428,7 @@ export function PlacePracticalInfoDialog({
                 />
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Lägg till en länk eller beskriv kort vad du kontrollerade. Underlaget stannar i
+                Lägg till en länk eller beskriv kort vad du kontrollerade. Det du anger stannar i
                 gruppen och används bara när ändringen behöver granskas.
               </p>
             </div>

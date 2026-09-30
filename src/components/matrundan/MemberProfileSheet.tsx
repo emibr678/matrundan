@@ -365,7 +365,7 @@ function LevelProgress({ progression }: { progression: MemberProgression }) {
           aria-valuenow={pct}
           aria-valuemin={0}
           aria-valuemax={100}
-          aria-label={`Progression mot ${level.nextName}`}
+          aria-label={`Framsteg mot nästa nivå: ${level.nextName}`}
         >
           <div
             className="h-full rounded-full bg-primary transition-all"
