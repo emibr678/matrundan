@@ -87,8 +87,6 @@ BEGIN
       allowed.user_id,
       visit.id AS visit_id,
       visit.place_id,
-      visit.visited_on,
-      place.category,
       place.cuisines
     FROM allowed_users allowed
     JOIN public.visit_participants participant
@@ -102,8 +100,7 @@ BEGIN
     SELECT
       user_id,
       count(DISTINCT visit_id)::integer AS visits,
-      count(DISTINCT place_id)::integer AS unique_places,
-      count(DISTINCT category) FILTER (WHERE category IS NOT NULL)::integer AS unique_categories
+      count(DISTINCT place_id)::integer AS unique_places
     FROM participation
     GROUP BY user_id
   ),
@@ -118,23 +115,10 @@ BEGIN
       AS cuisine(value) ON true
     GROUP BY participation.user_id
   ),
-  visits_per_place AS (
-    SELECT
-      user_id,
-      place_id,
-      count(DISTINCT visit_id)::integer AS visits_at_place
-    FROM participation
-    GROUP BY user_id, place_id
-  ),
-  regular_flags AS (
-    SELECT
-      user_id,
-      bool_or(visits_at_place >= 3) AS is_regular
-    FROM visits_per_place
-    GROUP BY user_id
-  ),
   active_group_counts AS (
-    SELECT membership.user_id, count(DISTINCT membership.group_id)::integer AS active_group_count
+    SELECT
+      membership.user_id,
+      count(DISTINCT membership.group_id)::integer AS active_group_count
     FROM public.memberships membership
     JOIN public.groups group_row
       ON group_row.id = membership.group_id
@@ -150,15 +134,12 @@ BEGIN
       COALESCE(visit_count.visits, 0)::integer AS visits,
       COALESCE(visit_count.unique_places, 0)::integer AS unique_places,
       COALESCE(cuisine_count.unique_cuisines, 0)::integer AS unique_cuisines,
-      COALESCE(active_group_count.active_group_count, 0)::integer AS active_group_count,
-      COALESCE(visit_count.unique_categories, 0)::integer AS unique_categories,
-      COALESCE(regular.is_regular, false) AS is_regular
+      COALESCE(active_group_count.active_group_count, 0)::integer AS active_group_count
     FROM allowed_users allowed
     JOIN public.profiles profile ON profile.id = allowed.user_id
     LEFT JOIN visit_counts visit_count ON visit_count.user_id = allowed.user_id
     LEFT JOIN cuisine_counts cuisine_count ON cuisine_count.user_id = allowed.user_id
     LEFT JOIN active_group_counts active_group_count ON active_group_count.user_id = allowed.user_id
-    LEFT JOIN regular_flags regular ON regular.user_id = allowed.user_id
   ),
   metric_rows AS (
     SELECT
@@ -182,13 +163,7 @@ BEGIN
     'visits', ranked.visits,
     'uniquePlaces', ranked.unique_places,
     'uniqueCuisines', ranked.unique_cuisines,
-    'groupCount', ranked.active_group_count,
-    'badgeIds', to_jsonb(array_remove(ARRAY[
-      CASE WHEN ranked.visits >= 1 THEN 'first-round' END,
-      CASE WHEN ranked.unique_cuisines >= 5 THEN 'world-taster' END,
-      CASE WHEN ranked.unique_categories >= 4 THEN 'broad-register' END,
-      CASE WHEN ranked.is_regular THEN 'regular' END
-    ]::text[], NULL))
+    'groupCount', ranked.active_group_count
   )
   INTO _self
   FROM ranked
@@ -225,7 +200,6 @@ BEGIN
       allowed.user_id,
       visit.id AS visit_id,
       visit.place_id,
-      place.category,
       place.cuisines
     FROM allowed_users allowed
     JOIN public.visit_participants participant
@@ -239,8 +213,7 @@ BEGIN
     SELECT
       user_id,
       count(DISTINCT visit_id)::integer AS visits,
-      count(DISTINCT place_id)::integer AS unique_places,
-      count(DISTINCT category) FILTER (WHERE category IS NOT NULL)::integer AS unique_categories
+      count(DISTINCT place_id)::integer AS unique_places
     FROM participation
     GROUP BY user_id
   ),
@@ -255,19 +228,6 @@ BEGIN
       AS cuisine(value) ON true
     GROUP BY participation.user_id
   ),
-  visits_per_place AS (
-    SELECT
-      user_id,
-      place_id,
-      count(DISTINCT visit_id)::integer AS visits_at_place
-    FROM participation
-    GROUP BY user_id, place_id
-  ),
-  regular_flags AS (
-    SELECT user_id, bool_or(visits_at_place >= 3) AS is_regular
-    FROM visits_per_place
-    GROUP BY user_id
-  ),
   metric_rows AS (
     SELECT
       allowed.user_id,
@@ -276,8 +236,6 @@ BEGIN
       COALESCE(visit_count.visits, 0)::integer AS visits,
       COALESCE(visit_count.unique_places, 0)::integer AS unique_places,
       COALESCE(cuisine_count.unique_cuisines, 0)::integer AS unique_cuisines,
-      COALESCE(visit_count.unique_categories, 0)::integer AS unique_categories,
-      COALESCE(regular.is_regular, false) AS is_regular,
       CASE _metric
         WHEN 'visits' THEN COALESCE(visit_count.visits, 0)
         WHEN 'places' THEN COALESCE(visit_count.unique_places, 0)
@@ -287,7 +245,6 @@ BEGIN
     JOIN public.profiles profile ON profile.id = allowed.user_id
     LEFT JOIN visit_counts visit_count ON visit_count.user_id = allowed.user_id
     LEFT JOIN cuisine_counts cuisine_count ON cuisine_count.user_id = allowed.user_id
-    LEFT JOIN regular_flags regular ON regular.user_id = allowed.user_id
   ),
   ranked AS (
     SELECT
@@ -303,12 +260,6 @@ BEGIN
         'visits', ranked.visits,
         'uniquePlaces', ranked.unique_places,
         'uniqueCuisines', ranked.unique_cuisines,
-        'badgeIds', to_jsonb(array_remove(ARRAY[
-          CASE WHEN ranked.visits >= 1 THEN 'first-round' END,
-          CASE WHEN ranked.unique_cuisines >= 5 THEN 'world-taster' END,
-          CASE WHEN ranked.unique_categories >= 4 THEN 'broad-register' END,
-          CASE WHEN ranked.is_regular THEN 'regular' END
-        ]::text[], NULL)),
         'isSelf', ranked.user_id = _uid,
         'rank', ranked.rank,
         'value', ranked.metric_value
@@ -327,8 +278,7 @@ BEGIN
       'visits', 0,
       'uniquePlaces', 0,
       'uniqueCuisines', 0,
-      'groupCount', 0,
-      'badgeIds', '[]'::jsonb
+      'groupCount', 0
     )),
     'leaderboard', _leaderboard
   );

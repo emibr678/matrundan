@@ -102,8 +102,6 @@ export type PersonalJourneyVisitDetail = z.infer<typeof personalJourneyVisitDeta
 
 export const personalJourneyStatsMetricSchema = z.enum(["visits", "places", "cuisines"]);
 
-const globalBadgeIdSchema = z.enum(["first-round", "world-taster", "broad-register", "regular"]);
-
 const personalJourneyGlobalStatsSchema = z.object({
   displayName: z.string(),
   avatarEmoji: z.string().nullable(),
@@ -111,7 +109,6 @@ const personalJourneyGlobalStatsSchema = z.object({
   uniquePlaces: z.number().int().nonnegative(),
   uniqueCuisines: z.number().int().nonnegative(),
   groupCount: z.number().int().nonnegative(),
-  badgeIds: z.array(globalBadgeIdSchema),
 });
 
 const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema

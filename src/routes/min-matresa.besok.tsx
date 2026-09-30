@@ -153,7 +153,7 @@ function PersonalJourneyStatsRoute() {
       <header>
         <h2 className="font-display text-2xl font-semibold md:text-3xl">Statistik</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Din samlade matresa och lite vänskaplig jämförelse med Matrundare du känner.
+          Din samlade statistik och lite vänskaplig jämförelse.
         </p>
       </header>
 
@@ -190,8 +190,7 @@ function PersonalJourneyStatsRoute() {
               </h3>
             </div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Du och personer du delar minst en aktiv grupp med. Siffrorna är samlade över hela
-              personens Matrundan.
+              Personer du delar grupp med, jämförda utifrån sin samlade Matrundan-statistik.
             </p>
           </div>
 

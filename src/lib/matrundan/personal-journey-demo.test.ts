@@ -73,7 +73,6 @@ describe("Min matresa-demo", () => {
   test("visar global statistik och rankar personer med samma återanvända kontrakt", () => {
     const visits = demoPersonalJourneyStats("visits");
     expect(visits.self.visits).toBe(17);
-    expect(visits.self.badgeIds).toContain("regular");
     expect(visits.leaderboard.map((person) => person.displayName)).toEqual([
       "Sam",
       "Alex",

@@ -228,7 +228,6 @@ const DEMO_GLOBAL_PEOPLE = [
     uniquePlaces: 12,
     uniqueCuisines: 8,
     groupCount: 5,
-    badgeIds: ["first-round", "world-taster", "broad-register", "regular"] as const,
     isSelf: true,
   },
   {
@@ -238,7 +237,6 @@ const DEMO_GLOBAL_PEOPLE = [
     uniquePlaces: 18,
     uniqueCuisines: 11,
     groupCount: 4,
-    badgeIds: ["first-round", "world-taster", "broad-register"] as const,
     isSelf: false,
   },
   {
@@ -248,7 +246,6 @@ const DEMO_GLOBAL_PEOPLE = [
     uniquePlaces: 8,
     uniqueCuisines: 6,
     groupCount: 2,
-    badgeIds: ["first-round", "world-taster"] as const,
     isSelf: false,
   },
 ];
@@ -272,7 +269,7 @@ export function demoPersonalJourneyStats(
     const rank = previousValue !== null && person.value === previousValue ? previousRank : index + 1;
     previousValue = person.value;
     previousRank = rank;
-    return { ...person, badgeIds: [...person.badgeIds], rank };
+    return { ...person, rank };
   });
   const self = leaderboard.find((person) => person.isSelf)!;
   return {
@@ -283,7 +280,6 @@ export function demoPersonalJourneyStats(
       uniquePlaces: self.uniquePlaces,
       uniqueCuisines: self.uniqueCuisines,
       groupCount: self.groupCount,
-      badgeIds: [...self.badgeIds],
     },
     leaderboard: leaderboard.map(({ groupCount: _groupCount, ...person }) => person),
   };
