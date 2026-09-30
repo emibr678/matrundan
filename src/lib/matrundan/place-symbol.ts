@@ -39,18 +39,6 @@ const SPECIALTY_SYMBOLS: Record<string, SymbolRule> = {
 const CUISINE_SYMBOLS: Record<string, SymbolRule> = {
   "cuisine:italian": { symbol: "🍝", family: "italian" },
   "cuisine:japanese": { symbol: "🍱", family: "japanese" },
-  "cuisine:chinese": { symbol: "🥟", family: "chinese" },
-  "cuisine:thai": { symbol: "🍛", family: "thai" },
-  "cuisine:vietnamese": { symbol: "🍜", family: "vietnamese" },
-  "cuisine:indian": { symbol: "🍛", family: "indian" },
-  "cuisine:middle-eastern": { symbol: "🧆", family: "middle-eastern" },
-  "cuisine:mexican-latin": { symbol: "🌮", family: "mexican-latin" },
-  "cuisine:mediterranean": { symbol: "🫒", family: "mediterranean" },
-  "cuisine:greek": { symbol: "🫒", family: "greek" },
-  "cuisine:french": { symbol: "🥖", family: "french" },
-  "cuisine:spanish": { symbol: "🥘", family: "spanish" },
-  "cuisine:american": { symbol: "🍔", family: "american" },
-  "cuisine:persian": { symbol: "🍚", family: "persian" },
   "cuisine:vegetarian-vegan": { symbol: "🌿", family: "vegetarian-vegan" },
 };
 
