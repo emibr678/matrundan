@@ -232,8 +232,8 @@ export function HiddenPlaceSuggestionsSection() {
               ) : null}
 
               <p className="text-xs leading-relaxed text-muted-foreground">
-                En rapport granskas privat av gruppens ägare och administratörer. Du kan alltid
-                visa träffen i sökningen igen.
+                En rapport granskas privat av gruppens ägare och administratörer. Du kan alltid visa
+                träffen i sökningen igen.
               </p>
             </div>
 
