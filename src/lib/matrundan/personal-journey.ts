@@ -111,13 +111,11 @@ const personalJourneyGlobalStatsSchema = z.object({
   groupCount: z.number().int().nonnegative(),
 });
 
-const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema
-  .omit({ groupCount: true })
-  .extend({
-    isSelf: z.boolean(),
-    rank: z.number().int().positive(),
-    value: z.number().int().nonnegative(),
-  });
+const personalJourneyStatsLeaderboardEntrySchema = personalJourneyGlobalStatsSchema.extend({
+  isSelf: z.boolean(),
+  rank: z.number().int().positive(),
+  value: z.number().int().nonnegative(),
+});
 
 const personalJourneyStatsSchema = z.object({
   self: personalJourneyGlobalStatsSchema,
