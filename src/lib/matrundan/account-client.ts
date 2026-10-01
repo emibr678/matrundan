@@ -1,9 +1,21 @@
 import { supabase } from "@/integrations/supabase/client";
+import { normalizeProfileAvatarKind, type ProfileAvatarKind } from "./avatar";
 
 export type OwnProfile = {
   displayName: string;
+  avatarKind: ProfileAvatarKind;
   avatarEmoji: string | null;
+  avatarSeed: string | null;
+  accountAvatarUrl: string | null;
 };
+
+function accountAvatarUrl(metadata: Record<string, unknown> | undefined): string | null {
+  for (const key of ["avatar_url", "picture"]) {
+    const value = metadata?.[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return null;
+}
 
 export async function loadOwnProfile(): Promise<OwnProfile | null> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -13,14 +25,17 @@ export async function loadOwnProfile(): Promise<OwnProfile | null> {
 
   const { data, error } = await supabase
     .from("profiles")
-    .select("display_name, avatar_emoji")
+    .select("display_name, avatar_kind, avatar_emoji, avatar_seed")
     .eq("id", userId)
     .maybeSingle();
   if (error) throw error;
 
   return {
     displayName: data?.display_name ?? "",
+    avatarKind: normalizeProfileAvatarKind(data?.avatar_kind),
     avatarEmoji: data?.avatar_emoji ?? null,
+    avatarSeed: data?.avatar_seed ?? null,
+    accountAvatarUrl: accountAvatarUrl(userData.user?.user_metadata as Record<string, unknown>),
   };
 }
 

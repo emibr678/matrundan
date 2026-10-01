@@ -24,6 +24,7 @@ import {
 } from "@/lib/matrundan/live-admin";
 import { formatDate } from "@/lib/matrundan/store";
 import { APP_NAME } from "@/lib/matrundan/version";
+import { MemberAvatar } from "./MemberAvatar";
 
 const INITIAL_CANDIDATE_LIMIT = 6;
 
@@ -283,17 +284,14 @@ export function GroupInviteDialog({
                         (pending ? " opacity-70" : "")
                       }
                     >
-                      <span className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-full bg-muted text-lg">
-                        {candidate.avatar_url ? (
-                          <img
-                            src={candidate.avatar_url}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          candidate.avatar_emoji || candidate.display_name.slice(0, 1).toUpperCase()
-                        )}
-                      </span>
+                      <MemberAvatar
+                        member={{
+                          name: candidate.display_name,
+                          avatar: candidate.avatar_emoji,
+                          avatarImage: candidate.avatar_url,
+                        }}
+                        size={40}
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-medium">{candidate.display_name}</span>
                         <span className="block truncate text-xs text-muted-foreground">

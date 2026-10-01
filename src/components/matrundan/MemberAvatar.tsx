@@ -1,45 +1,41 @@
 import * as React from "react";
-import type { Member } from "@/lib/matrundan/types";
+import { UserRound } from "lucide-react";
+import { avatarImageSrc } from "@/lib/matrundan/avatar";
 import { cn } from "@/lib/utils";
 
-/**
- * Enhetlig render av en medlemsavatar: emoji som text när den finns,
- * annars profilbild, annars deterministisk emoji-fallback från namnet.
- */
+type AvatarPerson = {
+  name: string;
+  avatar?: string | null;
+  avatarImage?: string | null;
+};
+
+/** Enhetlig render av en medlemsavatar: bild, emoji eller neutral fallback. */
 export function MemberAvatar({
   member,
   size = 44,
   className,
 }: {
-  member: Pick<Member, "name" | "avatar" | "avatarImage">;
+  member: AvatarPerson;
   size?: number;
   className?: string;
 }) {
   const fontSize = Math.round(size * 0.55);
-  const emoji =
-    (member.avatar && member.avatar.length <= 4 ? member.avatar : undefined) ??
-    fallbackEmoji(member.name);
+  const imageSrc = avatarImageSrc(member.avatarImage);
+  const emoji = member.avatar && member.avatar.length <= 8 ? member.avatar : null;
+  const style: React.CSSProperties = { width: size, height: size, fontSize };
 
-  const style: React.CSSProperties = {
-    width: size,
-    height: size,
-    fontSize,
-  };
-
-  if (member.avatarImage && !member.avatar) {
+  if (imageSrc) {
     return (
       <img
-        src={member.avatarImage}
+        src={imageSrc}
         alt=""
         style={style}
-        className={cn(
-          "shrink-0 rounded-full object-cover bg-secondary",
-          className,
-        )}
+        className={cn("shrink-0 rounded-full bg-secondary object-cover", className)}
         loading="lazy"
       />
     );
   }
+
   return (
     <div
       aria-hidden
@@ -49,13 +45,11 @@ export function MemberAvatar({
         className,
       )}
     >
-      <span>{emoji}</span>
+      {emoji ? (
+        <span>{emoji}</span>
+      ) : (
+        <UserRound className="h-[52%] w-[52%] text-muted-foreground" />
+      )}
     </div>
   );
-}
-
-function fallbackEmoji(name: string): string {
-  const pool = ["🦊", "🐻", "🐝", "🦉", "🐿️", "🦔", "🐧", "🦆", "🐢", "🦩"];
-  const key = (name ?? "?").charCodeAt(0) || 0;
-  return pool[key % pool.length];
 }

@@ -1588,6 +1588,8 @@ export type Database = {
       profiles: {
         Row: {
           avatar_emoji: string | null
+          avatar_kind: string
+          avatar_seed: string | null
           avatar_url: string | null
           created_at: string
           deleted_at: string | null
@@ -1597,6 +1599,8 @@ export type Database = {
         }
         Insert: {
           avatar_emoji?: string | null
+          avatar_kind?: string
+          avatar_seed?: string | null
           avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -1606,6 +1610,8 @@ export type Database = {
         }
         Update: {
           avatar_emoji?: string | null
+          avatar_kind?: string
+          avatar_seed?: string | null
           avatar_url?: string | null
           created_at?: string
           deleted_at?: string | null
@@ -3403,6 +3409,15 @@ export type Database = {
       }
       update_profile: {
         Args: { _avatar_emoji?: string; _display_name: string }
+        Returns: undefined
+      }
+      update_profile_v2: {
+        Args: {
+          _avatar_emoji?: string
+          _avatar_kind: string
+          _avatar_seed?: string
+          _display_name: string
+        }
         Returns: undefined
       }
       update_visit_v1: {

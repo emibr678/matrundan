@@ -4,6 +4,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { MemberAvatar } from "./MemberAvatar";
 import {
   Dialog,
   DialogContent,
@@ -341,12 +342,14 @@ export function GuestMemberLinkDialog({
                         ].join(" ")}
                         onClick={() => setSelectedMemberId(member.memberId)}
                       >
-                        <span
-                          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary text-base"
-                          aria-hidden
-                        >
-                          {member.memberAvatar ?? "🙂"}
-                        </span>
+                        <MemberAvatar
+                          member={{
+                            name: member.memberName,
+                            avatar: member.memberAvatar,
+                            avatarImage: member.memberAvatarImage,
+                          }}
+                          size={36}
+                        />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm font-medium">
                             {member.memberName}

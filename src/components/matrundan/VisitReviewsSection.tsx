@@ -26,6 +26,7 @@ import { AddVisitReviewDialog } from "./AddVisitReviewDialog";
 import { DemoAddVisitReviewDialog } from "./DemoAddVisitReviewDialog";
 import { EditReviewDialog } from "./EditReviewDialog";
 import { RatingStars } from "./Rating";
+import { MemberAvatar } from "./MemberAvatar";
 import { ReviewReactionBar, VisitReviewReactionsProvider } from "./ReviewReactions";
 
 const INITIAL_VISIBLE_REVIEWS = 4;
@@ -556,17 +557,7 @@ function ParticipantAvatar({
   avatarImage?: string | null;
   name: string;
 }) {
-  return avatarImage ? (
-    <img src={avatarImage} alt="" className="h-8 w-8 rounded-full object-cover" title={name} />
-  ) : (
-    <div
-      className="grid h-8 w-8 place-items-center rounded-full bg-secondary text-base"
-      aria-hidden="true"
-      title={name}
-    >
-      {avatar}
-    </div>
-  );
+  return <MemberAvatar member={{ name, avatar, avatarImage }} size={32} />;
 }
 
 function SummaryDetail({

@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dialog";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisitPhoto } from "@/lib/matrundan/types";
+import { MemberAvatar } from "./MemberAvatar";
 import { ShareOwnVisitPhotoDialog } from "./ShareOwnVisitPhotoDialog";
 import {
   canAddOrReplaceVisitPhoto,
@@ -63,16 +64,7 @@ function OwnerBadge({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2">
-      {avatarImage ? (
-        <img src={avatarImage} alt="" className="h-7 w-7 shrink-0 rounded-full object-cover" />
-      ) : (
-        <span
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-          aria-hidden="true"
-        >
-          {avatar ?? "🙂"}
-        </span>
-      )}
+      <MemberAvatar member={{ name, avatar, avatarImage }} size={28} />
       <span className="min-w-0 truncate text-xs font-medium">
         {name}
         {own ? <span className="font-normal text-muted-foreground"> · Din bild</span> : null}
