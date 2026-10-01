@@ -185,7 +185,7 @@ function PlacesIndex() {
     [state.visits],
   );
   const overallTopRated = React.useMemo(
-    () => rankPlacesOverall(activePlaces, overallLeaderboardRating),
+    () => rankPlacesOverall(activePlaces, overallLeaderboardRating, activePlaces.length),
     [activePlaces, overallLeaderboardRating],
   );
   const contextualRating = React.useCallback(
@@ -197,7 +197,13 @@ function PlacesIndex() {
     [state.visits, topTakeawayOnly, topVisits],
   );
   const topRated = React.useMemo(
-    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating),
+    () =>
+      rankPlacesForOccasions(
+        activePlaces,
+        topOccasions,
+        contextualRating,
+        activePlaces.length,
+      ),
     [activePlaces, contextualRating, topOccasions],
   );
   const topLeader = overallTopRated[0] ?? null;
