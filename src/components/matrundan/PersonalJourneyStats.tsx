@@ -155,7 +155,8 @@ export function PersonalJourneyPeopleRanking({
               ) : null}
             </span>
             <span className="block truncate text-xs text-muted-foreground">
-              {levelForCount(person.visits).name}
+              {levelForCount(person.visits).name} · {person.groupCount}{" "}
+              {person.groupCount === 1 ? "grupp" : "grupper"}
             </span>
           </span>
           <span className="shrink-0 text-right">
@@ -204,10 +205,11 @@ export function PersonalJourneyPersonStatsDialog({
           <DialogDescription>{level.name}</DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-4 gap-1.5">
           <StatBox label="Besök" value={person.visits} />
           <StatBox label="Ställen" value={person.uniquePlaces} />
           <StatBox label="Kök" value={person.uniqueCuisines} />
+          <StatBox label="Grupper" value={person.groupCount} />
         </div>
       </DialogContent>
     </Dialog>
