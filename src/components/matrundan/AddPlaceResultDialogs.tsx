@@ -60,12 +60,10 @@ function suggestionHasOpeningHours(suggestion: PlaceSuggestion): boolean {
 function PendingPlaceSummary({
   pending,
   cuisines,
-  occasions,
   reportablePending,
 }: {
   pending: PlaceSuggestion;
   cuisines: readonly string[];
-  occasions: readonly Occasion[];
   reportablePending: ReportablePlaceSuggestion;
 }) {
   const websiteUrl = suggestionWebsite(pending);
@@ -83,7 +81,6 @@ function PendingPlaceSummary({
             category={pending.category}
             symbol={resolvePlaceSymbol({ category: pending.category, cuisines })}
             size="detail"
-            showSomethingExtra={occasions.includes("middag")}
           />
           <div className="min-w-0 self-center">
             <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
@@ -377,7 +374,6 @@ export function AddPlaceResultDialogs({
             <PendingPlaceSummary
               pending={pending}
               cuisines={cuisines}
-              occasions={occasions}
               reportablePending={reportablePending}
             />
 
