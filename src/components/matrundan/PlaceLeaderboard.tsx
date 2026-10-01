@@ -197,22 +197,26 @@ export function PlaceLeaderboard({
   onOpenItem: (item: PlaceLeaderboardItem) => void;
   emptyMessage?: string;
 }) {
-  const [showAll, setShowAll] = React.useState(false);
-
-  React.useEffect(() => {
-    if (!open) setShowAll(false);
-  }, [open]);
-
-  React.useEffect(() => {
-    setShowAll(false);
-  }, [occasions, meals, takeawayOnly]);
+  const filterKey = [
+    [...occasions].sort().join(","),
+    [...meals].sort().join(","),
+    takeawayOnly ? "takeaway" : "all",
+  ].join("|");
+  const [expandedFilterKey, setExpandedFilterKey] = React.useState<string | null>(null);
+  const showAll = open && expandedFilterKey === filterKey;
 
   if (!leader) return null;
 
   const visibleItems = showAll ? items : items.slice(0, 3);
 
   return (
-    <Collapsible open={open} onOpenChange={onOpenChange}>
+    <Collapsible
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) setExpandedFilterKey(null);
+        onOpenChange(nextOpen);
+      }}
+    >
       <section
         aria-labelledby="place-leaderboard-heading"
         data-testid="occasion-leaderboard"
@@ -290,7 +294,7 @@ export function PlaceLeaderboard({
                       variant="ghost"
                       size="sm"
                       className="min-h-11 rounded-full px-4 text-xs text-muted-foreground"
-                      onClick={() => setShowAll((current) => !current)}
+                      onClick={() => setExpandedFilterKey(showAll ? null : filterKey)}
                     >
                       {showAll ? "Visa topp 3" : `Visa hela topplistan (${items.length})`}
                     </Button>
