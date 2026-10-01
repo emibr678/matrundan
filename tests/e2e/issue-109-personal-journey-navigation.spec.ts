@@ -120,13 +120,15 @@ test("demo-omdömet slussas till den navigerbara gruppens befintliga omdömesfl�
   expect(handoffUrl.searchParams.get("group")).toBe("example-stockholm");
   expect(handoffUrl.searchParams.get("review")).toBe("new");
   expect(handoffUrl.searchParams.get("from")).toBe("min-matresa");
-  await expect(page.getByRole("button", { name: "Min matresa" })).toBeVisible();
-  await expect(
-    page.getByRole("dialog", {
-      name: /Ditt omdöme|Innan du sätter betyg|Hur skulle ni beskriva matupplevelsen/,
-    }),
-  ).toBeVisible();
+  const reviewDialog = page.getByRole("dialog", {
+    name: /Ditt omdöme|Innan du sätter betyg|Hur skulle ni beskriva matupplevelsen/,
+  });
+  await expect(reviewDialog).toBeVisible();
   await expectNoHorizontalOverflow(page, "Omdömeshandoff från Min matresa");
+
+  await reviewDialog.getByRole("button", { name: "Stäng" }).click();
+  await expect(page).toHaveURL(/\/min-matresa\?demo=1$/);
+  await expect(page.getByRole("heading", { name: "Min matresa", level: 1 })).toBeVisible();
 });
 
 test("personlig Topplista återanvänder filtren för upplevelse och tillfälle på 360 px", async ({
