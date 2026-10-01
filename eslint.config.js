@@ -18,6 +18,7 @@ const intentionalRefreshExports = [
   "consumePendingInvitePath",
   "useSession",
   "useStore",
+  "useOptionalStore",
   "formatDate",
   "googleMapsUrl",
 ];
