@@ -464,14 +464,14 @@ SELECT is(
 );
 
 SELECT throws_ok(
-  $SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY['hemlig'], ARRAY[]::text[], false, NULL, 3)$,
+  $sql$SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY['hemlig'], ARRAY[]::text[], false, NULL, 3)$sql$,
   'P0001',
   'Ogiltig typ av upplevelse',
   'unknown experience filters are rejected server-side'
 );
 
 SELECT throws_ok(
-  $SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY[]::text[], ARRAY['kväll'], false, NULL, 3)$,
+  $sql$SELECT public.get_personal_journey_toplist_v1(NULL, ARRAY[]::text[], ARRAY['kväll'], false, NULL, 3)$sql$,
   'P0001',
   'Ogiltigt tillfälle',
   'unknown Topplista meal filters are rejected server-side'

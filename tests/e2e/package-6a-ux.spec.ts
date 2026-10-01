@@ -144,7 +144,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await search.fill("Kvarterets");
   await expect(leaderboard).toBeVisible();
-  await expect(page.getByRole("link", { name: /Kvarterets Kardemumma Café/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Kvarterets Kardemumma", exact: true })).toBeVisible();
 
   await search.fill("Päronträdets Trattoria");
   const addFromSearch = page.getByRole("button", {
