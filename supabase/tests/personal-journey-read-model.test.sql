@@ -376,7 +376,7 @@ SELECT is(
 SELECT is(
   (public.get_personal_journey_stats_v1('visits')->'self'->>'groupCount')::integer,
   2,
-  'own global stats include the user active group count'
+  'own global stats count groups that actually contribute participated visits'
 );
 
 SELECT is(
