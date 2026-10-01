@@ -108,10 +108,14 @@ const requiredFunctions = [
   "get_cross_group_practical_info_suggestions_v1",
   "apply_cross_group_practical_info_suggestion_v1",
   "get_personal_journey_overview_v1",
+  "get_personal_journey_overview_v2",
   "list_personal_journey_places_v1",
+  "list_personal_journey_places_v2",
   "get_personal_journey_place_v1",
+  "get_personal_journey_toplist_v1",
   "list_personal_journey_visits_v1",
   "get_personal_journey_visit_v1",
+  "get_personal_journey_stats_v1",
 ];
 
 for (const name of requiredFunctions) {

@@ -11,6 +11,8 @@ WITH checks(name, ok) AS (
       to_regprocedure('public.list_personal_journey_places_v2(text,boolean,boolean,text,jsonb,integer)') IS NOT NULL),
     ('personal_journey:place-detail-v1',
       to_regprocedure('public.get_personal_journey_place_v1(uuid)') IS NOT NULL),
+    ('personal_journey:toplist-v1',
+      to_regprocedure('public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)') IS NOT NULL),
     ('personal_journey:visits-v1',
       to_regprocedure('public.list_personal_journey_visits_v1(boolean,date,uuid,integer)') IS NOT NULL),
     ('personal_journey:visit-detail-v1',
@@ -43,6 +45,7 @@ WITH checks(name, ok) AS (
       COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_personal_journey_overview_v1()'), 'EXECUTE'), false)
       AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.list_personal_journey_places_v1(text,boolean,boolean,text,uuid,integer)'), 'EXECUTE'), false)
       AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_personal_journey_place_v1(uuid)'), 'EXECUTE'), false)
+      AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)'), 'EXECUTE'), false)
       AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.list_personal_journey_visits_v1(boolean,date,uuid,integer)'), 'EXECUTE'), false)
       AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_personal_journey_visit_v1(uuid)'), 'EXECUTE'), false)
       AND COALESCE(has_function_privilege('authenticated', to_regprocedure('public.get_personal_journey_stats_v1(text)'), 'EXECUTE'), false)),
@@ -53,6 +56,7 @@ WITH checks(name, ok) AS (
       COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_personal_journey_overview_v1()'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.list_personal_journey_places_v1(text,boolean,boolean,text,uuid,integer)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_personal_journey_place_v1(uuid)'), 'EXECUTE'), false)
+      AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.list_personal_journey_visits_v1(boolean,date,uuid,integer)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_personal_journey_visit_v1(uuid)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.get_personal_journey_stats_v1(text)'), 'EXECUTE'), false)),
@@ -63,6 +67,7 @@ WITH checks(name, ok) AS (
       COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.personal_journey_effective_review_overall_v1(uuid)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('authenticated', to_regprocedure('public.personal_journey_effective_review_overall_v1(uuid)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('authenticated', to_regprocedure('public.ensure_personal_journey_media_visibility_v1()'), 'EXECUTE'), false)
+      AND COALESCE(NOT has_function_privilege('anon', to_regprocedure('public.personal_journey_can_view_global_stats_v1(uuid,uuid)'), 'EXECUTE'), false)
       AND COALESCE(NOT has_function_privilege('authenticated', to_regprocedure('public.personal_journey_can_view_global_stats_v1(uuid,uuid)'), 'EXECUTE'), false)),
     ('personal_journey:no-user-or-group-input',
       to_regprocedure('public.get_personal_journey_overview_v1(uuid)') IS NULL

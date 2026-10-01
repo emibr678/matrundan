@@ -102,6 +102,20 @@ function GroupMenuItem({
   );
 }
 
+function PersonalJourneyMenuItem({ onSelect }: { onSelect: () => void }) {
+  return (
+    <DropdownMenuItem onSelect={onSelect}>
+      <Compass className="mr-2 h-4 w-4" />
+      <span className="min-w-0 flex-1">
+        <span className="block">Min matresa</span>
+        <span className="block text-xs font-normal text-muted-foreground">
+          Samlat från dina grupper
+        </span>
+      </span>
+    </DropdownMenuItem>
+  );
+}
+
 function buildQuickGroups(
   groups: UserGroupSummary[],
   activeGroupId: string | null,
@@ -335,15 +349,7 @@ export function AuthMenu({
             </DropdownMenuLabel>
             {exampleMode ? (
               <>
-                <DropdownMenuItem onSelect={openPersonalJourney}>
-                  <Compass className="mr-2 h-4 w-4" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block">Min matresa</span>
-                    <span className="block text-xs font-normal text-muted-foreground">
-                      Exempel från flera grupper
-                    </span>
-                  </span>
-                </DropdownMenuItem>
+                <PersonalJourneyMenuItem onSelect={openPersonalJourney} />
                 {personalJourney ? (
                   <DropdownMenuItem
                     onSelect={() =>
@@ -479,15 +485,7 @@ export function AuthMenu({
           {exampleMode || mode === "live" ? (
             <>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={openPersonalJourney}>
-                <Compass className="mr-2 h-4 w-4" />
-                <span className="min-w-0 flex-1">
-                  <span className="block">Min matresa</span>
-                  <span className="block text-xs font-normal text-muted-foreground">
-                    Samlat från dina grupper
-                  </span>
-                </span>
-              </DropdownMenuItem>
+              <PersonalJourneyMenuItem onSelect={openPersonalJourney} />
             </>
           ) : null}
           {quickGroups.length > 0 ? (

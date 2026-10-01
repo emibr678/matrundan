@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(49);
+SELECT plan(50);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -234,6 +234,17 @@ VALUES (
   800,
   600
 );
+
+INSERT INTO public.visit_media_group_visibility (
+  media_id, visit_id, group_id, granted_by
+)
+VALUES (
+  '10950000-0000-4000-8000-000000000001',
+  '10930000-0000-4000-8000-000000000001',
+  '10910000-0000-4000-8000-000000000003',
+  '10900000-0000-4000-8000-000000000002'
+)
+ON CONFLICT (media_id, group_id) DO NOTHING;
 
 UPDATE public.groups
 SET lifecycle_status = 'archived',
@@ -551,6 +562,14 @@ SELECT isnt(
   public.list_personal_journey_visits_v1()->'items'->0->'photoDeliveryToken',
   'null'::jsonb,
   'source-group media is exposed through an opaque delivery token'
+);
+
+SELECT is(
+  jsonb_array_length(
+    public.get_personal_journey_visit_v1('10930000-0000-4000-8000-000000000001')->'photos'
+  ),
+  1,
+  'the same media visible through multiple readable groups is returned once'
 );
 
 SELECT is(
