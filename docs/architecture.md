@@ -164,12 +164,13 @@ Den globala personstatistiken:
 
 - härleds server-side från faktiska kanoniska deltaganden över personens grupper;
 - räknar samma kanoniska besök högst en gång men räknar verkliga återbesök;
-- får omfatta totalsiffror som besök, unika ställen, köksbredd och nivå;
-- den egna vyn får dessutom visa hur många av användarens läsbara grupper som
-  faktiskt bidrar med deltagna besök; motsvarande totala gruppantal exponeras
-  inte för andra användare;
+- får omfatta totalsiffror som besök, unika ställen, köksbredd, nivå och hur
+  många grupper som faktiskt bidrar med deltagna besök;
+- gruppantalet är endast en lågupplöst totalsiffra och får aldrig följas av
+  gruppidentiteter, gruppnamn eller annan information som gör de privata
+  grupperna härledbara;
 - får inte avslöja vilka andra grupper, ställen, besöksdatum, betyg,
-  kommentarer, bilder, medlemskap eller andra personer som ligger bakom
+  kommentarer, bilder, konkreta gruppmedlemskap eller andra personer som ligger bakom
   totalsiffrorna;
 - får inte returnera interna användar-ID:n när presentationen inte behöver dem;
 - upphör att vara läsbar för en annan användare när den sista gemensamma aktiva
