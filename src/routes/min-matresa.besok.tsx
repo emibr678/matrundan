@@ -10,7 +10,7 @@ import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck, UsersRound } from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
+import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import {
   PERSONAL_STATS_METRICS,
   PersonalJourneyOwnStats,
@@ -41,6 +41,7 @@ import {
   demoPersonalJourneyStats,
   demoPersonalJourneyVisit,
   demoPersonalJourneyVisits,
+  isNavigableDemoPersonalJourneyGroup,
 } from "@/lib/matrundan/personal-journey-demo";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
@@ -52,7 +53,7 @@ const defaults = { participated: true, metric: "visits" as const };
 const searchSchema = z.object({
   participated: fallback(z.boolean(), true).default(true),
   metric: fallback(personalJourneyStatsMetricSchema, "visits").default("visits"),
-  visit: z.string().uuid().optional(),
+  visit: z.string().min(1).max(128).optional(),
 });
 
 export const Route = createFileRoute("/min-matresa/besok")({
@@ -137,8 +138,16 @@ function PersonalJourneyStatsRoute() {
     });
   }
 
+  function canOpenGroup(group: PersonalJourneyGroup) {
+    return mode !== "demo" || isNavigableDemoPersonalJourneyGroup(group.groupId);
+  }
+
+  function reviewableGroups(groups: PersonalJourneyGroup[]) {
+    return groups.filter((group) => group.isWritable && canOpenGroup(group));
+  }
+
   function openReviewFlow(visitId: string, groups: PersonalJourneyGroup[]) {
-    const writableGroups = groups.filter((group) => group.isWritable);
+    const writableGroups = reviewableGroups(groups);
     if (writableGroups.length === 1) {
       openInGroup(visitId, writableGroups[0].groupId, true);
       return;
@@ -328,6 +337,7 @@ function PersonalJourneyStatsRoute() {
         open={Boolean(search.visit)}
         onOpenChange={(open) => {
           if (!open) {
+            setReviewGroupChoice(null);
             void navigate({
               search: { ...search, visit: undefined },
               state: (previous) => previous,
@@ -350,21 +360,34 @@ function PersonalJourneyStatsRoute() {
               </DialogHeader>
 
               {detail.data.reviewPending ? (
-                <Card className="flex flex-col gap-3 rounded-xl border-primary/20 bg-primary/[0.04] p-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
+                <Card className="rounded-xl border-primary/20 bg-primary/[0.04] p-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <MessageSquarePlus className="h-4 w-4 text-primary" aria-hidden="true" />
                       Lämna ditt omdöme
                     </div>
+                    {reviewableGroups(detail.data.groups).length > 0 &&
+                    reviewGroupChoice?.visitId !== detail.data.id ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={() => openReviewFlow(detail.data!.id, detail.data!.groups)}
+                      >
+                        Skriv omdöme
+                      </Button>
+                    ) : null}
                   </div>
-                  {detail.data.groups.some((group) => group.isWritable) ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => openReviewFlow(detail.data!.id, detail.data!.groups)}
-                    >
-                      Skriv omdöme
-                    </Button>
+                  {reviewGroupChoice?.visitId === detail.data.id ? (
+                    <PersonalJourneyReviewGroupChoices
+                      className="mt-3"
+                      groups={reviewableGroups(reviewGroupChoice.groups)}
+                      onCancel={() => setReviewGroupChoice(null)}
+                      onSelect={(group) => {
+                        const choice = reviewGroupChoice;
+                        setReviewGroupChoice(null);
+                        openInGroup(choice.visitId, group.groupId, true);
+                      }}
+                    />
                   ) : null}
                 </Card>
               ) : null}
@@ -413,14 +436,16 @@ function PersonalJourneyStatsRoute() {
                           {group.isArchived ? "Arkiverad grupp" : "Aktiv grupp"}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openInGroup(detail.data!.id, group.groupId)}
-                      >
-                        Öppna
-                      </Button>
+                      {canOpenGroup(group) ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openInGroup(detail.data!.id, group.groupId)}
+                        >
+                          Öppna
+                        </Button>
+                      ) : null}
                     </div>
                   ))}
                 </div>
@@ -442,19 +467,7 @@ function PersonalJourneyStatsRoute() {
         }}
       />
 
-      <PersonalJourneyReviewGroupDialog
-        open={Boolean(reviewGroupChoice)}
-        onOpenChange={(open) => {
-          if (!open) setReviewGroupChoice(null);
-        }}
-        groups={reviewGroupChoice?.groups ?? []}
-        onSelect={(group) => {
-          if (!reviewGroupChoice) return;
-          const choice = reviewGroupChoice;
-          setReviewGroupChoice(null);
-          openInGroup(choice.visitId, group.groupId, true);
-        }}
-      />
+
     </div>
   );
 }
