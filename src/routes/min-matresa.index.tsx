@@ -5,7 +5,9 @@ import { ArrowRight, CalendarDays, MessageSquarePlus, RotateCcw } from "lucide-r
 import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
+import {
+  PersonalJourneyReviewGroupChoices,
+} from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import { PersonalJourneyOwnStats } from "@/components/matrundan/PersonalJourneyStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -226,10 +228,7 @@ function PersonalJourneyOverview() {
               <p className="text-xs text-muted-foreground">Högst betyg i dina grupper</p>
             </div>
             <Button asChild variant="ghost" size="sm" className="shrink-0 rounded-full">
-              <Link
-                to="/min-matresa/matstallen"
-                state={(previous) => previous}
-              >
+              <Link to="/min-matresa/matstallen" state={(previous) => previous}>
                 Visa alla <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -300,8 +299,6 @@ function PersonalJourneyOverview() {
           </Card>
         )}
       </section>
-
-
     </div>
   );
 }

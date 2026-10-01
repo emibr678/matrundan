@@ -117,7 +117,11 @@ function PersonalJourneyToplist() {
       rank: place.rank,
       visitCount: place.visitCount,
       leading: (
-        <PlaceIdentityMark category={category} symbol={resolvePlaceSymbol({ category })} size="sm" />
+        <PlaceIdentityMark
+          category={category}
+          symbol={resolvePlaceSymbol({ category })}
+          size="sm"
+        />
       ),
       context: formatPersonalJourneyGroups(place.groups),
     };

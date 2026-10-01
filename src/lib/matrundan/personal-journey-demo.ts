@@ -330,7 +330,14 @@ export function demoPersonalJourneyToplist({
           (!takeawayOnly || visit.isTakeaway),
       );
       if (mealTypes.length === 0 && !takeawayOnly) {
-        return [{ place, rating: place.rating, reviewCount: place.reviewCount, visitCount: relevantVisits.length }];
+        return [
+          {
+            place,
+            rating: place.rating,
+            reviewCount: place.reviewCount,
+            visitCount: relevantVisits.length,
+          },
+        ];
       }
       const scored = relevantVisits.filter(
         (visit): visit is typeof visit & { rating: number } =>
@@ -404,10 +411,42 @@ const DEMO_GLOBAL_PEOPLE = [
     groupCount: 2,
     isSelf: false,
   },
-  { displayName: "Kim", avatarEmoji: "🍕", visits: 14, uniquePlaces: 10, uniqueCuisines: 7, groupCount: 2, isSelf: false },
-  { displayName: "Robin", avatarEmoji: "☕", visits: 6, uniquePlaces: 6, uniqueCuisines: 4, groupCount: 1, isSelf: false },
-  { displayName: "Noor", avatarEmoji: "🌮", visits: 11, uniquePlaces: 9, uniqueCuisines: 9, groupCount: 2, isSelf: false },
-  { displayName: "Maja", avatarEmoji: "🍣", visits: 4, uniquePlaces: 4, uniqueCuisines: 4, groupCount: 1, isSelf: false },
+  {
+    displayName: "Kim",
+    avatarEmoji: "🍕",
+    visits: 14,
+    uniquePlaces: 10,
+    uniqueCuisines: 7,
+    groupCount: 2,
+    isSelf: false,
+  },
+  {
+    displayName: "Robin",
+    avatarEmoji: "☕",
+    visits: 6,
+    uniquePlaces: 6,
+    uniqueCuisines: 4,
+    groupCount: 1,
+    isSelf: false,
+  },
+  {
+    displayName: "Noor",
+    avatarEmoji: "🌮",
+    visits: 11,
+    uniquePlaces: 9,
+    uniqueCuisines: 9,
+    groupCount: 2,
+    isSelf: false,
+  },
+  {
+    displayName: "Maja",
+    avatarEmoji: "🍣",
+    visits: 4,
+    uniquePlaces: 4,
+    uniqueCuisines: 4,
+    groupCount: 1,
+    isSelf: false,
+  },
 ];
 
 export function demoPersonalJourneyStats(
@@ -426,7 +465,8 @@ export function demoPersonalJourneyStats(
   let previousValue: number | null = null;
   let previousRank = 0;
   const leaderboard = sorted.map((person, index) => {
-    const rank = previousValue !== null && person.value === previousValue ? previousRank : index + 1;
+    const rank =
+      previousValue !== null && person.value === previousValue ? previousRank : index + 1;
     previousValue = person.value;
     previousRank = rank;
     return { ...person, rank };

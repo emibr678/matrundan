@@ -87,19 +87,19 @@ describe("Min matresa-demo", () => {
     "filtrerar Topplistan på upplevelse och besökstillfälle utan att skapa global metadata",
     () => {
       const relaxed = demoPersonalJourneyToplist({ occasions: ["avslappnat"] });
-    expect(relaxed.items.map((place) => place.name)).toEqual([
-      "Kardemummaköket",
-      "Kvartersbordet",
-      "Tacoateljén",
-    ]);
+      expect(relaxed.items.map((place) => place.name)).toEqual([
+        "Kardemummaköket",
+        "Kvartersbordet",
+        "Tacoateljén",
+      ]);
 
-    const relaxedDinner = demoPersonalJourneyToplist({
-      occasions: ["avslappnat"],
-      mealTypes: ["middag"],
-    });
-    expect(relaxedDinner.items.map((place) => place.name)).toEqual(["Tacoateljén"]);
-    expect(relaxedDinner.items[0]?.rating).toBe(4.2);
-    expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
+      const relaxedDinner = demoPersonalJourneyToplist({
+        occasions: ["avslappnat"],
+        mealTypes: ["middag"],
+      });
+      expect(relaxedDinner.items.map((place) => place.name)).toEqual(["Tacoateljén"]);
+      expect(relaxedDinner.items[0]?.rating).toBe(4.2);
+      expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
 
       expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
     },

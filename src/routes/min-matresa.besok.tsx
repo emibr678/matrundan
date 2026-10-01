@@ -7,10 +7,18 @@ import {
   useRouterState,
 } from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
-import { CalendarDays, MessageSquarePlus, RotateCcw, UserRoundCheck, UsersRound } from "lucide-react";
+import {
+  CalendarDays,
+  MessageSquarePlus,
+  RotateCcw,
+  UserRoundCheck,
+  UsersRound,
+} from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
+import {
+  PersonalJourneyReviewGroupChoices,
+} from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import {
   PERSONAL_STATS_METRICS,
   PersonalJourneyOwnStats,
@@ -64,7 +72,8 @@ export const Route = createFileRoute("/min-matresa/besok")({
       { title: appPageTitle("Statistik") },
       {
         name: "description",
-        content: "Din samlade Matrundan-statistik, personer du delar grupper med och din besökshistorik.",
+        content:
+          "Din samlade Matrundan-statistik, personer du delar grupper med och din besökshistorik.",
       },
     ],
   }),
@@ -467,8 +476,6 @@ function PersonalJourneyStatsRoute() {
           if (!open) setSelectedPerson(null);
         }}
       />
-
-
     </div>
   );
 }
