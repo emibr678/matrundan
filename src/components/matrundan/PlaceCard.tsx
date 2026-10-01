@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import { Heart, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { hasSomethingExtraExperience } from "@/lib/matrundan/occasions";
 import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
 import { useStore } from "@/lib/matrundan/store";
@@ -24,14 +23,7 @@ export function formatCompactPlaceAddress(address: string, city: string): string
 }
 
 export function PlaceThumb({ place, size = "md" }: { place: Place; size?: PlaceIdentityMarkSize }) {
-  return (
-    <PlaceIdentityMark
-      category={place.category}
-      symbol={resolvePlaceSymbol(place)}
-      size={size}
-      showSomethingExtra={hasSomethingExtraExperience(place.occasions)}
-    />
-  );
+  return <PlaceIdentityMark category={place.category} symbol={resolvePlaceSymbol(place)} size={size} />;
 }
 
 export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?: boolean }) {
