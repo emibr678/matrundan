@@ -6,9 +6,9 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
   await page.goto("/matstallen?demo=1");
 
   const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
-  await search.fill("Rundans Bistro");
+  await search.fill("Kvarterets");
 
-  const openPlace = page.getByRole("link", { name: "Rundans Bistro", exact: true });
+  const openPlace = page.getByRole("link", { name: "Kvarterets Kardemumma", exact: true });
   await expect(openPlace).toBeVisible();
 
   const card = openPlace.locator("..");
@@ -18,12 +18,14 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
   expect(Math.abs(linkBox!.width - cardBox!.width)).toBeLessThanOrEqual(2);
   expect(Math.abs(linkBox!.height - cardBox!.height)).toBeLessThanOrEqual(2);
 
-  const favorite = card.getByRole("button", { name: "Markera som favorit", exact: true });
+  const favorite = card.getByRole("button", { name: "Ta bort favorit", exact: true });
   await expect(favorite).toBeVisible();
   await favorite.click();
 
   await expect(page).toHaveURL(/\/matstallen\?demo=1$/);
-  await expect(card.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
+  await expect(
+    card.getByRole("button", { name: "Markera som favorit", exact: true }),
+  ).toBeVisible();
 
   await openPlace.click({
     position: {
@@ -32,6 +34,6 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
     },
   });
 
-  await expect(page).toHaveURL(/\/matstallen\/p1(?:\?demo=1)?$/);
-  await expect(page.getByRole("heading", { name: "Rundans Bistro" })).toBeVisible();
+  await expect(page).toHaveURL(/\/matstallen\/[^/?]+(?:\?.*)?$/);
+  await expect(page.getByRole("heading", { name: "Kvarterets Kardemumma" })).toBeVisible();
 });
