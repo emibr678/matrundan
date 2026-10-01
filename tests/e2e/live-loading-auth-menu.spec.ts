@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { CURRENT_GROUP_STATE_RPC, PREVIOUS_GROUP_STATE_RPC } from "../../src/lib/matrundan/read-model-version";
 
 // Playwrights portabla testmiljö använder http://127.0.0.1:54321 som Supabase-URL.
 // Supabase härleder då sin lokala auth-storage key från hostens projektref "127".
@@ -107,7 +108,8 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
   };
 
   for (const rpc of [
-    "get_group_app_state_v5n",
+    CURRENT_GROUP_STATE_RPC,
+    PREVIOUS_GROUP_STATE_RPC,
     "get_group_app_state_v5m",
     "get_group_app_state_v5l",
     "get_group_app_state_v5k",

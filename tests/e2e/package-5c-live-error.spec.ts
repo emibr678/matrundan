@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { CURRENT_GROUP_STATE_RPC, PREVIOUS_GROUP_STATE_RPC } from "../../src/lib/matrundan/read-model-version";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -107,7 +108,7 @@ test("ett RPC-fel lämnar laddningsläget och kan återförsökas", async ({ pag
   });
 
   let attempts = 0;
-  await page.route("**/rest/v1/rpc/get_group_app_state_v5n", async (route) => {
+  await page.route(`**/rest/v1/rpc/${CURRENT_GROUP_STATE_RPC}`, async (route) => {
     attempts += 1;
     if (attempts === 1) {
       await route.fulfill({

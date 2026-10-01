@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { CURRENT_GROUP_STATE_RPC, PREVIOUS_GROUP_STATE_RPC } from "../../src/lib/matrundan/read-model-version";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 const USER_ID = "11111111-1111-4111-8111-111111111111";
@@ -152,7 +153,8 @@ test("matställets webbplats visas under adressen i en fullbred mobilsektion", a
   };
 
   for (const rpc of [
-    "get_group_app_state_v5n",
+    CURRENT_GROUP_STATE_RPC,
+    PREVIOUS_GROUP_STATE_RPC,
     "get_group_app_state_v5m",
     "get_group_app_state_v5l",
     "get_group_app_state_v5k",
