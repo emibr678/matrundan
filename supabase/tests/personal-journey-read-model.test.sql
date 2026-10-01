@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(48);
+SELECT plan(49);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -387,6 +387,16 @@ SELECT is(
   ),
   2,
   'a shared-group contact exposes a global visit total including their private groups'
+);
+
+SELECT is(
+  (
+    SELECT (person->>'groupCount')::integer
+    FROM jsonb_array_elements(public.get_personal_journey_stats_v1('visits')->'leaderboard') person
+    WHERE person->>'displayName' = 'Vännen'
+  ),
+  3,
+  'a shared-group contact exposes only the low-resolution count of contributing groups'
 );
 
 SELECT ok(
