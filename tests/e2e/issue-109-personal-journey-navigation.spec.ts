@@ -46,9 +46,9 @@ test("mobilen öppnar Min matresa som lokal yta och återgår till exakt ursprun
   );
   await expect(page.locator('nav[aria-label="Huvudmeny"]:visible')).toHaveCount(0);
 
-  await personalNav.getByRole("link", { name: "Besök" }).click();
+  await personalNav.getByRole("link", { name: "Statistik" }).click();
   await expect(page).toHaveURL(/\/min-matresa\/besok\?demo=1$/);
-  await expect(personalNav.getByRole("link", { name: "Besök" })).toHaveAttribute(
+  await expect(personalNav.getByRole("link", { name: "Statistik" })).toHaveAttribute(
     "aria-current",
     "page",
   );
@@ -56,7 +56,7 @@ test("mobilen öppnar Min matresa som lokal yta och återgår till exakt ursprun
   await page.goBack();
   await expect(page).toHaveURL(/\/min-matresa\?demo=1$/);
 
-  await page.getByRole("button", { name: "Till Fredagsgänget" }).click();
+  await page.getByRole("button", { name: "Fredagsgänget", exact: true }).click();
   await expect(page).toHaveURL(/\/matstallen$/);
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
   await expectNoHorizontalOverflow(page, "Min matresa på mobil");
@@ -74,7 +74,7 @@ test("direkt personlig route i exempelkontext faller säkert tillbaka till exemp
   await expect(page.getByRole("heading", { name: "Min matresa", level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 
-  await page.getByRole("button", { name: "Till Fredagsgänget" }).click();
+  await page.getByRole("button", { name: "Fredagsgänget", exact: true }).click();
   await expect(page).toHaveURL(/\/exempel$/);
   await expect(page.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 });
@@ -104,20 +104,29 @@ test("desktop behåller global gruppnavigation och lämnar Min matresa genom den
   await expect(page.getByRole("button", { name: "Profil och grupp: Fredagsgänget" })).toBeVisible();
 });
 
-test("flera skrivbara grupper kräver ett uttryckligt gruppval för omdömet", async ({ page }) => {
+test("demo-omdömet slussas till den navigerbara gruppens befintliga omdömesflöde", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/exempel");
   await openPersonalJourneyFromGroupMenu(page);
 
-  const pendingSection = page.getByRole("region", { name: "Omdömen att komplettera" });
-  await expect(pendingSection.getByText(/2 grupper/)).toBeVisible();
+  const pendingSection = page.getByRole("region", { name: "Omdömen att lämna" });
+  await expect(pendingSection.getByText("Kardemummaköket", { exact: true })).toBeVisible();
   await pendingSection.getByRole("button", { name: "Skriv omdöme" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Välj grupp" });
-  await expect(dialog).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Fredagsgänget" })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Familjen" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Gruppval för omdöme");
+  await expect(page).toHaveURL(/\/besok\?/);
+  const handoffUrl = new URL(page.url());
+  expect(handoffUrl.searchParams.get("group")).toBe("example-stockholm");
+  expect(handoffUrl.searchParams.get("review")).toBe("new");
+  expect(handoffUrl.searchParams.get("from")).toBe("min-matresa");
+  await expect(page.getByRole("button", { name: "Min matresa" })).toBeVisible();
+  await expect(
+    page.getByRole("dialog", {
+      name: /Ditt omdöme|Innan du sätter betyg|Hur skulle ni beskriva matupplevelsen/,
+    }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Omdömeshandoff från Min matresa");
 });
 
 test("personlig Topplista återanvänder filtren för upplevelse och tillfälle på 360 px", async ({
@@ -128,20 +137,20 @@ test("personlig Topplista återanvänder filtren för upplevelse och tillfälle 
   await openPersonalJourneyFromGroupMenu(page);
 
   const personalNav = page.getByRole("navigation", { name: "Min matresa" });
-  await personalNav.getByRole("link", { name: "Matställen" }).click();
+  await personalNav.getByRole("link", { name: "Topplista" }).click();
   await expect(page).toHaveURL(/\/min-matresa\/matstallen\?demo=1/);
 
-  const leaderboard = page.getByTestId("occasion-leaderboard");
-  await expect(leaderboard).toBeVisible();
-  await leaderboard.getByRole("button", { name: "Visa topp 3" }).click();
+  await expect(page.getByRole("heading", { name: "Topplista", level: 2 })).toBeVisible();
 
-  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Avslappnat" }).click();
-  await expect(leaderboard.getByText("Kvartersbordet", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Nudelhörnan", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Filtrera topplistan på Avslappnat" }).click();
+  await expect(page.getByText("Kardemummaköket", { exact: true })).toBeVisible();
+  await expect(page.getByText("Kvartersbordet", { exact: true })).toBeVisible();
+  await expect(page.getByText("Tacoateljén", { exact: true })).toBeVisible();
 
-  await leaderboard.getByRole("button", { name: "Filtrera topplistan på Middag" }).click();
-  await expect(leaderboard.getByText("Kvartersbordet", { exact: true })).toBeVisible();
-  await expect(leaderboard.getByText("Nudelhörnan", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Filtrera topplistan på Middag" }).click();
+  await expect(page.getByText("Tacoateljén", { exact: true })).toBeVisible();
+  await expect(page.getByText("Kvartersbordet", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Kardemummaköket", { exact: true })).toHaveCount(0);
 
   await expectNoHorizontalOverflow(page, "Filtrerad personlig Topplista");
 });
