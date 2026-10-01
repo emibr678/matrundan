@@ -35,7 +35,7 @@ import {
 } from "@/lib/matrundan/account.functions";
 import { updateProfile } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
-import { useStore } from "@/lib/matrundan/store";
+import { useOptionalStore } from "@/lib/matrundan/store";
 import { InstallAppSection } from "./AppNudges";
 import { MemberAvatar } from "./MemberAvatar";
 import { NotificationSettingsSection } from "./NotificationSettingsSection";
@@ -67,7 +67,7 @@ export function ProfileDialog({
   onOpenChange: (v: boolean) => void;
   onSaved?: () => void;
 }) {
-  const { state } = useStore();
+  const store = useOptionalStore();
   const { exampleMode } = useSession();
   const [displayName, setDisplayName] = React.useState("");
   const [avatarKind, setAvatarKind] = React.useState<ProfileAvatarKind>("account");
@@ -102,10 +102,12 @@ export function ProfileDialog({
   const duplicateName =
     !exampleMode &&
     normalizedName.length >= 2 &&
-    state.members.some(
-      (member) =>
-        member.id !== state.currentUserId &&
-        member.name.trim().toLocaleLowerCase("sv-SE") === normalizedName,
+    Boolean(
+      store?.state.members.some(
+        (member) =>
+          member.id !== store.state.currentUserId &&
+          member.name.trim().toLocaleLowerCase("sv-SE") === normalizedName,
+      ),
     );
   const generatedAvatarImage = avatarSeed ? multiavatarImageToken(avatarSeed) : null;
 

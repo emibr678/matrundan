@@ -1283,8 +1283,12 @@ export function StoreProvider({
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 
+export function useOptionalStore() {
+  return React.useContext(StoreContext);
+}
+
 export function useStore() {
-  const context = React.useContext(StoreContext);
+  const context = useOptionalStore();
   if (!context) throw new Error("useStore måste användas inuti <StoreProvider>");
   return context;
 }
