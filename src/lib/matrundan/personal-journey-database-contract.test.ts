@@ -78,7 +78,6 @@ describe("Min matresa-databaskontrakt", () => {
     expect(insightsMigration).toContain("_uid uuid := auth.uid()");
   });
 
-
   test("global statistik kräver aktiv gemensam grupp men exponerar inga gruppdetaljer", () => {
     expect(statsMigration).toContain("shared_group.lifecycle_status = 'active'");
     expect(statsMigration).toContain("subject_membership.status = 'active'");

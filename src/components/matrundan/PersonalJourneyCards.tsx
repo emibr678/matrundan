@@ -81,7 +81,11 @@ export function PersonalJourneyVisitCard({
         rating={visit.rating}
         reviewCount={visit.reviewCount}
         leading={
-          <PlaceIdentityMark category={category} symbol={resolvePlaceSymbol({ category })} size="sm" />
+          <PlaceIdentityMark
+            category={category}
+            symbol={resolvePlaceSymbol({ category })}
+            size="sm"
+          />
         }
         trailing={
           visit.participated ? (

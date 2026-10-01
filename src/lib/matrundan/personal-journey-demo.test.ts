@@ -83,8 +83,10 @@ describe("Min matresa-demo", () => {
     ]);
   });
 
-  test("filtrerar Topplistan på upplevelse och besökstillfälle utan att skapa global metadata", () => {
-    const relaxed = demoPersonalJourneyToplist({ occasions: ["avslappnat"] });
+  test(
+    "filtrerar Topplistan på upplevelse och besökstillfälle utan att skapa global metadata",
+    () => {
+      const relaxed = demoPersonalJourneyToplist({ occasions: ["avslappnat"] });
     expect(relaxed.items.map((place) => place.name)).toEqual([
       "Kardemummaköket",
       "Kvartersbordet",
@@ -99,8 +101,9 @@ describe("Min matresa-demo", () => {
     expect(relaxedDinner.items[0]?.rating).toBe(4.2);
     expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
 
-    expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
-  });
+      expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
+    },
+  );
 
   test("har fler än tre rankade demoställen och inga rankade ställen utan verkligt besök", () => {
     const result = demoPersonalJourneyToplist();

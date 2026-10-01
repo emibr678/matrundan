@@ -18,7 +18,9 @@ export function PersonalJourneyReviewGroupChoices({
   if (writableGroups.length === 0) return null;
 
   return (
-    <div className={["rounded-xl border border-border/70 bg-background/55 p-3", className].join(" ")}>
+    <div
+      className={["rounded-xl border border-border/70 bg-background/55 p-3", className].join(" ")}
+    >
       <div>
         <div className="text-sm font-medium">Välj grupp för omdömet</div>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
