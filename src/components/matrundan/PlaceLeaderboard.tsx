@@ -1,4 +1,4 @@
-import type * as React from "react";
+import * as React from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { RatingStars } from "@/components/matrundan/Rating";
@@ -197,7 +197,19 @@ export function PlaceLeaderboard({
   onOpenItem: (item: PlaceLeaderboardItem) => void;
   emptyMessage?: string;
 }) {
+  const [showAll, setShowAll] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) setShowAll(false);
+  }, [open]);
+
+  React.useEffect(() => {
+    setShowAll(false);
+  }, [occasions, meals, takeawayOnly]);
+
   if (!leader) return null;
+
+  const visibleItems = showAll ? items : items.slice(0, 3);
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -269,7 +281,22 @@ export function PlaceLeaderboard({
 
           <div className="mt-3">
             {items.length > 0 ? (
-              <PlaceLeaderboardRows items={items} onOpen={onOpenItem} />
+              <>
+                <PlaceLeaderboardRows items={visibleItems} onOpen={onOpenItem} />
+                {items.length > 3 ? (
+                  <div className="flex justify-center pt-2">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-11 rounded-full px-4 text-xs text-muted-foreground"
+                      onClick={() => setShowAll((current) => !current)}
+                    >
+                      {showAll ? "Visa topp 3" : `Visa hela topplistan (${items.length})`}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             ) : (
               <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
                 {emptyMessage}
