@@ -3,8 +3,7 @@ import { expect, test } from "@playwright/test";
 test("hela ställeskortet öppnar stället medan favorit är en separat handling", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
 
-  await page.goto("/exempel");
-  await page.goto("/matstallen");
+  await page.goto("/matstallen?demo=1");
 
   const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
   await search.fill("Smakhallen");
@@ -23,7 +22,7 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
   await expect(favorite).toBeVisible();
   await favorite.click();
 
-  await expect(page).toHaveURL(/\/matstallen$/);
+  await expect(page).toHaveURL(/\/matstallen\?demo=1$/);
   await expect(card.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   await openPlace.click({
@@ -33,6 +32,6 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
     },
   });
 
-  await expect(page).toHaveURL(/\/matstallen\/p8$/);
+  await expect(page).toHaveURL(/\/matstallen\/p8(?:\?demo=1)?$/);
   await expect(page.getByRole("heading", { name: "Smakhallen" })).toBeVisible();
 });
