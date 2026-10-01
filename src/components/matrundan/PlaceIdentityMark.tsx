@@ -1,4 +1,3 @@
-import { Sparkles } from "lucide-react";
 import type { PlaceCategory } from "@/lib/matrundan/types";
 import { cn } from "@/lib/utils";
 
@@ -19,11 +18,10 @@ const SIZE_CLASS = {
 } as const;
 
 const SOMETHING_EXTRA_CLASS: Record<keyof typeof SIZE_CLASS, string> = {
-  sm: "-bottom-0.5 -right-0.5 h-3.5 w-3.5 [&_svg]:h-2 [&_svg]:w-2",
-  md: "-bottom-0.5 -right-0.5 h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5",
-  lg: "-bottom-1 -right-1 h-5 w-5 [&_svg]:h-3 [&_svg]:w-3",
-  detail:
-    "-bottom-0.5 -right-0.5 h-4 w-4 min-[390px]:-bottom-1 min-[390px]:-right-1 min-[390px]:h-5 min-[390px]:w-5 [&_svg]:h-2.5 [&_svg]:w-2.5 min-[390px]:[&_svg]:h-3 min-[390px]:[&_svg]:w-3",
+  sm: "bottom-0 right-0 text-[11px]",
+  md: "bottom-0.5 right-0.5 text-[13px]",
+  lg: "bottom-1 right-1 text-base",
+  detail: "bottom-0.5 right-0.5 text-[13px] min-[390px]:bottom-1 min-[390px]:right-1 min-[390px]:text-base",
 };
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
@@ -62,11 +60,11 @@ export function PlaceIdentityMark({
         <span
           data-slot="place-identity-something-extra"
           className={cn(
-            "absolute z-10 grid place-items-center rounded-full border border-mustard/35 bg-background/55 text-mustard-foreground/90 shadow-sm backdrop-blur-sm",
+            "pointer-events-none absolute z-10 select-none leading-none drop-shadow-sm",
             SOMETHING_EXTRA_CLASS[size],
           )}
         >
-          <Sparkles strokeWidth={2.25} />
+          ✨
         </span>
       ) : null}
     </div>
