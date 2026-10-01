@@ -277,6 +277,9 @@ function VisitHistory() {
         }
         onOpenChange={(open) => {
           if (open) return;
+          // Vid direkt omdömeshandoff ligger omdömesdialogen ovanpå besöksarket
+          // och äger själv returflödet när den stängs eller sparas.
+          if (search.review === "new") return;
           if (search.from === "home" || search.from === "min-matresa") {
             returnFromHandoff();
             return;
