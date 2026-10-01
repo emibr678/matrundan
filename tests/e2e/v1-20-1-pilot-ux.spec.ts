@@ -1,5 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
-import { CURRENT_GROUP_STATE_RPC, PREVIOUS_GROUP_STATE_RPC } from "../../src/lib/matrundan/read-model-version";
+import {
+  CURRENT_GROUP_STATE_RPC,
+  PREVIOUS_GROUP_STATE_RPC,
+} from "../../src/lib/matrundan/read-model-version";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
