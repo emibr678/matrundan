@@ -118,9 +118,9 @@ export function PersonalJourneyPeopleRanking({
   onSelect: (person: PersonalJourneyStatsLeaderboardEntry) => void;
 }) {
   const metricDef = PERSONAL_STATS_METRICS.find((item) => item.id === metric)!;
-  const [expanded, setExpanded] = React.useState(false);
-
-  React.useEffect(() => setExpanded(false), [metric]);
+  const [expandedMetric, setExpandedMetric] =
+    React.useState<PersonalJourneyStatsMetric | null>(null);
+  const expanded = expandedMetric === metric;
 
   const compactPeople = React.useMemo(() => {
     const top = people.slice(0, 5);
@@ -170,7 +170,7 @@ export function PersonalJourneyPeopleRanking({
         <div className="flex justify-center pt-1">
           <button
             type="button"
-            onClick={() => setExpanded((current) => !current)}
+            onClick={() => setExpandedMetric(expanded ? null : metric)}
             className="min-h-11 rounded-full px-4 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {expanded ? "Visa färre" : `Visa alla (${people.length})`}
