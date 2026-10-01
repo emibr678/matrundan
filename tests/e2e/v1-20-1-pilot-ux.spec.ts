@@ -421,7 +421,7 @@ test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", 
   ).toBeVisible();
   await page.getByRole("button", { name: "Visa inbjudan" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  const dialog = page.getByRole("dialog", { name: "Dina grupper" });
   await expect(dialog.getByText("Söndagsgänget", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Inbjuden av Karin", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Gå med" })).toBeVisible();

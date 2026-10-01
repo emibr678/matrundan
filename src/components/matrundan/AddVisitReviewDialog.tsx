@@ -34,6 +34,7 @@ export function AddVisitReviewDialog({
   isTakeaway = false,
   placeOccasions = [],
   disabled = false,
+  initialOpen = false,
   onSaved,
   onExit,
 }: {
@@ -44,6 +45,7 @@ export function AddVisitReviewDialog({
   isTakeaway?: boolean;
   placeOccasions?: Occasion[];
   disabled?: boolean;
+  initialOpen?: boolean;
   onSaved?: () => void | Promise<void>;
   onExit?: () => void;
 }) {
@@ -51,7 +53,7 @@ export function AddVisitReviewDialog({
   const { state, saveVisitPhoto, updatePlaceMetadata } = useStore();
   const visit = state.visits.find((item) => item.id === visitId);
   const ownPhoto = visit ? getOwnVisitPhoto(visit, state.currentUserId) : undefined;
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(initialOpen);
   const [saving, setSaving] = React.useState(false);
   const [taste, setTaste] = React.useState(0);
   const [value, setValue] = React.useState(0);

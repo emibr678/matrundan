@@ -12,6 +12,7 @@
 \ir production-preflight.sql
 \ir production-preflight-invitations.sql
 \ir production-preflight-place-location.sql
+\ir production-preflight-personal-journey.sql
 \ir production-preflight-review-reactions.sql
 \ir production-preflight-user-guidance.sql
 \ir production-preflight-search-boundaries.sql

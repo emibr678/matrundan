@@ -1,28 +1,17 @@
-import { formatRating } from "@/lib/matrundan/version";
 import * as React from "react";
 import { createFileRoute, Link, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { z } from "zod";
-import {
-  ChevronDown,
-  ChevronRight,
-  List,
-  Map,
-  Plus,
-  Search,
-  SlidersHorizontal,
-  X,
-} from "lucide-react";
+import { List, Map, Plus, Search, SlidersHorizontal, X } from "lucide-react";
 
 import { AddPlaceDialog } from "@/components/matrundan/AddPlaceDialog";
 import { ExamplePlaceMap } from "@/components/matrundan/ExamplePlaceMap";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceCard, PlaceThumb } from "@/components/matrundan/PlaceCard";
+import { PlaceLeaderboard } from "@/components/matrundan/PlaceLeaderboard";
 import { PlaceMap } from "@/components/matrundan/PlaceMap";
-import { RatingStars } from "@/components/matrundan/Rating";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Input } from "@/components/ui/input";
 import { appPageTitle } from "@/lib/app-environment";
 
@@ -37,7 +26,6 @@ import {
 import { rankPlacesForOccasions, rankPlacesOverall } from "@/lib/matrundan/occasions";
 import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import {
-  RANKABLE_VISIT_MEALS,
   ratingForPlaceInVisitContext,
   type RankableVisitMeal,
 } from "@/lib/matrundan/visit-context-ranking";
@@ -46,11 +34,9 @@ import { useStore } from "@/lib/matrundan/store";
 import {
   CATEGORY_LABEL,
   OCCASION_LABEL,
-  OCCASION_VALUES,
   type Occasion,
   type PlaceCategory,
 } from "@/lib/matrundan/types";
-import { VISIT_MEAL_LABEL } from "@/lib/matrundan/visit-context";
 
 const placesSearchSchema = z.object({
   add: z.enum(["place"]).optional(),
@@ -93,16 +79,6 @@ const QUICK_FILTERS: { key: Filter; label: string }[] = [
   { key: "nytt-for-mig", label: "Nytt för mig" },
   { key: "nytt-for-gruppen", label: "Nytt för gruppen" },
 ];
-
-const TOP_LIST_FILTERS = OCCASION_VALUES.map((key) => ({
-  key,
-  label: OCCASION_LABEL[key],
-}));
-
-const TOP_VISIT_FILTERS = RANKABLE_VISIT_MEALS.map((key) => ({
-  key,
-  label: VISIT_MEAL_LABEL[key],
-}));
 
 function toggleFilterValue<T extends string>(values: readonly T[], value: T): T[] {
   return values.includes(value) ? values.filter((item) => item !== value) : [...values, value];
@@ -210,7 +186,7 @@ function PlacesIndex() {
     [state.visits],
   );
   const overallTopRated = React.useMemo(
-    () => rankPlacesOverall(activePlaces, overallLeaderboardRating),
+    () => rankPlacesOverall(activePlaces, overallLeaderboardRating, activePlaces.length),
     [activePlaces, overallLeaderboardRating],
   );
   const contextualRating = React.useCallback(
@@ -222,7 +198,7 @@ function PlacesIndex() {
     [state.visits, topTakeawayOnly, topVisits],
   );
   const topRated = React.useMemo(
-    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating),
+    () => rankPlacesForOccasions(activePlaces, topOccasions, contextualRating, activePlaces.length),
     [activePlaces, contextualRating, topOccasions],
   );
   const topLeader = overallTopRated[0] ?? null;
@@ -285,190 +261,50 @@ function PlacesIndex() {
         </p>
       </div>
 
-      {topLeader ? (
-        <Collapsible open={topOpen} onOpenChange={setTopOpen}>
-          <section
-            aria-labelledby="place-leaderboard-heading"
-            data-testid="occasion-leaderboard"
-            className="rounded-2xl border border-border/70 bg-card/60 px-3 py-3"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              {topOpen ? (
-                <h2 id="place-leaderboard-heading" className="min-w-0 flex-1 font-display text-lg">
-                  Topplista
-                </h2>
-              ) : (
-                <Link
-                  to="/matstallen/$placeId"
-                  params={{ placeId: topLeader.place.id }}
-                  className="flex min-w-0 flex-1 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  aria-label={`Ledare i topplistan: ${topLeader.place.name}`}
-                >
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                    1
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <h2
-                      id="place-leaderboard-heading"
-                      className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      Topplista
-                    </h2>
-                    <div className="truncate text-sm font-medium">{topLeader.place.name}</div>
-                    <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                      <RatingStars value={topLeader.rating.overall} size={12} />
-                      <span className="truncate text-xs text-muted-foreground">
-                        {formatRating(topLeader.rating.overall)} · {topLeader.rating.count}{" "}
-                        {topLeader.rating.count === 1 ? "omdöme" : "omdömen"}
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              )}
-              <CollapsibleTrigger asChild>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="ml-auto min-h-11 shrink-0 rounded-full px-3 text-xs text-muted-foreground"
-                  aria-label={topOpen ? "Dölj topplista" : "Visa topp 3"}
-                >
-                  {topOpen ? "Dölj" : "Visa topp 3"}
-                  <ChevronDown
-                    className={["h-4 w-4 transition-transform", topOpen ? "rotate-180" : ""].join(
-                      " ",
-                    )}
-                  />
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-
-            <CollapsibleContent className="pt-1.5">
-              <div className="space-y-1.5">
-                <div>
-                  <div className="mb-0.5 flex min-h-8 items-center gap-1 text-sm font-medium text-foreground">
-                    <span>Typ av upplevelse</span>
-                    <span className="-my-1.5 inline-flex">
-                      <OccasionGuide compact />
-                    </span>
-                  </div>
-                  <div
-                    className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-wrap sm:gap-2"
-                    role="group"
-                    aria-label="Filtrera topplistan på Typ av upplevelse. Inget val visar alla."
-                  >
-                    {TOP_LIST_FILTERS.map((item) => {
-                      const active = topOccasions.includes(item.key);
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() =>
-                            setTopOccasions((current) => toggleFilterValue(current, item.key))
-                          }
-                          aria-pressed={active}
-                          aria-label={`Filtrera topplistan på ${item.label}`}
-                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <Badge
-                            variant={active ? "default" : "outline"}
-                            className="w-full cursor-pointer justify-center rounded-full px-1.5 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                          >
-                            {item.label}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-0.5 text-sm font-medium text-foreground">Tillfälle</div>
-                  <div
-                    className="grid grid-cols-5 gap-1 sm:flex sm:flex-wrap sm:gap-2"
-                    role="group"
-                    aria-label="Filtrera topplistan på besökstillfälle. Inget val visar alla tillfällen."
-                  >
-                    {TOP_VISIT_FILTERS.map((item) => {
-                      const active = topVisits.includes(item.key);
-                      return (
-                        <button
-                          key={item.key}
-                          type="button"
-                          onClick={() =>
-                            setTopVisits((current) => toggleFilterValue(current, item.key))
-                          }
-                          aria-pressed={active}
-                          aria-label={`Filtrera topplistan på ${item.label}`}
-                          className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          <Badge
-                            variant={active ? "default" : "outline"}
-                            className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                          >
-                            {item.label}
-                          </Badge>
-                        </button>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setTopTakeawayOnly((current) => !current)}
-                      aria-pressed={topTakeawayOnly}
-                      aria-label="Filtrera topplistan på hämtmat"
-                      className="min-h-11 min-w-0 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <Badge
-                        variant={topTakeawayOnly ? "default" : "outline"}
-                        className="w-full cursor-pointer justify-center rounded-full px-1 py-1 text-[11px] sm:w-auto sm:px-3 sm:text-xs"
-                      >
-                        Hämtmat
-                      </Badge>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-3">
-                {topRated.length > 0 ? (
-                  <div className="grid min-w-0 gap-2 md:grid-cols-3">
-                    {topRated.map(({ place, rating, rank }) => (
-                      <Link
-                        key={place.id}
-                        to="/matstallen/$placeId"
-                        params={{ placeId: place.id }}
-                        className="flex w-full min-w-0 items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
-                      >
-                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                          {rank}
-                        </span>
-                        <PlaceThumb place={place} size="sm" />
-                        <div className="min-w-0 flex-1">
-                          <div className="truncate font-medium">{place.name}</div>
-                          <div className="mt-0.5 flex min-w-0 items-center gap-2">
-                            <RatingStars value={rating.overall} size={12} />
-                            <span className="min-w-0 truncate text-xs text-muted-foreground">
-                              {formatRating(rating.overall)} · {rating.visitCount ?? 0} besök ·{" "}
-                              {rating.count} {rating.count === 1 ? "omdöme" : "omdömen"}
-                            </span>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-                      </Link>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-dashed border-border/70 bg-card/60 px-4 py-5 text-center text-sm text-muted-foreground">
-                    {topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
-                      ? "Inga betyg ännu — de kommer när gruppen har provat något."
-                      : "Inga betyg matchar de valda filtren ännu."}
-                  </div>
-                )}
-              </div>
-            </CollapsibleContent>
-          </section>
-        </Collapsible>
-      ) : null}
+      <PlaceLeaderboard
+        leader={
+          topLeader
+            ? {
+                id: topLeader.place.id,
+                name: topLeader.place.name,
+                rating: topLeader.rating.overall,
+                reviewCount: topLeader.rating.count,
+                visitCount: topLeader.rating.visitCount,
+                leading: <PlaceThumb place={topLeader.place} size="sm" />,
+              }
+            : null
+        }
+        items={topRated.map(({ place, rating, rank }) => ({
+          id: place.id,
+          name: place.name,
+          rating: rating.overall,
+          reviewCount: rating.count,
+          rank,
+          visitCount: rating.visitCount,
+          leading: <PlaceThumb place={place} size="sm" />,
+        }))}
+        open={topOpen}
+        onOpenChange={setTopOpen}
+        occasions={topOccasions}
+        onToggleOccasion={(occasion) =>
+          setTopOccasions((current) => toggleFilterValue(current, occasion))
+        }
+        meals={topVisits}
+        onToggleMeal={(meal) => setTopVisits((current) => toggleFilterValue(current, meal))}
+        takeawayOnly={topTakeawayOnly}
+        onToggleTakeaway={() => setTopTakeawayOnly((current) => !current)}
+        onOpenItem={(item) =>
+          void navigate({
+            to: "/matstallen/$placeId",
+            params: { placeId: item.id },
+          })
+        }
+        emptyMessage={
+          topOccasions.length === 0 && topVisits.length === 0 && !topTakeawayOnly
+            ? "Inga betyg ännu — de kommer när gruppen har provat något."
+            : "Inga betyg matchar de valda filtren ännu."
+        }
+      />
 
       <div className="flex items-center justify-between gap-3 pt-1">
         <div className="min-w-0">

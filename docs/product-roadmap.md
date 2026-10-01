@@ -22,8 +22,8 @@ Kärnflödet är:
 
 Sökning, kartor, statistik, rekommendationer, personalisering och gamification är
 stöd för den gemensamma matresan. De får inte göra Matrundan till en offentlig
-restaurangkatalog, individuell matdagbok, social feed, global ranking eller
-generisk karttjänst.
+restaurangkatalog, individuell matdagbok, social feed, offentlig/global
+tävlingsranking eller generisk karttjänst.
 
 ## Strategiska teman
 
@@ -58,8 +58,11 @@ implicit.
 ### Personligt stöd utan individuell huvudprodukt
 
 Favoriter, personlig igenkänning, avatarer och liknande får hjälpa användaren i
-den gemensamma matresan. De får inte flytta tyngdpunkten från gruppen till en
-individuell matdagbok, offentlig profil eller global progression.
+den gemensamma matresan. Lågupplöst personlig statistik och diskret gamification
+får sammanställas över användarens grupper och delas med personer som användaren
+redan delar en aktiv grupp med, utan att underliggande privat gruppinnehåll
+exponeras. Det får inte flytta tyngdpunkten från gruppen till en individuell
+matdagbok, offentlig profil eller offentlig/global tävlingsprodukt.
 
 ### Tillförlitlig platsdata och hållbar plattform
 

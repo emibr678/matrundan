@@ -6,6 +6,12 @@
 
 WITH checks(name, ok) AS (
   VALUES
+    ('personal_journey_rpc:toplist-v1', to_regprocedure('public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)') IS NOT NULL),
+    ('personal_journey_rpc:toplist-no-anon', NOT has_function_privilege('anon', 'public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)', 'EXECUTE')),
+    ('personal_journey_rpc:global-stats-v1', to_regprocedure('public.get_personal_journey_stats_v1(text)') IS NOT NULL),
+    ('personal_journey_rpc:global-stats-auth', has_function_privilege('authenticated', 'public.get_personal_journey_stats_v1(text)', 'EXECUTE')),
+    ('personal_journey_rpc:global-stats-no-anon', NOT has_function_privilege('anon', 'public.get_personal_journey_stats_v1(text)', 'EXECUTE')),
+    ('personal_journey_rpc:global-stats-helper-private', NOT has_function_privilege('authenticated', 'public.personal_journey_can_view_global_stats_v1(uuid,uuid)', 'EXECUTE')),
     ('read_rpc_current:get_group_app_state_v5h', to_regprocedure('public.get_group_app_state_v5h(uuid)') IS NOT NULL),
     ('read_rpc_fallback:get_group_app_state_v5g', to_regprocedure('public.get_group_app_state_v5g(uuid)') IS NOT NULL),
     ('visit_rpc:create_visit_with_review_v2', to_regprocedure('public.create_visit_with_review_v2(uuid,uuid,date,text,uuid[],smallint,smallint,smallint,smallint,text,text[])') IS NOT NULL),

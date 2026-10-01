@@ -106,11 +106,22 @@ requirePattern(
   /CREATE\s+TABLE\s+public\.visit_media_group_visibility[\s\S]*?FOREIGN\s+KEY\s*\(media_id,\s*visit_id\)[\s\S]*?ON\s+DELETE\s+CASCADE[\s\S]*?FOREIGN\s+KEY\s*\(visit_id,\s*group_id\)[\s\S]*?ON\s+DELETE\s+CASCADE/i,
   "Cross-group-synligheten måste kaskadera med både mediaobjekt och besökslänk.",
 );
-requirePattern(
-  crossGroupMigration,
-  /grant_own_visit_photo_visibility_v1[\s\S]*?uploaded_by\s*=\s*_uid[\s\S]*?visit_participants[\s\S]*?has_membership/i,
-  "Endast bildägaren, som faktisk deltagare och målgruppsmedlem, får dela sin bild.",
-);
+const grantOwnPhotoVisibilityFunction = crossGroupMigration.match(
+  /CREATE\s+OR\s+REPLACE\s+FUNCTION\s+public\.grant_own_visit_photo_visibility_v1[\s\S]*?\$function\$;/i,
+)?.[0];
+if (!grantOwnPhotoVisibilityFunction) {
+  errors.push("Migrationen saknar grant_own_visit_photo_visibility_v1.");
+} else {
+  for (const [pattern, message] of [
+    [/uploaded_by\s*=\s*_uid/i, "bildägaren"],
+    [/visit_participants[\s\S]*?participant\.user_id\s*=\s*_uid/i, "faktisk deltagare"],
+    [/has_membership\s*\(\s*_target_group_id\s*,\s*_uid\s*\)/i, "målgruppsmedlem"],
+  ]) {
+    if (!pattern.test(grantOwnPhotoVisibilityFunction)) {
+      errors.push(`Bilddelning måste verifiera ${message}.`);
+    }
+  }
+}
 requirePattern(
   crossGroupMigration,
   /resolve_visit_photo_delivery_v1[\s\S]*?REVOKE\s+ALL[\s\S]*?authenticated[\s\S]*?GRANT\s+EXECUTE[\s\S]*?service_role/i,

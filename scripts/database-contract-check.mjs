@@ -27,6 +27,10 @@ const preflightHistoricalReviewsPath = resolve(
   root,
   "supabase/production-preflight-historical-reviews.sql",
 );
+const preflightPersonalJourneyPath = resolve(
+  root,
+  "supabase/production-preflight-personal-journey.sql",
+);
 const errors = [];
 
 function git(args, allowFailure = false) {
@@ -103,6 +107,15 @@ const requiredFunctions = [
   "apply_place_external_location_v1",
   "get_cross_group_practical_info_suggestions_v1",
   "apply_cross_group_practical_info_suggestion_v1",
+  "get_personal_journey_overview_v1",
+  "get_personal_journey_overview_v2",
+  "list_personal_journey_places_v1",
+  "list_personal_journey_places_v2",
+  "get_personal_journey_place_v1",
+  "get_personal_journey_toplist_v1",
+  "list_personal_journey_visits_v1",
+  "get_personal_journey_visit_v1",
+  "get_personal_journey_stats_v1",
 ];
 
 for (const name of requiredFunctions) {
@@ -226,6 +239,9 @@ if (!existsSync(preflightReviewReactionsPath)) {
 if (!existsSync(preflightHistoricalReviewsPath)) {
   errors.push("supabase/production-preflight-historical-reviews.sql saknas.");
 }
+if (!existsSync(preflightPersonalJourneyPath)) {
+  errors.push("supabase/production-preflight-personal-journey.sql saknas.");
+}
 if (
   existsSync(preflightPath) &&
   existsSync(preflightReadModelPath) &&
@@ -233,7 +249,8 @@ if (
   existsSync(preflightBoundaryPath) &&
   existsSync(preflightVisitParticipationPath) &&
   existsSync(preflightReviewReactionsPath) &&
-  existsSync(preflightHistoricalReviewsPath)
+  existsSync(preflightHistoricalReviewsPath) &&
+  existsSync(preflightPersonalJourneyPath)
 ) {
   const preflight = `${readFileSync(preflightPath, "utf8")}\n${readFileSync(
     preflightReadModelPath,
@@ -245,8 +262,9 @@ if (
     preflightReviewReactionsPath,
     "utf8",
   )}\n${readFileSync(preflightHistoricalReviewsPath, "utf8")}`;
+  const completePreflight = `${preflight}\n${readFileSync(preflightPersonalJourneyPath, "utf8")}`;
   for (const name of requiredFunctions) {
-    if (!preflight.includes(name)) {
+    if (!completePreflight.includes(name)) {
       errors.push(`Produktions-preflight saknar ${name}.`);
     }
   }
