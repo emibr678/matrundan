@@ -15,7 +15,7 @@ describe("personliga avatarer", () => {
 
     expect(token).toBe(`${MULTIAVATAR_PREFIX}matrundan-test-seed`);
     expect(first).toBe(second);
-    expect(first).toStartWith("data:image/svg+xml;charset=UTF-8,");
+    expect(first?.startsWith("data:image/svg+xml;charset=UTF-8,")).toBe(true);
     expect(decodeURIComponent(first!.split(",", 2)[1])).toContain("<svg");
   });
 

@@ -23,18 +23,39 @@ export async function loadOwnProfile(): Promise<OwnProfile | null> {
   const userId = userData.user?.id;
   if (!userId) return null;
 
-  const { data, error } = await supabase
+  const current = await supabase
     .from("profiles")
     .select("display_name, avatar_kind, avatar_emoji, avatar_seed")
     .eq("id", userId)
     .maybeSingle();
-  if (error) throw error;
+
+  if (!current.error) {
+    return {
+      displayName: current.data?.display_name ?? "",
+      avatarKind: normalizeProfileAvatarKind(current.data?.avatar_kind),
+      avatarEmoji: current.data?.avatar_emoji ?? null,
+      avatarSeed: current.data?.avatar_seed ?? null,
+      accountAvatarUrl: accountAvatarUrl(userData.user?.user_metadata as Record<string, unknown>),
+    };
+  }
+
+  const missingAvatarColumns =
+    current.error.message.includes("avatar_kind") || current.error.message.includes("avatar_seed");
+  if (!missingAvatarColumns) throw current.error;
+
+  // Gör branchpreview användbar före separat godkänd stagingmigration.
+  const legacy = await supabase
+    .from("profiles")
+    .select("display_name, avatar_emoji")
+    .eq("id", userId)
+    .maybeSingle();
+  if (legacy.error) throw legacy.error;
 
   return {
-    displayName: data?.display_name ?? "",
-    avatarKind: normalizeProfileAvatarKind(data?.avatar_kind),
-    avatarEmoji: data?.avatar_emoji ?? null,
-    avatarSeed: data?.avatar_seed ?? null,
+    displayName: legacy.data?.display_name ?? "",
+    avatarKind: legacy.data?.avatar_emoji ? "emoji" : "account",
+    avatarEmoji: legacy.data?.avatar_emoji ?? null,
+    avatarSeed: null,
     accountAvatarUrl: accountAvatarUrl(userData.user?.user_metadata as Record<string, unknown>),
   };
 }

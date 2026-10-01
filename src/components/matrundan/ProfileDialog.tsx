@@ -180,7 +180,10 @@ export function ProfileDialog({
                       : "border-border/70 hover:bg-muted")
                   }
                 >
-                  <MemberAvatar member={{ name: displayName || "Du", avatarImage: accountAvatarUrl }} size={36} />
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: accountAvatarUrl }}
+                    size={36}
+                  />
                   <span className="truncate">Kontobild</span>
                 </button>
                 <button
@@ -199,7 +202,10 @@ export function ProfileDialog({
                       : "border-border/70 hover:bg-muted")
                   }
                 >
-                  <MemberAvatar member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }} size={36} />
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }}
+                    size={36}
+                  />
                   <span className="truncate">Matrundan</span>
                 </button>
                 <button
@@ -217,14 +223,20 @@ export function ProfileDialog({
                       : "border-border/70 hover:bg-muted")
                   }
                 >
-                  <MemberAvatar member={{ name: displayName || "Du", avatar: emoji ?? AVATAR_EMOJIS[0] }} size={36} />
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatar: emoji ?? AVATAR_EMOJIS[0] }}
+                    size={36}
+                  />
                   <span className="truncate">Emoji</span>
                 </button>
               </div>
 
               {avatarKind === "generated" ? (
                 <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-muted/25 p-3">
-                  <MemberAvatar member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }} size={64} />
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }}
+                    size={64}
+                  />
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">Din Matrundan-avatar</div>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
