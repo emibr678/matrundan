@@ -447,18 +447,18 @@ export function demoPersonalJourneyStats(
 
 export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
   summary: {
-    attendedVisitCount: 7,
-    attendedPlaceCount: 7,
+    attendedVisitCount: 5,
+    attendedPlaceCount: 5,
     readableGroupCount: 3,
     activeGroupCount: 2,
   },
   pendingReviews: [
     {
       visitId: DEMO_PERSONAL_JOURNEY_VISITS[0].id,
-      placeId: DEMO_PERSONAL_JOURNEY_PLACES[0].id,
-      placeName: DEMO_PERSONAL_JOURNEY_PLACES[0].name,
+      placeId: DEMO_PERSONAL_JOURNEY_VISITS[0].placeId,
+      placeName: DEMO_PERSONAL_JOURNEY_VISITS[0].placeName,
       visitedOn: DEMO_PERSONAL_JOURNEY_VISITS[0].visitedOn,
-      mealType: "middag",
+      mealType: DEMO_PERSONAL_JOURNEY_VISITS[0].mealType,
       isTakeaway: false,
       groups: [groups.friends, groups.family],
     },
@@ -473,7 +473,10 @@ export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
     )
     .slice(0, 3),
   favoritePlaces: DEMO_PERSONAL_JOURNEY_PLACES.filter((place) => place.isFavorite),
-  recentVisits: DEMO_PERSONAL_JOURNEY_VISITS.slice(0, 3),
+  recentVisits: [...DEMO_PERSONAL_JOURNEY_VISITS]
+    .filter((visit) => visit.participated)
+    .sort((left, right) => right.visitedOn.localeCompare(left.visitedOn))
+    .slice(0, 2),
 };
 
 export function demoPersonalJourneyPlaces({
