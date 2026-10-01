@@ -2,7 +2,10 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 
 const migration = readFileSync(
-  new URL("../../../supabase/migrations/20261001220000_group_place_symbol_override_v1.sql", import.meta.url),
+  new URL(
+    "../../../supabase/migrations/20261001220000_group_place_symbol_override_v1.sql",
+    import.meta.url,
+  ),
   "utf8",
 );
 

@@ -19,7 +19,6 @@ describe("place-symbol", () => {
     expect(resolveAutomaticPlaceSymbol({ ...source, symbolOverride: "🍜" })).toBe("🍕");
   });
 
-
   test("låter en uttrycklig specialsymbol vinna över metadata", () => {
     expect(
       resolvePlaceSymbol({
