@@ -42,41 +42,74 @@ describe("Min matresa-demo", () => {
       "Bageri Solsidan",
       "Kvartersbordet",
       "Nudelhörnan",
+      "Ramenverket",
+      "Café Lilla Torget",
+      "Torggrillen",
+      "Bryggpuben",
     ]);
     expect(demoPersonalJourneyPlaces({ sort: "recent" }).items.map((place) => place.name)).toEqual([
       "Kvartersbordet",
       "Bageri Solsidan",
       "Nudelhörnan",
+      "Ramenverket",
+      "Café Lilla Torget",
+      "Torggrillen",
+      "Bryggpuben",
     ]);
     expect(demoPersonalJourneyPlaces({ sort: "name" }).items.map((place) => place.name)).toEqual([
       "Bageri Solsidan",
+      "Bryggpuben",
+      "Café Lilla Torget",
       "Kvartersbordet",
       "Nudelhörnan",
+      "Ramenverket",
+      "Torggrillen",
     ]);
   });
 
   test("filtrerar Topplistan på upplevelse och besökstillfälle utan att skapa global metadata", () => {
     const relaxed = demoPersonalJourneyToplist({ occasions: ["avslappnat"] });
-    expect(relaxed.items.map((place) => place.name)).toEqual(["Kvartersbordet", "Nudelhörnan"]);
+    expect(relaxed.items.map((place) => place.name)).toEqual([
+      "Kvartersbordet",
+      "Nudelhörnan",
+      "Ramenverket",
+      "Bryggpuben",
+    ]);
 
     const relaxedDinner = demoPersonalJourneyToplist({
       occasions: ["avslappnat"],
       mealTypes: ["middag"],
     });
-    expect(relaxedDinner.items.map((place) => place.name)).toEqual(["Kvartersbordet"]);
+    expect(relaxedDinner.items.map((place) => place.name)).toEqual([
+      "Kvartersbordet",
+      "Ramenverket",
+      "Bryggpuben",
+    ]);
     expect(relaxedDinner.items[0]?.rating).toBe(4.25);
     expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
 
     expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
   });
 
+  test("har fler än tre rankade demoställen och inga rankade ställen utan verkligt besök", () => {
+    const result = demoPersonalJourneyToplist();
+    expect(result.items.length).toBeGreaterThan(3);
+    expect(result.items.every((place) => place.visitCount > 0)).toBe(true);
+    expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.topRatedPlaces).toHaveLength(3);
+  });
+
   test("visar global statistik och rankar personer med samma återanvända kontrakt", () => {
     const visits = demoPersonalJourneyStats("visits");
     expect(visits.self.visits).toBe(17);
+    expect(visits.self.groupCount).toBe(3);
     expect(visits.leaderboard.map((person) => person.displayName)).toEqual([
       "Sam",
       "Alex",
+      "Kim",
+      "Noor",
       "Nora",
+      "Robin",
+      "Maja",
     ]);
     expect(visits.leaderboard.find((person) => person.isSelf)?.rank).toBe(2);
 
