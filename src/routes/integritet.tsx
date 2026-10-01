@@ -52,9 +52,9 @@ function PrivacyPage() {
           </p>
           <p>
             Personer som du delar minst en aktiv grupp med kan se sparsam samlad statistik om din
-            Matrundan-aktivitet, till exempel antal besök, olika ställen och olika kök. De ser inte
-            vilka andra grupper, ställen, besök, betyg, kommentarer eller bilder som ligger bakom
-            totalsiffrorna.
+            Matrundan-aktivitet, till exempel antal besök, olika ställen, olika kök och hur många
+            grupper som bidrar till statistiken. De ser inte vilka grupper det är eller vilka
+            ställen, besök, betyg, kommentarer eller bilder som ligger bakom totalsiffrorna.
           </p>
         </PrivacySection>
 
