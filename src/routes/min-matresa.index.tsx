@@ -82,7 +82,7 @@ function PersonalJourneyOverview() {
     selectGroup(target.groupId);
     void navigate({
       to: "/besok",
-      search: { visit: item.visitId, group: target.groupId, from: "min-matresa" },
+      search: { visit: item.visitId, group: target.groupId, review: "new", from: "min-matresa" },
       state: (previous) => ({
         ...previous,
         personalJourney: {
