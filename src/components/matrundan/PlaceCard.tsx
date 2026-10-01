@@ -37,7 +37,7 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
       <Link
         to="/matstallen/$placeId"
         params={{ placeId: place.id }}
-        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
         aria-label={place.name}
       />
       <PlaceSummary
