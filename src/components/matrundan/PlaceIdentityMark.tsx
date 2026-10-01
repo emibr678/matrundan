@@ -19,11 +19,11 @@ const SIZE_CLASS = {
 } as const;
 
 const SOMETHING_EXTRA_CLASS: Record<keyof typeof SIZE_CLASS, string> = {
-  sm: "-right-1 -top-1 h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5",
-  md: "-right-1 -top-1 h-5 w-5 [&_svg]:h-3 [&_svg]:w-3",
-  lg: "-right-1.5 -top-1.5 h-6 w-6 [&_svg]:h-3.5 [&_svg]:w-3.5",
+  sm: "-bottom-0.5 -right-0.5 h-3.5 w-3.5 [&_svg]:h-2 [&_svg]:w-2",
+  md: "-bottom-0.5 -right-0.5 h-4 w-4 [&_svg]:h-2.5 [&_svg]:w-2.5",
+  lg: "-bottom-1 -right-1 h-5 w-5 [&_svg]:h-3 [&_svg]:w-3",
   detail:
-    "-right-1 -top-1 h-5 w-5 min-[390px]:-right-1.5 min-[390px]:-top-1.5 min-[390px]:h-6 min-[390px]:w-6 [&_svg]:h-3 [&_svg]:w-3 min-[390px]:[&_svg]:h-3.5 min-[390px]:[&_svg]:w-3.5",
+    "-bottom-0.5 -right-0.5 h-4 w-4 min-[390px]:-bottom-1 min-[390px]:-right-1 min-[390px]:h-5 min-[390px]:w-5 [&_svg]:h-2.5 [&_svg]:w-2.5 min-[390px]:[&_svg]:h-3 min-[390px]:[&_svg]:w-3",
 };
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
@@ -62,7 +62,7 @@ export function PlaceIdentityMark({
         <span
           data-slot="place-identity-something-extra"
           className={cn(
-            "absolute z-10 grid place-items-center rounded-full border border-mustard/60 bg-background/95 text-mustard-foreground shadow-sm",
+            "absolute z-10 grid place-items-center rounded-full border border-mustard/35 bg-background/55 text-mustard-foreground/90 shadow-sm backdrop-blur-sm",
             SOMETHING_EXTRA_CLASS[size],
           )}
         >
