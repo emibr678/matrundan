@@ -266,7 +266,8 @@ function VisitHistory() {
 
       <VisitDetailSheet
         visitId={search.visit || null}
-        focusReviewId={search.review ?? null}
+        focusReviewId={search.review && search.review !== "new" ? search.review : null}
+        openOwnReview={search.review === "new"}
         open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
         onReviewFlowExit={
           search.from === "home" || search.from === "min-matresa" ? returnFromHandoff : undefined
