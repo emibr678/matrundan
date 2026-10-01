@@ -93,7 +93,7 @@ export function PersonalJourneyVisitCard({
             <GroupContext groups={visit.groups} />
             {visit.reviewPending ? (
               <span className="rounded-full bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                Ditt omdöme saknas
+                Omdöme att lämna
               </span>
             ) : null}
           </div>
