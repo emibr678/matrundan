@@ -17,27 +17,17 @@ const SIZE_CLASS = {
   detail: "-top-0.5 h-16 w-16 text-3xl min-[390px]:h-20 min-[390px]:w-20 min-[390px]:text-4xl",
 } as const;
 
-const SOMETHING_EXTRA_CLASS: Record<keyof typeof SIZE_CLASS, string> = {
-  sm: "bottom-0 right-0 text-[11px]",
-  md: "bottom-0.5 right-0.5 text-[13px]",
-  lg: "bottom-1 right-1 text-base",
-  detail:
-    "bottom-0.5 right-0.5 text-[13px] min-[390px]:bottom-1 min-[390px]:right-1 min-[390px]:text-base",
-};
-
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
 
 export function PlaceIdentityMark({
   category,
   symbol,
   size = "md",
-  showSomethingExtra = false,
   className,
 }: {
   category: PlaceCategory;
   symbol?: string | null;
   size?: PlaceIdentityMarkSize;
-  showSomethingExtra?: boolean;
   className?: string;
 }) {
   const visibleSymbol = symbol?.trim() || "🍽️";
@@ -57,17 +47,6 @@ export function PlaceIdentityMark({
       >
         <span className="drop-shadow-sm">{visibleSymbol}</span>
       </div>
-      {showSomethingExtra ? (
-        <span
-          data-slot="place-identity-something-extra"
-          className={cn(
-            "pointer-events-none absolute z-10 select-none leading-none drop-shadow-sm",
-            SOMETHING_EXTRA_CLASS[size],
-          )}
-        >
-          ✨
-        </span>
-      ) : null}
     </div>
   );
 }
