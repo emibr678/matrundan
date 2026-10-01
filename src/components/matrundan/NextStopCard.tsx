@@ -50,6 +50,7 @@ import {
   nextStopProposalRevealStorageKey,
   type NextStopDayResponseValue,
 } from "@/lib/matrundan/next-stop-v2";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type NextStopPlaceProposal, type Place } from "@/lib/matrundan/types";
 import { useNextStopV2 } from "@/lib/matrundan/use-next-stop-v2";
@@ -662,7 +663,7 @@ function FocusedPlaceHero({ item }: { item: ProposalItem }) {
           aria-label={`Öppna ${item.place.name}`}
         >
           <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
-            {item.place.photo ?? "🍽️"}
+            {resolvePlaceSymbol(item.place)}
           </div>
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-1">
@@ -814,7 +815,7 @@ function AlternativeProposalCard({
             aria-label={`Öppna ${item.place.name}`}
           >
             <div className="pt-0.5 text-[2.75rem] leading-none" aria-hidden="true">
-              {item.place.photo ?? "🍽️"}
+              {resolvePlaceSymbol(item.place)}
             </div>
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-1">

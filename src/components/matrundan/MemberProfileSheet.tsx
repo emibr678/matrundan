@@ -10,6 +10,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { useStore, formatDate } from "@/lib/matrundan/store";
 import type { Member, Place, Visit } from "@/lib/matrundan/types";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
@@ -198,7 +199,7 @@ export function MemberProfileSheet({
                     className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
                   >
                     <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-mustard/30 text-2xl">
-                      {profile.lastVisit.place.photo ?? "🍽️"}
+                      {resolvePlaceSymbol(profile.lastVisit.place)}
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate font-medium">{profile.lastVisit.place.name}</div>
