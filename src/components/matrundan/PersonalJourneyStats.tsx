@@ -1,3 +1,4 @@
+import * as React from "react";
 import { Sparkles } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -117,10 +118,21 @@ export function PersonalJourneyPeopleRanking({
   onSelect: (person: PersonalJourneyStatsLeaderboardEntry) => void;
 }) {
   const metricDef = PERSONAL_STATS_METRICS.find((item) => item.id === metric)!;
+  const [expanded, setExpanded] = React.useState(false);
+
+  React.useEffect(() => setExpanded(false), [metric]);
+
+  const compactPeople = React.useMemo(() => {
+    const top = people.slice(0, 5);
+    const self = people.find((person) => person.isSelf);
+    return self && !top.some((person) => person.isSelf) ? [...top, self] : top;
+  }, [people]);
+  const visiblePeople = expanded ? people : compactPeople;
+  const canToggle = people.length > compactPeople.length;
 
   return (
     <div className="space-y-2">
-      {people.map((person, index) => (
+      {visiblePeople.map((person, index) => (
         <button
           key={`${person.displayName}-${person.rank}-${index}`}
           type="button"
@@ -154,6 +166,17 @@ export function PersonalJourneyPeopleRanking({
           </span>
         </button>
       ))}
+      {canToggle ? (
+        <div className="flex justify-center pt-1">
+          <button
+            type="button"
+            onClick={() => setExpanded((current) => !current)}
+            className="min-h-11 rounded-full px-4 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {expanded ? "Visa färre" : `Visa alla (${people.length})`}
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -178,7 +201,7 @@ export function PersonalJourneyPersonStatsDialog({
             {person.avatarEmoji ?? person.displayName.slice(0, 1).toUpperCase()}
           </div>
           <DialogTitle className="font-display text-2xl">{person.displayName}</DialogTitle>
-          <DialogDescription>{level.name} · samlad Matrundan-statistik</DialogDescription>
+          <DialogDescription>{level.name}</DialogDescription>
         </DialogHeader>
 
         <div className="grid grid-cols-3 gap-2">
