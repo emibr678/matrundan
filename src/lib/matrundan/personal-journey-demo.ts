@@ -436,7 +436,7 @@ export function demoPersonalJourneyStats(
       uniqueCuisines: self.uniqueCuisines,
       groupCount: self.groupCount,
     },
-    leaderboard: leaderboard.map(({ groupCount: _groupCount, ...person }) => person),
+    leaderboard,
   };
 }
 
