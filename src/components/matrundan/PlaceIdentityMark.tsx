@@ -21,7 +21,8 @@ const SOMETHING_EXTRA_CLASS: Record<keyof typeof SIZE_CLASS, string> = {
   sm: "bottom-0 right-0 text-[11px]",
   md: "bottom-0.5 right-0.5 text-[13px]",
   lg: "bottom-1 right-1 text-base",
-  detail: "bottom-0.5 right-0.5 text-[13px] min-[390px]:bottom-1 min-[390px]:right-1 min-[390px]:text-base",
+  detail:
+    "bottom-0.5 right-0.5 text-[13px] min-[390px]:bottom-1 min-[390px]:right-1 min-[390px]:text-base",
 };
 
 export type PlaceIdentityMarkSize = keyof typeof SIZE_CLASS;
