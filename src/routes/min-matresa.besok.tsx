@@ -123,6 +123,7 @@ function PersonalJourneyStatsRoute() {
       search: {
         visit: visitId,
         group: groupId,
+        review: reviewFlow ? "new" : undefined,
         from: reviewFlow ? "min-matresa" : undefined,
       },
       state: reviewFlow
