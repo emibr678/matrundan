@@ -6,9 +6,9 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
   await page.goto("/matstallen?demo=1");
 
   const search = page.getByRole("textbox", { name: "Sök bland gruppens ställen" });
-  await search.fill("Smakhallen");
+  await search.fill("Rundans Bistro");
 
-  const openPlace = page.getByRole("link", { name: "Smakhallen", exact: true });
+  const openPlace = page.getByRole("link", { name: "Rundans Bistro", exact: true });
   await expect(openPlace).toBeVisible();
 
   const card = openPlace.locator("..");
@@ -32,6 +32,6 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
     },
   });
 
-  await expect(page).toHaveURL(/\/matstallen\/p8(?:\?demo=1)?$/);
-  await expect(page.getByRole("heading", { name: "Smakhallen" })).toBeVisible();
+  await expect(page).toHaveURL(/\/matstallen\/p1(?:\?demo=1)?$/);
+  await expect(page.getByRole("heading", { name: "Rundans Bistro" })).toBeVisible();
 });
