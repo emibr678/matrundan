@@ -78,9 +78,7 @@ export function PersonalJourneyOwnStats({
 }) {
   return (
     <Card
-      className={
-        compact ? "rounded-2xl border-border/70 p-3" : "rounded-2xl border-border/70 p-4"
-      }
+      className={compact ? "rounded-2xl border-border/70 p-3" : "rounded-2xl border-border/70 p-4"}
     >
       {!compact ? (
         <div className="mb-3 flex items-center gap-2">
@@ -118,8 +116,9 @@ export function PersonalJourneyPeopleRanking({
   onSelect: (person: PersonalJourneyStatsLeaderboardEntry) => void;
 }) {
   const metricDef = PERSONAL_STATS_METRICS.find((item) => item.id === metric)!;
-  const [expandedMetric, setExpandedMetric] =
-    React.useState<PersonalJourneyStatsMetric | null>(null);
+  const [expandedMetric, setExpandedMetric] = React.useState<PersonalJourneyStatsMetric | null>(
+    null,
+  );
   const expanded = expandedMetric === metric;
 
   const compactPeople = React.useMemo(() => {

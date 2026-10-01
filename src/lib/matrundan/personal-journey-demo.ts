@@ -356,13 +356,7 @@ export function demoPersonalJourneyToplist({
         left.place.name.localeCompare(right.place.name, "sv"),
     )
     .map((item, index) =>
-      toDemoLeaderboardPlace(
-        item.place,
-        item.rating,
-        item.reviewCount,
-        item.visitCount,
-        index + 1,
-      ),
+      toDemoLeaderboardPlace(item.place, item.rating, item.reviewCount, item.visitCount, index + 1),
     );
 
   const cursorIndex = cursor ? matching.findIndex((place) => place.id === cursor.id) : -1;

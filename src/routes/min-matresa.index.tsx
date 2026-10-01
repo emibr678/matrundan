@@ -5,9 +5,7 @@ import { ArrowRight, CalendarDays, MessageSquarePlus, RotateCcw } from "lucide-r
 import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import {
-  PersonalJourneyReviewGroupChoices,
-} from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
+import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import { PersonalJourneyOwnStats } from "@/components/matrundan/PersonalJourneyStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -99,8 +97,7 @@ function PersonalJourneyOverview() {
   function reviewableGroups(groups: PersonalJourneyGroup[]) {
     return groups.filter(
       (group) =>
-        group.isWritable &&
-        (mode !== "demo" || isNavigableDemoPersonalJourneyGroup(group.groupId)),
+        group.isWritable && (mode !== "demo" || isNavigableDemoPersonalJourneyGroup(group.groupId)),
     );
   }
 

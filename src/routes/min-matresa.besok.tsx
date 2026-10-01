@@ -16,9 +16,7 @@ import {
 } from "lucide-react";
 import { z } from "zod";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import {
-  PersonalJourneyReviewGroupChoices,
-} from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
+import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import {
   PERSONAL_STATS_METRICS,
   PersonalJourneyOwnStats,
@@ -190,7 +188,12 @@ function PersonalJourneyStatsRoute() {
             <p className="mt-1 text-xs text-muted-foreground">
               Besökshistoriken går fortfarande att använda nedan.
             </p>
-            <Button className="mt-3" size="sm" variant="outline" onClick={() => void stats.refetch()}>
+            <Button
+              className="mt-3"
+              size="sm"
+              variant="outline"
+              onClick={() => void stats.refetch()}
+            >
               <RotateCcw className="h-4 w-4" /> Försök igen
             </Button>
           </Card>

@@ -277,11 +277,6 @@ function guardTooling(explicitBase) {
 
 function formatChanged(checkOnly, explicitBase) {
   const files = classify(collectChangedFiles(explicitBase)).format;
-  if (checkOnly && process.env.MATRUNDAN_FORMAT_DIAGNOSTIC === "1") {
-    runForFiles("bunx", ["prettier", "--write"], files, "Inga ändrade filer stöds av Prettier.");
-    run("git", ["diff", "--", ...files]);
-    process.exit(1);
-  }
   runForFiles(
     "bunx",
     ["prettier", checkOnly ? "--check" : "--write"],
@@ -298,7 +293,6 @@ function lintChanged(explicitBase) {
 function verifyChanged(explicitBase) {
   doctor();
   guardTooling(explicitBase);
-  process.env.MATRUNDAN_FORMAT_DIAGNOSTIC = "1";
   formatChanged(true, explicitBase);
   lintChanged(explicitBase);
   run("bun", ["run", "test:unit"]);

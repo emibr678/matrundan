@@ -173,9 +173,7 @@ function PersonalJourneyToplist() {
 
         <PlaceLeaderboardFilters
           occasions={occasions}
-          onToggleOccasion={(occasion) =>
-            setOccasions((current) => toggleValue(current, occasion))
-          }
+          onToggleOccasion={(occasion) => setOccasions((current) => toggleValue(current, occasion))}
           meals={meals}
           onToggleMeal={(meal) => setMeals((current) => toggleValue(current, meal))}
           takeawayOnly={takeawayOnly}
