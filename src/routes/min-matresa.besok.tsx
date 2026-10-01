@@ -354,11 +354,8 @@ function PersonalJourneyStatsRoute() {
                   <div>
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <MessageSquarePlus className="h-4 w-4 text-primary" aria-hidden="true" />
-                      Ditt omdöme saknas
+                      Lämna ditt omdöme
                     </div>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Omdömet skrivs i en av grupperna som kan ändras.
-                    </p>
                   </div>
                   {detail.data.groups.some((group) => group.isWritable) ? (
                     <Button
@@ -403,7 +400,7 @@ function PersonalJourneyStatsRoute() {
               </div>
 
               <div>
-                <h3 className="text-sm font-medium">Synligt genom</h3>
+                <h3 className="text-sm font-medium">Finns i</h3>
                 <div className="mt-2 space-y-2">
                   {detail.data.groups.map((group) => (
                     <div
