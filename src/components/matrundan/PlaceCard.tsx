@@ -23,7 +23,9 @@ export function formatCompactPlaceAddress(address: string, city: string): string
 }
 
 export function PlaceThumb({ place, size = "md" }: { place: Place; size?: PlaceIdentityMarkSize }) {
-  return <PlaceIdentityMark category={place.category} symbol={resolvePlaceSymbol(place)} size={size} />;
+  return (
+    <PlaceIdentityMark category={place.category} symbol={resolvePlaceSymbol(place)} size={size} />
+  );
 }
 
 export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?: boolean }) {
