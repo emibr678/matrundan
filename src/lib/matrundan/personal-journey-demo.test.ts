@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { EXAMPLE_IDS } from "./example-scenarios";
 import {
   DEMO_PERSONAL_JOURNEY_OVERVIEW,
   demoPersonalJourneyPlace,
@@ -7,6 +8,7 @@ import {
   demoPersonalJourneyToplist,
   demoPersonalJourneyVisit,
   demoPersonalJourneyVisits,
+  isNavigableDemoPersonalJourneyGroup,
 } from "./personal-journey-demo";
 
 describe("Min matresa-demo", () => {
@@ -15,8 +17,8 @@ describe("Min matresa-demo", () => {
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.activeGroupCount).toBe(2);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.topRatedPlaces.map((place) => place.name)).toEqual([
       "Bageri Solsidan",
-      "Kvartersbordet",
-      "Nudelhörnan",
+      "Kardemummaköket",
+      "Rundans Bistro",
     ]);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.favoritePlaces[0].groups.length).toBe(2);
     expect(
@@ -26,43 +28,57 @@ describe("Min matresa-demo", () => {
     ).toBe(true);
   });
 
+  test("återanvänder Fredagsgängets kanoniska exempel-ID:n för navigerbara objekt", () => {
+    const fredagsgruppen = DEMO_PERSONAL_JOURNEY_OVERVIEW.topRatedPlaces
+      .flatMap((place) => place.groups)
+      .find((group) => group.groupName === "Fredagsgänget");
+    expect(fredagsgruppen?.groupId).toBe(EXAMPLE_IDS.group);
+    expect(isNavigableDemoPersonalJourneyGroup(EXAMPLE_IDS.group)).toBe(true);
+    expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.pendingReviews[0].visitId).toBe(
+      EXAMPLE_IDS.visits.repeatCafeEarlier,
+    );
+    expect(
+      demoPersonalJourneyPlaces({ query: "Kvartersbordet" }).items[0]?.id,
+    ).toBe(EXAMPLE_IDS.places.sharedVisit);
+  });
+
   test("använder samma deterministiska data för filter och detaljer", () => {
     const favorites = demoPersonalJourneyPlaces({ favoritesOnly: true });
     expect(favorites.items).toHaveLength(2);
     expect(demoPersonalJourneyPlaces({ query: "Majorna" }).items).toHaveLength(1);
     expect(demoPersonalJourneyVisits(true).items.every((visit) => visit.participated)).toBe(true);
     expect(demoPersonalJourneyPlace(favorites.items[0].id)?.name).toBe(favorites.items[0].name);
-    expect(demoPersonalJourneyVisit("10930000-0000-4000-8000-000000000001")?.reviews).toHaveLength(
-      1,
-    );
+    expect(
+      demoPersonalJourneyVisit(DEMO_PERSONAL_JOURNEY_OVERVIEW.pendingReviews[0].visitId)?.reviews,
+    ).toHaveLength(1);
   });
 
   test("sorterar hela tvärgruppslistan begripligt", () => {
     expect(demoPersonalJourneyPlaces({ sort: "rating" }).items.map((place) => place.name)).toEqual([
       "Bageri Solsidan",
+      "Kardemummaköket",
+      "Rundans Bistro",
       "Kvartersbordet",
-      "Nudelhörnan",
-      "Ramenverket",
+      "Tacoateljén",
       "Café Lilla Torget",
       "Torggrillen",
-      "Bryggpuben",
     ]);
     expect(demoPersonalJourneyPlaces({ sort: "recent" }).items.map((place) => place.name)).toEqual([
+      "Rundans Bistro",
+      "Tacoateljén",
       "Kvartersbordet",
       "Bageri Solsidan",
-      "Nudelhörnan",
-      "Ramenverket",
+      "Kardemummaköket",
       "Café Lilla Torget",
       "Torggrillen",
-      "Bryggpuben",
     ]);
     expect(demoPersonalJourneyPlaces({ sort: "name" }).items.map((place) => place.name)).toEqual([
       "Bageri Solsidan",
-      "Bryggpuben",
       "Café Lilla Torget",
+      "Kardemummaköket",
       "Kvartersbordet",
-      "Nudelhörnan",
-      "Ramenverket",
+      "Rundans Bistro",
+      "Tacoateljén",
       "Torggrillen",
     ]);
   });
@@ -70,22 +86,17 @@ describe("Min matresa-demo", () => {
   test("filtrerar Topplistan på upplevelse och besökstillfälle utan att skapa global metadata", () => {
     const relaxed = demoPersonalJourneyToplist({ occasions: ["avslappnat"] });
     expect(relaxed.items.map((place) => place.name)).toEqual([
+      "Kardemummaköket",
       "Kvartersbordet",
-      "Nudelhörnan",
-      "Ramenverket",
-      "Bryggpuben",
+      "Tacoateljén",
     ]);
 
     const relaxedDinner = demoPersonalJourneyToplist({
       occasions: ["avslappnat"],
       mealTypes: ["middag"],
     });
-    expect(relaxedDinner.items.map((place) => place.name)).toEqual([
-      "Kvartersbordet",
-      "Ramenverket",
-      "Bryggpuben",
-    ]);
-    expect(relaxedDinner.items[0]?.rating).toBe(4.25);
+    expect(relaxedDinner.items.map((place) => place.name)).toEqual(["Tacoateljén"]);
+    expect(relaxedDinner.items[0]?.rating).toBe(4.2);
     expect(relaxedDinner.items[0]?.reviewCount).toBe(4);
 
     expect(demoPersonalJourneyToplist({ takeawayOnly: true }).items).toEqual([]);
@@ -128,6 +139,6 @@ describe("Min matresa-demo", () => {
       cursor: firstPage.nextCursor,
       limit: 1,
     });
-    expect(secondPage.items.map((place) => place.name)).toEqual(["Kvartersbordet"]);
+    expect(secondPage.items.map((place) => place.name)).toEqual(["Kardemummaköket"]);
   });
 });
