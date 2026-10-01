@@ -1,8 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("hela ställeskortet öppnar stället medan favorit är en separat handling", async ({
-  page,
-}) => {
+test("hela ställeskortet öppnar stället medan favorit är en separat handling", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
 
   await page.goto("/exempel");
@@ -26,9 +24,7 @@ test("hela ställeskortet öppnar stället medan favorit är en separat handling
   await favorite.click();
 
   await expect(page).toHaveURL(/\/matstallen$/);
-  await expect(
-    card.getByRole("button", { name: "Ta bort favorit", exact: true }),
-  ).toBeVisible();
+  await expect(card.getByRole("button", { name: "Ta bort favorit", exact: true })).toBeVisible();
 
   await openPlace.click({
     position: {
