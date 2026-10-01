@@ -204,4 +204,14 @@ BEGIN
 END;
 $function$;
 
+REVOKE ALL ON FUNCTION public.list_personal_journey_visits_v1(boolean, date, uuid, integer)
+  FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.get_personal_journey_overview_v2()
+  FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.list_personal_journey_visits_v1(boolean, date, uuid, integer)
+  TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_overview_v2()
+  TO authenticated, service_role;
+
 COMMIT;

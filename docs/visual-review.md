@@ -187,6 +187,9 @@ Standardmatrisen fångar följande demosökvägar:
 - `/?demo=1`;
 - `/matstallen?demo=1`;
 - `/matstallen/p7?demo=1`;
+- `/min-matresa?demo=1`;
+- `/min-matresa/matstallen?demo=1`;
+- `/min-matresa/besok?demo=1`;
 - `/platsunderhall?demo=1`.
 
 Vid manuell körning kan andra komma- eller radseparerade sökvägar anges. Bilder skapas för 360 × 800 och 1280 × 900 och laddas upp som en GitHub Actions-artifact i 5 dagar.
