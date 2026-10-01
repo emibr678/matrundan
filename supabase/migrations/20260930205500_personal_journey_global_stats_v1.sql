@@ -115,16 +115,17 @@ BEGIN
       AS cuisine(value) ON true
     GROUP BY participation.user_id
   ),
-  active_group_counts AS (
+  contributing_group_counts AS (
     SELECT
-      membership.user_id,
-      count(DISTINCT membership.group_id)::integer AS active_group_count
-    FROM public.memberships membership
-    JOIN public.groups group_row
-      ON group_row.id = membership.group_id
-     AND group_row.lifecycle_status = 'active'
-    WHERE membership.status = 'active'
-    GROUP BY membership.user_id
+      participant.user_id,
+      count(DISTINCT link.group_id)::integer AS contributing_group_count
+    FROM public.visit_participants participant
+    JOIN public.visit_group_links link ON link.visit_id = participant.visit_id
+    JOIN public.memberships membership
+      ON membership.user_id = participant.user_id
+     AND membership.group_id = link.group_id
+     AND membership.status = 'active'
+    GROUP BY participant.user_id
   ),
   stats AS (
     SELECT
@@ -134,12 +135,13 @@ BEGIN
       COALESCE(visit_count.visits, 0)::integer AS visits,
       COALESCE(visit_count.unique_places, 0)::integer AS unique_places,
       COALESCE(cuisine_count.unique_cuisines, 0)::integer AS unique_cuisines,
-      COALESCE(active_group_count.active_group_count, 0)::integer AS active_group_count
+      COALESCE(contributing_group_count.contributing_group_count, 0)::integer AS contributing_group_count
     FROM allowed_users allowed
     JOIN public.profiles profile ON profile.id = allowed.user_id
     LEFT JOIN visit_counts visit_count ON visit_count.user_id = allowed.user_id
     LEFT JOIN cuisine_counts cuisine_count ON cuisine_count.user_id = allowed.user_id
-    LEFT JOIN active_group_counts active_group_count ON active_group_count.user_id = allowed.user_id
+    LEFT JOIN contributing_group_counts contributing_group_count
+      ON contributing_group_count.user_id = allowed.user_id
   ),
   metric_rows AS (
     SELECT
@@ -163,7 +165,7 @@ BEGIN
     'visits', ranked.visits,
     'uniquePlaces', ranked.unique_places,
     'uniqueCuisines', ranked.unique_cuisines,
-    'groupCount', ranked.active_group_count
+    'groupCount', ranked.contributing_group_count
   )
   INTO _self
   FROM ranked
