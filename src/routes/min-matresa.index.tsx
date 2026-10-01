@@ -5,7 +5,7 @@ import { ArrowRight, CalendarDays, MessageSquarePlus, RotateCcw } from "lucide-r
 import { PlaceIdentityMark } from "@/components/matrundan/PlaceIdentityMark";
 import { PlaceLeaderboardRows } from "@/components/matrundan/PlaceLeaderboard";
 import { PersonalJourneyVisitCard } from "@/components/matrundan/PersonalJourneyCards";
-import { PersonalJourneyReviewGroupDialog } from "@/components/matrundan/PersonalJourneyReviewGroupDialog";
+import { PersonalJourneyReviewGroupChoices } from "@/components/matrundan/PersonalJourneyReviewGroupChoices";
 import { PersonalJourneyOwnStats } from "@/components/matrundan/PersonalJourneyStats";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,6 +20,7 @@ import {
 import {
   DEMO_PERSONAL_JOURNEY_OVERVIEW,
   demoPersonalJourneyStats,
+  isNavigableDemoPersonalJourneyGroup,
 } from "@/lib/matrundan/personal-journey-demo";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
@@ -93,8 +94,16 @@ function PersonalJourneyOverview() {
     });
   }
 
+  function reviewableGroups(groups: PersonalJourneyGroup[]) {
+    return groups.filter(
+      (group) =>
+        group.isWritable &&
+        (mode !== "demo" || isNavigableDemoPersonalJourneyGroup(group.groupId)),
+    );
+  }
+
   function openPendingReview(item: PersonalJourneyPendingReview) {
-    const writableGroups = item.groups.filter((group) => group.isWritable);
+    const writableGroups = reviewableGroups(item.groups);
     if (writableGroups.length === 1) {
       handoffPendingReview(item, writableGroups[0]);
       return;
@@ -159,7 +168,8 @@ function PersonalJourneyOverview() {
           </div>
           <Card className="divide-y divide-border/60 overflow-hidden rounded-2xl border-primary/20 bg-primary/[0.035] p-0">
             {data.pendingReviews.map((item) => {
-              const writableGroups = item.groups.filter((group) => group.isWritable);
+              const writableGroups = reviewableGroups(item.groups);
+              const choosingGroup = reviewGroupChoice?.visitId === item.visitId;
               const reviewContext =
                 writableGroups.length === 1
                   ? writableGroups[0].groupName
@@ -167,28 +177,38 @@ function PersonalJourneyOverview() {
                     ? `${writableGroups.length} grupper`
                     : "Arkiverad grupp";
               return (
-                <div
-                  key={item.visitId}
-                  className="flex flex-col gap-2 p-3 sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium [overflow-wrap:anywhere]">{item.placeName}</div>
-                    <p className="mt-0.5 text-sm text-muted-foreground">
-                      {formatOwnVisitDate(item.visitedOn)} · {reviewContext}
-                    </p>
+                <div key={item.visitId} className="p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="font-medium [overflow-wrap:anywhere]">{item.placeName}</div>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {formatOwnVisitDate(item.visitedOn)} · {reviewContext}
+                      </p>
+                    </div>
+                    {writableGroups.length > 0 && !choosingGroup ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        className="min-h-11 shrink-0"
+                        onClick={() => openPendingReview(item)}
+                      >
+                        Skriv omdöme <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    ) : writableGroups.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">Ingen skrivbar grupp</span>
+                    ) : null}
                   </div>
-                  {writableGroups.length > 0 ? (
-                    <Button
-                      type="button"
-                      size="sm"
-                      className="min-h-11 shrink-0"
-                      onClick={() => openPendingReview(item)}
-                    >
-                      Skriv omdöme <ArrowRight className="h-4 w-4" />
-                    </Button>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">Gruppen är arkiverad</span>
-                  )}
+                  {choosingGroup ? (
+                    <PersonalJourneyReviewGroupChoices
+                      className="mt-3"
+                      groups={writableGroups}
+                      onCancel={() => setReviewGroupChoice(null)}
+                      onSelect={(group) => {
+                        setReviewGroupChoice(null);
+                        handoffPendingReview(item, group);
+                      }}
+                    />
+                  ) : null}
                 </div>
               );
             })}
@@ -281,19 +301,7 @@ function PersonalJourneyOverview() {
         )}
       </section>
 
-      <PersonalJourneyReviewGroupDialog
-        open={Boolean(reviewGroupChoice)}
-        onOpenChange={(open) => {
-          if (!open) setReviewGroupChoice(null);
-        }}
-        groups={reviewGroupChoice?.groups ?? []}
-        onSelect={(group) => {
-          if (!reviewGroupChoice) return;
-          const item = reviewGroupChoice;
-          setReviewGroupChoice(null);
-          handoffPendingReview(item, group);
-        }}
-      />
+
     </div>
   );
 }
