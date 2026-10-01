@@ -26,7 +26,7 @@ export async function restoreGroupPlace(groupId: string, placeId: string): Promi
 export interface GroupPlaceMetadataInput {
   categoryOverride: PlaceCategory | null;
   cuisinesOverride: string[] | null;
-  symbolOverride: string | null;
+  symbolOverride?: string | null;
   occasions: Occasion[];
   notes: string | null;
 }
@@ -42,7 +42,7 @@ export async function updateGroupPlaceMetadata(
       _place_id: placeId,
       _category_override: input.categoryOverride,
       _cuisines_override: input.cuisinesOverride,
-      _symbol_override: input.symbolOverride,
+      _symbol_override: input.symbolOverride ?? null,
       _occasions: input.occasions,
       _notes: input.notes,
     });
