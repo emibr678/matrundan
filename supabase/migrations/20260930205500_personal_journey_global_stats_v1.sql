@@ -230,6 +230,18 @@ BEGIN
       AS cuisine(value) ON true
     GROUP BY participation.user_id
   ),
+  contributing_group_counts AS (
+    SELECT
+      participant.user_id,
+      count(DISTINCT link.group_id)::integer AS contributing_group_count
+    FROM public.visit_participants participant
+    JOIN public.visit_group_links link ON link.visit_id = participant.visit_id
+    JOIN public.memberships membership
+      ON membership.user_id = participant.user_id
+     AND membership.group_id = link.group_id
+     AND membership.status = 'active'
+    GROUP BY participant.user_id
+  ),
   metric_rows AS (
     SELECT
       allowed.user_id,
@@ -238,6 +250,7 @@ BEGIN
       COALESCE(visit_count.visits, 0)::integer AS visits,
       COALESCE(visit_count.unique_places, 0)::integer AS unique_places,
       COALESCE(cuisine_count.unique_cuisines, 0)::integer AS unique_cuisines,
+      COALESCE(contributing_group_count.contributing_group_count, 0)::integer AS contributing_group_count,
       CASE _metric
         WHEN 'visits' THEN COALESCE(visit_count.visits, 0)
         WHEN 'places' THEN COALESCE(visit_count.unique_places, 0)
@@ -247,6 +260,8 @@ BEGIN
     JOIN public.profiles profile ON profile.id = allowed.user_id
     LEFT JOIN visit_counts visit_count ON visit_count.user_id = allowed.user_id
     LEFT JOIN cuisine_counts cuisine_count ON cuisine_count.user_id = allowed.user_id
+    LEFT JOIN contributing_group_counts contributing_group_count
+      ON contributing_group_count.user_id = allowed.user_id
   ),
   ranked AS (
     SELECT
@@ -262,6 +277,7 @@ BEGIN
         'visits', ranked.visits,
         'uniquePlaces', ranked.unique_places,
         'uniqueCuisines', ranked.unique_cuisines,
+        'groupCount', ranked.contributing_group_count,
         'isSelf', ranked.user_id = _uid,
         'rank', ranked.rank,
         'value', ranked.metric_value
