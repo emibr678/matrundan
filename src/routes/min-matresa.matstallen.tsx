@@ -31,6 +31,7 @@ import {
 import {
   demoPersonalJourneyPlace,
   demoPersonalJourneyToplist,
+  isNavigableDemoPersonalJourneyGroup,
 } from "@/lib/matrundan/personal-journey-demo";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
 import { useSession } from "@/lib/matrundan/session";
@@ -41,7 +42,7 @@ import { formatRating } from "@/lib/matrundan/version";
 const defaults = { q: "" };
 const searchSchema = z.object({
   q: fallback(z.string(), "").default(""),
-  place: z.string().uuid().optional(),
+  place: z.string().min(1).max(128).optional(),
 });
 
 export const Route = createFileRoute("/min-matresa/matstallen")({
@@ -288,21 +289,23 @@ function PersonalJourneyToplist() {
                               : "Aktiv grupp"}
                         </div>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          selectGroup(group.groupId);
-                          void navigate({
-                            to: "/matstallen/$placeId",
-                            params: { placeId: detail.data!.id },
-                            state: (previous) => ({ ...previous, personalJourney: undefined }),
-                          });
-                        }}
-                      >
-                        Öppna
-                      </Button>
+                      {mode !== "demo" || isNavigableDemoPersonalJourneyGroup(group.groupId) ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            selectGroup(group.groupId);
+                            void navigate({
+                              to: "/matstallen/$placeId",
+                              params: { placeId: detail.data!.id },
+                              state: (previous) => ({ ...previous, personalJourney: undefined }),
+                            });
+                          }}
+                        >
+                          Öppna
+                        </Button>
+                      ) : null}
                     </div>
                   ))}
                 </div>
