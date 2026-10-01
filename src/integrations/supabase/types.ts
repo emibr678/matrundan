@@ -2717,17 +2717,33 @@ export type Database = {
       }
       get_invitation_preview: { Args: { _token: string }; Returns: Json }
       get_notification_settings: { Args: never; Returns: Json }
+      get_own_visit_guest_proposal_v1: {
+        Args: { _group_id: string; _visit_id: string }
+        Returns: Json
+      }
       get_personal_journey_overview_v1: { Args: never; Returns: Json }
+      get_personal_journey_overview_v2: { Args: never; Returns: Json }
       get_personal_journey_place_v1: {
         Args: { _place_id: string }
         Returns: Json
       }
-      get_personal_journey_visit_v1: {
-        Args: { _visit_id: string }
+      get_personal_journey_stats_v1: {
+        Args: { _metric?: string }
         Returns: Json
       }
-      get_own_visit_guest_proposal_v1: {
-        Args: { _group_id: string; _visit_id: string }
+      get_personal_journey_toplist_v1: {
+        Args: {
+          _cursor?: Json
+          _limit?: number
+          _meal_types?: string[]
+          _occasions?: string[]
+          _query?: string
+          _takeaway_only?: boolean
+        }
+        Returns: Json
+      }
+      get_personal_journey_visit_v1: {
+        Args: { _visit_id: string }
         Returns: Json
       }
       get_place_data_report_osm_refresh_v1: {
@@ -2931,26 +2947,6 @@ export type Database = {
           invited_by_name: string
         }[]
       }
-      list_personal_journey_places_v1: {
-        Args: {
-          _cursor_id?: string
-          _cursor_name?: string
-          _favorites_only?: boolean
-          _limit?: number
-          _query?: string
-          _visited_by_me_only?: boolean
-        }
-        Returns: Json
-      }
-      list_personal_journey_visits_v1: {
-        Args: {
-          _cursor_id?: string
-          _cursor_visited_on?: string
-          _limit?: number
-          _participated_only?: boolean
-        }
-        Returns: Json
-      }
       list_own_group_invitations: {
         Args: { _group_id: string }
         Returns: {
@@ -2970,6 +2966,37 @@ export type Database = {
       }
       list_own_visits_for_place_on_add: {
         Args: { _place_id: string; _target_group_id: string }
+        Returns: Json
+      }
+      list_personal_journey_places_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_name?: string
+          _favorites_only?: boolean
+          _limit?: number
+          _query?: string
+          _visited_by_me_only?: boolean
+        }
+        Returns: Json
+      }
+      list_personal_journey_places_v2: {
+        Args: {
+          _cursor?: Json
+          _favorites_only?: boolean
+          _limit?: number
+          _query?: string
+          _sort?: string
+          _visited_by_me_only?: boolean
+        }
+        Returns: Json
+      }
+      list_personal_journey_visits_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_visited_on?: string
+          _limit?: number
+          _participated_only?: boolean
+        }
         Returns: Json
       }
       list_place_improvement_candidates_for_maintenance_v1: {
@@ -3039,6 +3066,14 @@ export type Database = {
       notification_type_enabled: {
         Args: { _type: string; _user_id: string }
         Returns: boolean
+      }
+      personal_journey_can_view_global_stats_v1: {
+        Args: { _subject_id: string; _viewer_id: string }
+        Returns: boolean
+      }
+      personal_journey_effective_review_overall_v1: {
+        Args: { _review_id: string }
+        Returns: number
       }
       prepare_own_account_deletion: {
         Args: { _confirm_solo_group_deletion?: boolean; _successors?: Json }
