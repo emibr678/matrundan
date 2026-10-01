@@ -91,6 +91,8 @@ describe("Min matresa-databaskontrakt", () => {
   test("global statistik räknar kanoniska deltaganden och håller access-helpern privat", () => {
     expect(statsMigration).toContain("count(DISTINCT visit_id)");
     expect(statsMigration).toContain("count(DISTINCT place_id)");
+    expect(statsMigration).toContain("count(DISTINCT link.group_id)");
+    expect(statsMigration).toContain("membership.status = 'active'");
     expect(statsMigration).toContain("FROM PUBLIC, anon, authenticated");
     expect(statsMigration).toContain("TO authenticated, service_role");
   });
