@@ -154,7 +154,7 @@ function PersonalJourneyOverview() {
           <div className="mb-2 flex items-center gap-2">
             <MessageSquarePlus className="h-4 w-4 text-primary" aria-hidden="true" />
             <h2 id="pending-reviews-heading" className="font-display text-xl font-semibold">
-              Omdömen att komplettera
+              Omdömen att lämna
             </h2>
           </div>
           <Card className="divide-y divide-border/60 overflow-hidden rounded-2xl border-primary/20 bg-primary/[0.035] p-0">
@@ -254,7 +254,7 @@ function PersonalJourneyOverview() {
           </div>
           <Button asChild variant="ghost" size="sm" className="rounded-full">
             <Link to="/min-matresa/besok" state={(previous) => previous}>
-              Visa statistik <ArrowRight className="h-4 w-4" />
+              Visa alla <ArrowRight className="h-4 w-4" />
             </Link>
           </Button>
         </div>
