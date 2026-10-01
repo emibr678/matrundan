@@ -34,16 +34,14 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
 
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/70 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+      <Link
+        to="/matstallen/$placeId"
+        params={{ placeId: place.id }}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        aria-label={place.name}
+      />
       <PlaceSummary
-        name={
-          <Link
-            to="/matstallen/$placeId"
-            params={{ placeId: place.id }}
-            className="hover:underline"
-          >
-            {place.name}
-          </Link>
-        }
+        name={<span className="group-hover:underline">{place.name}</span>}
         meta={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span>{CATEGORY_LABEL[place.category]}</span>
@@ -64,7 +62,7 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
                 event.preventDefault();
                 void toggleFavorite(place.id);
               }}
-              className="h-11 w-11 shrink-0 rounded-full"
+              className="relative z-20 h-11 w-11 shrink-0 rounded-full"
               aria-pressed={fav}
               aria-label={fav ? "Ta bort favorit" : "Markera som favorit"}
             >
