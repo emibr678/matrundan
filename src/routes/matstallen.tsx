@@ -24,6 +24,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { rankPlacesForOccasions, rankPlacesOverall } from "@/lib/matrundan/occasions";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import {
   ratingForPlaceInVisitContext,
   type RankableVisitMeal,
@@ -253,7 +254,7 @@ function PlacesIndex() {
     category: place.category,
     eyebrow: CATEGORY_LABEL[place.category],
     description: [place.address, place.area, place.city].filter(Boolean).join(" · "),
-    markerLabel: place.photo ?? "🍽️",
+    markerLabel: resolvePlaceSymbol(place),
   }));
   const MapComponent = exampleMode ? ExamplePlaceMap : PlaceMap;
 

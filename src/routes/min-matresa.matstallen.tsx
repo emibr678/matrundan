@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { appPageTitle } from "@/lib/app-environment";
-import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import {
   loadPersonalJourneyPlace,
   loadPersonalJourneyToplist,
@@ -117,7 +117,7 @@ function PersonalJourneyToplist() {
       rank: place.rank,
       visitCount: place.visitCount,
       leading: (
-        <PlaceIdentityMark category={category} symbol={emojiForCategory(category)} size="sm" />
+        <PlaceIdentityMark category={category} symbol={resolvePlaceSymbol({ category })} size="sm" />
       ),
       context: formatPersonalJourneyGroups(place.groups),
     };

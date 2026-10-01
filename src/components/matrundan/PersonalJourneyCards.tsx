@@ -8,7 +8,7 @@ import type {
   PersonalJourneyVisit,
 } from "@/lib/matrundan/personal-journey";
 import { formatPersonalJourneyGroups } from "@/lib/matrundan/personal-journey-presentation";
-import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { formatOwnVisitDate } from "@/lib/matrundan/sharing-selection";
 import type { PlaceCategory } from "@/lib/matrundan/types";
 import { visitMealLabel } from "@/lib/matrundan/visit-context";
@@ -81,7 +81,7 @@ export function PersonalJourneyVisitCard({
         rating={visit.rating}
         reviewCount={visit.reviewCount}
         leading={
-          <PlaceIdentityMark category={category} symbol={emojiForCategory(category)} size="sm" />
+          <PlaceIdentityMark category={category} symbol={resolvePlaceSymbol({ category })} size="sm" />
         }
         trailing={
           visit.participated ? (

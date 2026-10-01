@@ -5,10 +5,11 @@ import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceData
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { matchingPlace, emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import { matchingPlace } from "@/lib/matrundan/add-place-utils";
 import type { ManualSourceMatchReason } from "@/lib/matrundan/manual-place-source-linking";
 import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-source-linking";
 import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useOwnOpenPlaceSuggestionReportKeys } from "@/lib/matrundan/use-own-place-suggestion-reports";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
@@ -333,7 +334,7 @@ function SuggestionRow({
         aria-pressed={bulkMode ? bulkSelected : selected}
       >
         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-secondary text-xl">
-          {emojiForCategory(result.category)}
+          {resolvePlaceSymbol({ category: result.category, cuisines: result.cuisines })}
         </span>
         <span className="min-w-0 flex-1">
           <span className="block break-words font-medium">{result.name}</span>

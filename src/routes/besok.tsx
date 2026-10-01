@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
@@ -195,7 +196,7 @@ function VisitHistory() {
                       </div>
                     ) : (
                       <div className="grid h-14 w-14 shrink-0 place-items-center rounded-xl bg-secondary text-3xl">
-                        {place.photo ?? "🍽️"}
+                        {resolvePlaceSymbol(place)}
                       </div>
                     )}
                     <div className="min-w-0 flex-1">

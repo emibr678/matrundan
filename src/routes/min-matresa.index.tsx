@@ -10,7 +10,7 @@ import { PersonalJourneyOwnStats } from "@/components/matrundan/PersonalJourneyS
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
-import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import {
   loadPersonalJourneyOverview,
   loadPersonalJourneyStats,
@@ -246,7 +246,7 @@ function PersonalJourneyOverview() {
                 leading: (
                   <PlaceIdentityMark
                     category={category}
-                    symbol={emojiForCategory(category)}
+                    symbol={resolvePlaceSymbol({ category })}
                     size="sm"
                   />
                 ),

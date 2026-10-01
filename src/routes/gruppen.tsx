@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { computeMemberProgression } from "@/lib/matrundan/gamification";
+import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatRating } from "@/lib/matrundan/version";
@@ -200,7 +201,7 @@ function GroupPage() {
                   className="flex items-center gap-3 rounded-2xl border border-border/70 bg-card p-3 transition-colors hover:bg-accent"
                 >
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-mustard/30 text-2xl">
-                    {place.photo ?? "🍽️"}
+                    {resolvePlaceSymbol(place)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate font-medium">{place.name}</div>
