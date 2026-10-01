@@ -1,7 +1,8 @@
 import type { MultiAreaPlaceSuggestion } from "./geoapify.functions";
-export { emojiForCategory } from "./place-symbol";
 import type { PlaceSuggestion } from "./places-provider";
 import type { AppState, Occasion, Place, PlaceCategory, SearchArea } from "./types";
+
+export { emojiForCategory } from "./place-symbol";
 
 export type ManualPlaceDraft = {
   name: string;
