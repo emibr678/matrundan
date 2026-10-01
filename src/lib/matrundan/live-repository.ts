@@ -195,6 +195,7 @@ type Payload = {
     cuisines: string[];
     canonicalCuisines?: string[];
     cuisinesOverride?: string[] | null;
+    symbolOverride?: string | null;
     occasions: string[];
     address: string;
     area: string | null;
@@ -398,6 +399,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
       cuisines: pl.cuisines ?? [],
       canonicalCuisines: pl.canonicalCuisines ?? pl.cuisines ?? [],
       cuisinesOverride: pl.cuisinesOverride ?? null,
+      symbolOverride: pl.symbolOverride ?? null,
       occasions: normalizeOccasionClassification(pl.occasions ?? []),
       address: pl.address ?? "",
       city: pl.city ?? "",

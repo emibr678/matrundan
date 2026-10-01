@@ -1000,6 +1000,7 @@ export function StoreProvider({
           ...input,
           cuisinesOverride:
             input.cuisinesOverride == null ? null : normalizeFoodTags(input.cuisinesOverride),
+          symbolOverride: input.symbolOverride?.trim() || null,
           occasions: normalizeOccasionClassification(input.occasions),
         };
         if (mode === "live") {
@@ -1023,6 +1024,7 @@ export function StoreProvider({
               canonicalCuisines,
               cuisinesOverride: normalizedInput.cuisinesOverride,
               cuisines: normalizedInput.cuisinesOverride ?? canonicalCuisines,
+              symbolOverride: normalizedInput.symbolOverride,
               occasions: normalizedInput.occasions,
               notes: normalizedInput.notes ?? undefined,
             };

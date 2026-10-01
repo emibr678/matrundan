@@ -26,6 +26,7 @@ export async function restoreGroupPlace(groupId: string, placeId: string): Promi
 export interface GroupPlaceMetadataInput {
   categoryOverride: PlaceCategory | null;
   cuisinesOverride: string[] | null;
+  symbolOverride: string | null;
   occasions: Occasion[];
   notes: string | null;
 }
@@ -35,14 +36,35 @@ export async function updateGroupPlaceMetadata(
   placeId: string,
   input: GroupPlaceMetadataInput,
 ): Promise<void> {
-  await rpcClient.callVoid("update_group_place_metadata", {
-    _group_id: groupId,
-    _place_id: placeId,
-    _category_override: input.categoryOverride,
-    _cuisines_override: input.cuisinesOverride,
-    _occasions: input.occasions,
-    _notes: input.notes,
-  });
+  try {
+    await rpcClient.callVoid("update_group_place_metadata_v2", {
+      _group_id: groupId,
+      _place_id: placeId,
+      _category_override: input.categoryOverride,
+      _cuisines_override: input.cuisinesOverride,
+      _symbol_override: input.symbolOverride,
+      _occasions: input.occasions,
+      _notes: input.notes,
+    });
+  } catch (error) {
+    const missingRpc =
+      error instanceof Error && /could not find the function|schema cache/i.test(error.message);
+    if (missingRpc && input.symbolOverride == null) {
+      await rpcClient.callVoid("update_group_place_metadata", {
+        _group_id: groupId,
+        _place_id: placeId,
+        _category_override: input.categoryOverride,
+        _cuisines_override: input.cuisinesOverride,
+        _occasions: input.occasions,
+        _notes: input.notes,
+      });
+      return;
+    }
+    if (missingRpc) {
+      throw new Error("Symbolvalet är inte aktiverat i den här miljön ännu.");
+    }
+    throw error;
+  }
 }
 
 export type ReviewEditInput = Pick<

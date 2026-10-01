@@ -51,6 +51,8 @@ export interface Place {
   canonicalCuisines?: string[];
   /** Null/undefined betyder att gruppen använder kanonisk kökstyper. */
   cuisinesOverride?: string[] | null;
+  /** Gruppens uttryckliga symbolval. Null/undefined betyder automatisk symbol. */
+  symbolOverride?: string | null;
   occasions: Occasion[];
   address: string;
   city: string;
