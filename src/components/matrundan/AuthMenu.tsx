@@ -223,6 +223,7 @@ export function AuthMenu({
     [attentionOverview, mode],
   );
   const hasAttention = attentionGroupIds.size > 0;
+  const attentionLabelSuffix = hasAttention ? ". Något väntar på dig" : "";
 
   React.useEffect(() => {
     if (typeof window === "undefined" || mode !== "live") return;
@@ -374,9 +375,7 @@ export function AuthMenu({
             <Button
               size="sm"
               variant="outline"
-              aria-label={`Profil och grupp: ${groupName}${
-                hasAttention ? ". Något väntar på dig" : ""
-              }`}
+              aria-label={`Profil och grupp: ${groupName}${attentionLabelSuffix}`}
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
@@ -467,9 +466,7 @@ export function AuthMenu({
           <Button
             size="sm"
             variant="outline"
-            aria-label={`Profil och grupp: ${groupName}${
-                hasAttention ? ". Något väntar på dig" : ""
-              }`}
+            aria-label={`Profil och grupp: ${groupName}${attentionLabelSuffix}`}
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
