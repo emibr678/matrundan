@@ -59,11 +59,12 @@ describe("group attention", () => {
       groupName: "Andra gruppen",
     };
 
-    expect([
-      ...getPersonalJourneyAttentionGroupIds([
-        visit({ groups: [activeGroup, secondGroup] }),
-      ], NOW),
-    ]).toEqual([activeGroup.groupId, secondGroup.groupId]);
+    const groupIds = getPersonalJourneyAttentionGroupIds(
+      [visit({ groups: [activeGroup, secondGroup] })],
+      NOW,
+    );
+
+    expect([...groupIds]).toEqual([activeGroup.groupId, secondGroup.groupId]);
   });
 
   test("flera pending-besök i samma grupp ger fortfarande bara en binär signal", () => {
@@ -84,12 +85,12 @@ describe("group attention", () => {
       isWritable: false,
     };
 
-    expect(
-      getPersonalJourneyAttentionGroupIds(
-        [visit({ groups: [archived, readOnly] })],
-        NOW,
-      ).size,
-    ).toBe(0);
+    const groupIds = getPersonalJourneyAttentionGroupIds(
+      [visit({ groups: [archived, readOnly] })],
+      NOW,
+    );
+
+    expect(groupIds.size).toBe(0);
   });
 
   test("följer det kanoniska 45-dagarsfönstret", () => {
@@ -111,18 +112,18 @@ describe("group attention", () => {
   });
 
   test("kräver faktiskt deltagande och kanoniskt pending-review-state", () => {
-    expect(
-      getPersonalJourneyAttentionGroupIds(
-        [
-          visit({ participated: false }),
-          visit({
-            id: "99999999-9999-4999-8999-999999999999",
-            reviewPending: false,
-          }),
-        ],
-        NOW,
-      ).size,
-    ).toBe(0);
+    const groupIds = getPersonalJourneyAttentionGroupIds(
+      [
+        visit({ participated: false }),
+        visit({
+          id: "99999999-9999-4999-8999-999999999999",
+          reviewPending: false,
+        }),
+      ],
+      NOW,
+    );
+
+    expect(groupIds.size).toBe(0);
   });
 
   test("exempelkontraktet har attention i två grupper vid sin fasta referenstid", () => {
