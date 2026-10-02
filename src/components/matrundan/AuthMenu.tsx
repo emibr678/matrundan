@@ -32,7 +32,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
-import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS } from "@/lib/matrundan/example-data";
+import {
+  EXAMPLE_FIXTURE_REFERENCE_TIME,
+  EXAMPLE_IDS,
+} from "@/lib/matrundan/example-data";
 import { getPersonalJourneyAttentionGroupIds } from "@/lib/matrundan/group-attention";
 import { loadPersonalJourneyOverview } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
@@ -205,10 +208,7 @@ export function AuthMenu({
     signedIn: Boolean(user),
     liveMode: mode === "live",
   });
-  const {
-    data: attentionOverview,
-    refetch: refetchAttention,
-  } = useQuery({
+  const { data: attentionOverview, refetch: refetchAttention } = useQuery({
     queryKey: ["personal-journey", "overview", mode],
     enabled: mode === "demo" || (mode === "live" && Boolean(user)),
     retry: false,
@@ -377,7 +377,9 @@ export function AuthMenu({
             <Button
               size="sm"
               variant="outline"
-              aria-label={`Profil och grupp: ${groupName}${hasAttention ? ". Något väntar på dig" : ""}`}
+              aria-label={`Profil och grupp: ${groupName}${
+  hasAttention ? ". Något väntar på dig" : ""
+}`}
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
@@ -468,7 +470,9 @@ export function AuthMenu({
           <Button
             size="sm"
             variant="outline"
-            aria-label={`Profil och grupp: ${groupName}${hasAttention ? ". Något väntar på dig" : ""}`}
+            aria-label={`Profil och grupp: ${groupName}${
+  hasAttention ? ". Något väntar på dig" : ""
+}`}
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
