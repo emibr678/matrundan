@@ -46,9 +46,7 @@ export function Home() {
   const { status: guidanceStatus, isAcknowledged, acknowledge } = useUserGuidance();
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
   const personalJourneyIntroAcknowledged = isAcknowledged(USER_GUIDANCE.personalJourneyIntro);
-  const activeGroupCount = userGroups.filter(
-    (group) => group.lifecycleStatus === "active",
-  ).length;
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const personalJourneyIntroEligible = shouldShowPersonalJourneyIntro({
     isLive: mode === "live",
     activeGroupCount,
