@@ -33,9 +33,11 @@ import {
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
 import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS } from "@/lib/matrundan/example-data";
-import { getPersonalJourneyAttentionGroupIds } from "@/lib/matrundan/group-attention";
-import { loadPersonalJourneyOverview } from "@/lib/matrundan/personal-journey";
-import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
+import {
+  getPersonalJourneyAttentionGroupIds,
+  loadPersonalJourneyAttentionGroupIds,
+} from "@/lib/matrundan/group-attention";
+import { DEMO_PERSONAL_JOURNEY_VISITS } from "@/lib/matrundan/personal-journey-demo";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { APP_NAME } from "@/lib/matrundan/version";
@@ -205,22 +207,23 @@ export function AuthMenu({
     signedIn: Boolean(user),
     liveMode: mode === "live",
   });
-  const { data: attentionOverview, refetch: refetchAttention } = useQuery({
-    queryKey: ["personal-journey", "overview", mode, mode === "live" ? userId : "demo"],
+  const { data: attentionGroupIdList = [], refetch: refetchAttention } = useQuery({
+    queryKey: ["personal-journey", "attention", mode, mode === "live" ? userId : "demo"],
     enabled: mode === "demo" || (mode === "live" && Boolean(user)),
     retry: false,
     queryFn: () =>
       mode === "demo"
-        ? Promise.resolve(DEMO_PERSONAL_JOURNEY_OVERVIEW)
-        : loadPersonalJourneyOverview(),
+        ? Promise.resolve([
+            ...getPersonalJourneyAttentionGroupIds(
+              DEMO_PERSONAL_JOURNEY_VISITS,
+              new Date(EXAMPLE_FIXTURE_REFERENCE_TIME),
+            ),
+          ])
+        : loadPersonalJourneyAttentionGroupIds(),
   });
   const attentionGroupIds = React.useMemo(
-    () =>
-      getPersonalJourneyAttentionGroupIds(
-        attentionOverview,
-        mode === "demo" ? new Date(EXAMPLE_FIXTURE_REFERENCE_TIME) : new Date(),
-      ),
-    [attentionOverview, mode],
+    () => new Set(attentionGroupIdList),
+    [attentionGroupIdList],
   );
   const hasAttention = attentionGroupIds.size > 0;
   const attentionLabelSuffix = hasAttention ? ". Något väntar på dig" : "";
