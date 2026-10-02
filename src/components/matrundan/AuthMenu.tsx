@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   Archive,
   Check,
@@ -31,6 +32,10 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
+import { EXAMPLE_IDS } from "@/lib/matrundan/example-scenarios";
+import { getPersonalJourneyAttentionGroupIds } from "@/lib/matrundan/group-attention";
+import { loadPersonalJourneyOverview } from "@/lib/matrundan/personal-journey";
+import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
 import { useSession, type UserGroupSummary } from "@/lib/matrundan/session";
 import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { APP_NAME } from "@/lib/matrundan/version";
@@ -72,13 +77,24 @@ function readRecentGroupIds(userId: string): string[] {
   }
 }
 
+function AttentionDot() {
+  return (
+    <>
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+      <span className="sr-only">Något väntar på dig</span>
+    </>
+  );
+}
+
 function GroupMenuItem({
   group,
   activeGroupId,
+  hasAttention,
   onSelect,
 }: {
   group: UserGroupSummary;
   activeGroupId: string | null;
+  hasAttention: boolean;
   onSelect: (groupId: string) => void;
 }) {
   const archived = group.lifecycleStatus === "archived";
@@ -91,6 +107,7 @@ function GroupMenuItem({
     >
       <span className="mr-2 shrink-0">{group.emoji ?? "🍽️"}</span>
       <span className="min-w-0 flex-1 truncate">{group.name}</span>
+      {hasAttention ? <AttentionDot /> : null}
       {archived ? (
         <span className="ml-2 inline-flex items-center gap-1 text-[10px] text-muted-foreground">
           <Archive className="h-3 w-3" /> arkiverad
@@ -188,6 +205,27 @@ export function AuthMenu({
     signedIn: Boolean(user),
     liveMode: mode === "live",
   });
+  const attentionOverview = useQuery({
+    queryKey: ["personal-journey", "overview", mode],
+    enabled: mode === "demo" || (mode === "live" && Boolean(user)),
+    retry: false,
+    queryFn: () =>
+      mode === "demo"
+        ? Promise.resolve(DEMO_PERSONAL_JOURNEY_OVERVIEW)
+        : loadPersonalJourneyOverview(),
+  });
+  const attentionGroupIds = React.useMemo(
+    () => getPersonalJourneyAttentionGroupIds(attentionOverview.data),
+    [attentionOverview.data],
+  );
+  const hasAttention = attentionGroupIds.size > 0;
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || mode !== "live") return;
+    const refreshAttention = () => void attentionOverview.refetch();
+    window.addEventListener("matrundan:reload", refreshAttention);
+    return () => window.removeEventListener("matrundan:reload", refreshAttention);
+  }, [attentionOverview.refetch, mode]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -332,11 +370,12 @@ export function AuthMenu({
             <Button
               size="sm"
               variant="outline"
-              aria-label={`Profil och grupp: ${groupName}`}
+              aria-label={`Profil och grupp: ${groupName}${hasAttention ? ". Något väntar på dig" : ""}`}
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
               <span className="min-w-0 flex-1 truncate">{groupName}</span>
+              {hasAttention ? <AttentionDot /> : null}
               <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
@@ -360,7 +399,8 @@ export function AuthMenu({
                     }
                   >
                     <span className="mr-2">{suppliedGroupEmoji ?? "🍽️"}</span>
-                    Öppna exempelgruppen
+                    <span className="min-w-0 flex-1">Öppna exempelgruppen</span>
+                    {attentionGroupIds.has(EXAMPLE_IDS.group) ? <AttentionDot /> : null}
                   </DropdownMenuItem>
                 ) : null}
                 <DropdownMenuSeparator />
@@ -421,11 +461,12 @@ export function AuthMenu({
           <Button
             size="sm"
             variant="outline"
-            aria-label={`Profil och grupp: ${groupName}`}
+            aria-label={`Profil och grupp: ${groupName}${hasAttention ? ". Något väntar på dig" : ""}`}
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
             <span className="min-w-0 flex-1 truncate">{groupName}</span>
+            {hasAttention ? <AttentionDot /> : null}
             {groupArchived ? (
               <Archive className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             ) : null}
@@ -499,6 +540,7 @@ export function AuthMenu({
                   key={group.id}
                   group={group}
                   activeGroupId={activeGroupId}
+                  hasAttention={attentionGroupIds.has(group.id)}
                   onSelect={openGroup}
                 />
               ))}
@@ -538,6 +580,7 @@ export function AuthMenu({
         onOpenChange={setAllGroupsOpen}
         groups={userGroups}
         activeGroupId={activeGroupId}
+        attentionGroupIds={attentionGroupIds}
         onSelect={openGroup}
         onSelectPersonalJourney={openPersonalJourney}
         invitations={pendingInvites}
