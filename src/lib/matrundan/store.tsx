@@ -996,10 +996,15 @@ export function StoreProvider({
       },
 
       updatePlaceMetadata: async (placeId, input) => {
+        const existingPlace = state.places.find((place) => place.id === placeId);
         const normalizedInput: GroupPlaceMetadataInput = {
           ...input,
           cuisinesOverride:
             input.cuisinesOverride == null ? null : normalizeFoodTags(input.cuisinesOverride),
+          symbolOverride:
+            input.symbolOverride === undefined
+              ? (existingPlace?.symbolOverride ?? null)
+              : input.symbolOverride?.trim() || null,
           occasions: normalizeOccasionClassification(input.occasions),
         };
         if (mode === "live") {
@@ -1023,6 +1028,7 @@ export function StoreProvider({
               canonicalCuisines,
               cuisinesOverride: normalizedInput.cuisinesOverride,
               cuisines: normalizedInput.cuisinesOverride ?? canonicalCuisines,
+              symbolOverride: normalizedInput.symbolOverride,
               occasions: normalizedInput.occasions,
               notes: normalizedInput.notes ?? undefined,
             };

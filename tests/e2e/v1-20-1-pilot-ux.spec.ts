@@ -1,4 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  CURRENT_GROUP_STATE_RPC,
+  PREVIOUS_GROUP_STATE_RPC,
+} from "../../src/lib/matrundan/read-model-version";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
@@ -91,7 +95,8 @@ async function installOwnerSession(
     }
 
     if (
-      rpc === "get_group_app_state_v5n" ||
+      rpc === CURRENT_GROUP_STATE_RPC ||
+      rpc === PREVIOUS_GROUP_STATE_RPC ||
       rpc === "get_group_app_state_v5m" ||
       rpc === "get_group_app_state_v5l" ||
       rpc === "get_group_app_state_v5k" ||

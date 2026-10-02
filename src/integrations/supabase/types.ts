@@ -324,6 +324,7 @@ export type Database = {
           practical_info_updated_at: string | null
           practical_info_updated_by: string | null
           source_group_id: string | null
+          symbol_override: string | null
           updated_at: string
           website_cross_group_proposal_at: string | null
           website_override: string | null
@@ -348,6 +349,7 @@ export type Database = {
           practical_info_updated_at?: string | null
           practical_info_updated_by?: string | null
           source_group_id?: string | null
+          symbol_override?: string | null
           updated_at?: string
           website_cross_group_proposal_at?: string | null
           website_override?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           practical_info_updated_at?: string | null
           practical_info_updated_by?: string | null
           source_group_id?: string | null
+          symbol_override?: string | null
           updated_at?: string
           website_cross_group_proposal_at?: string | null
           website_override?: string | null
@@ -2711,6 +2714,7 @@ export type Database = {
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5n: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5o: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -3379,6 +3383,18 @@ export type Database = {
           _notes?: string
           _occasions?: string[]
           _place_id: string
+        }
+        Returns: undefined
+      }
+      update_group_place_metadata_v2: {
+        Args: {
+          _category_override?: string
+          _cuisines_override?: string[]
+          _group_id: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+          _symbol_override?: string
         }
         Returns: undefined
       }

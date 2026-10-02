@@ -28,6 +28,7 @@ import {
 } from "@/components/matrundan/PlacePracticalInfo";
 import { OccasionGuide } from "@/components/matrundan/OccasionPicker";
 import { PlaceThumb } from "@/components/matrundan/PlaceCard";
+import { PlaceSymbolDialog } from "@/components/matrundan/PlaceSymbolDialog";
 import { RatingStars } from "@/components/matrundan/Rating";
 import { VisitDetailSheet } from "@/components/matrundan/VisitDetailSheet";
 import { VisitDialog } from "@/components/matrundan/VisitDialog";
@@ -255,7 +256,22 @@ function PlaceDetail() {
               data-testid="place-identity-grid"
               className="grid min-h-16 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 min-[390px]:min-h-20 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
             >
-              <PlaceThumb place={place} size="detail" />
+              {writable ? (
+                <PlaceSymbolDialog
+                  place={place}
+                  trigger={
+                    <button
+                      type="button"
+                      className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                      aria-label={`Ändra symbol för ${place.name}`}
+                    >
+                      <PlaceThumb place={place} size="detail" />
+                    </button>
+                  }
+                />
+              ) : (
+                <PlaceThumb place={place} size="detail" />
+              )}
               <div className="min-w-0 self-center">
                 <div className="text-[11px] font-medium tracking-wide text-muted-foreground">
                   {CATEGORY_LABEL[place.category]}
