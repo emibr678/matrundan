@@ -180,8 +180,14 @@ export function Home() {
         <section aria-label="Introduktion till Min matresa">
           <HomeAttentionCard
             icon={Compass}
-            title="Se hela din matresa"
-            description="Nu när du är med i flera grupper kan du se besök, topplista och statistik samlat i Min matresa."
+            title="Upptäck Min matresa"
+            description={
+              <>
+                Nu när du är med i flera grupper får du i{" "}
+                <strong className="font-medium text-foreground">Min matresa</strong> en samlad
+                överblick över dina besök, din topplista och statistik från alla dina grupper.
+              </>
+            }
             actions={
               <>
                 <Button asChild type="button" size="sm">
