@@ -59,9 +59,12 @@ describe("group attention", () => {
       groupName: "Andra gruppen",
     };
 
-    expect(
-      [...getPersonalJourneyAttentionGroupIds(overview([pending({ groups: [activeGroup, secondGroup] })]), NOW)],
-    ).toEqual([activeGroup.groupId, secondGroup.groupId]);
+    expect([
+      ...getPersonalJourneyAttentionGroupIds(
+        overview([pending({ groups: [activeGroup, secondGroup] })]),
+        NOW,
+      ),
+    ]).toEqual([activeGroup.groupId, secondGroup.groupId]);
   });
 
   test("ignorerar arkiverade och icke skrivbara gruppvägar", () => {
