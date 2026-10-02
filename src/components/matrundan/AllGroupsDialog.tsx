@@ -22,10 +22,12 @@ function memberPreview(group: UserGroupSummary): string | null {
 function GroupRow({
   group,
   activeGroupId,
+  hasAttention,
   onSelect,
 }: {
   group: UserGroupSummary;
   activeGroupId: string | null;
+  hasAttention: boolean;
   onSelect: (groupId: string) => void;
 }) {
   const current = group.id === activeGroupId;
@@ -45,6 +47,12 @@ function GroupRow({
       <span className="min-w-0 flex-1">
         <span className="flex min-w-0 items-center gap-2">
           <span className="min-w-0 flex-1 truncate font-medium">{group.name}</span>
+          {hasAttention ? (
+            <>
+              <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-primary/70" />
+              <span className="sr-only">Något väntar på dig</span>
+            </>
+          ) : null}
           {current ? (
             <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
               <Check className="h-3.5 w-3.5" aria-hidden="true" />
@@ -72,6 +80,7 @@ export function AllGroupsDialog({
   onOpenChange,
   groups,
   activeGroupId,
+  attentionGroupIds = new Set<string>(),
   onSelect,
   invitations = [],
   onAcceptInvitation,
@@ -82,6 +91,7 @@ export function AllGroupsDialog({
   onOpenChange: (open: boolean) => void;
   groups: UserGroupSummary[];
   activeGroupId: string | null;
+  attentionGroupIds?: ReadonlySet<string>;
   onSelect: (groupId: string) => void;
   invitations?: MyGroupInvitation[];
   onAcceptInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
@@ -238,6 +248,7 @@ export function AllGroupsDialog({
                   key={group.id}
                   group={group}
                   activeGroupId={activeGroupId}
+                  hasAttention={attentionGroupIds.has(group.id)}
                   onSelect={select}
                 />
               ))}
@@ -258,6 +269,7 @@ export function AllGroupsDialog({
                     key={group.id}
                     group={group}
                     activeGroupId={activeGroupId}
+                    hasAttention={false}
                     onSelect={select}
                   />
                 ))}
