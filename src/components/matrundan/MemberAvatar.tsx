@@ -23,7 +23,12 @@ export function MemberAvatar({
   const generated = isMultiavatarImageToken(member.avatarImage);
   const imageSrc = avatarImageSrc(member.avatarImage);
   const emoji = member.avatar && member.avatar.length <= 8 ? member.avatar : null;
-  const style: React.CSSProperties = { width: size, height: size, fontSize };
+  const style: React.CSSProperties = {
+    width: size,
+    height: size,
+    fontSize,
+    filter: generated ? "saturate(0.84)" : undefined,
+  };
 
   if (imageSrc) {
     return (
