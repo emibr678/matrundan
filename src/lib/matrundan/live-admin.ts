@@ -6,6 +6,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import { flushNotificationOutbox } from "./notifications.functions";
+import type { ProfileAvatarKind } from "./avatar";
 import type { SearchAreaMode, SearchRadiusKm } from "./types";
 
 function toErr(e: unknown): Error {
@@ -209,13 +210,34 @@ export async function listGroupInvitations(groupId: string): Promise<InvitationL
 
 export async function updateProfile(
   displayName: string,
-  avatarEmoji: string | null,
+  avatar: {
+    kind: ProfileAvatarKind;
+    emoji: string | null;
+    seed: string | null;
+  },
 ): Promise<void> {
-  const { error } = await supabase.rpc("update_profile", {
+  const current = await supabase.rpc("update_profile_v2", {
     _display_name: displayName,
-    _avatar_emoji: avatarEmoji ?? undefined,
+    _avatar_kind: avatar.kind,
+    _avatar_emoji: avatar.kind === "emoji" ? (avatar.emoji ?? undefined) : undefined,
+    _avatar_seed: avatar.kind === "generated" ? (avatar.seed ?? undefined) : undefined,
   });
-  if (error) throw toErr(error);
+  if (!current.error) return;
+
+  const missingV2 = current.error.message.includes("update_profile_v2");
+  if (!missingV2) throw toErr(current.error);
+
+  if (avatar.kind === "generated") {
+    throw new Error(
+      "Matrundan-avataren kan provas här, men kan sparas först när databasuppdateringen är genomförd.",
+    );
+  }
+
+  const legacy = await supabase.rpc("update_profile", {
+    _display_name: displayName,
+    _avatar_emoji: avatar.kind === "emoji" ? (avatar.emoji ?? undefined) : undefined,
+  });
+  if (legacy.error) throw toErr(legacy.error);
 }
 
 export interface VerifiedSearchArea {

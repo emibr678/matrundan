@@ -466,6 +466,8 @@ SELECT results_eq(
       AND display_name = 'Tidigare medlem'
       AND avatar_url IS NULL
       AND avatar_emoji IS NULL
+      AND avatar_seed IS NULL
+      AND avatar_kind = 'account'
       AND deleted_at IS NOT NULL$$,
   ARRAY[1::bigint],
   'account deletion keeps only the anonymized historical profile shell'

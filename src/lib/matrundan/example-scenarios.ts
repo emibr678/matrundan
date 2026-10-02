@@ -120,8 +120,13 @@ function exampleVisit(input: ExampleVisitInput): Visit {
   };
 }
 
-function activeParticipant(id: string, name: string, avatar: string): VisitParticipant {
-  return { id, name, avatar, avatarImage: null, status: "active" };
+function activeParticipant(
+  id: string,
+  name: string,
+  avatar: string | null,
+  avatarImage: string | null = null,
+): VisitParticipant {
+  return { id, name, avatar, avatarImage, status: "active" };
 }
 
 function historicalReview(
@@ -394,7 +399,7 @@ export function buildExampleState(nowInput: Date): AppState {
       participantIds: [members.alex, members.sam, members.kim],
       participants: [
         activeParticipant(members.alex, "Alex", "🦊"),
-        activeParticipant(members.sam, "Sam", "🐻"),
+        activeParticipant(members.sam, "Sam", null, "multiavatar:v1:example-sam-v1"),
         activeParticipant(members.kim, "Kim", "🦉"),
         {
           id: members.guestAya,
@@ -444,10 +449,10 @@ export function buildExampleState(nowInput: Date): AppState {
       ],
       participants: [
         activeParticipant(members.alex, "Alex", "🦊"),
-        activeParticipant(members.sam, "Sam", "🐻"),
+        activeParticipant(members.sam, "Sam", null, "multiavatar:v1:example-sam-v1"),
         activeParticipant(members.robin, "Robin", "🐝"),
         activeParticipant(members.kim, "Kim", "🦉"),
-        activeParticipant(members.noor, "Noor", "🐿️"),
+        activeParticipant(members.noor, "Noor", null),
         {
           id: members.formerLina,
           name: "Lina",
@@ -569,7 +574,7 @@ export function buildExampleState(nowInput: Date): AppState {
       date: timestamp(now, -18),
       meal: "kväll",
       participantIds: [members.sam],
-      participants: [activeParticipant(members.sam, "Sam", "🐻")],
+      participants: [activeParticipant(members.sam, "Sam", null, "multiavatar:v1:example-sam-v1")],
       externalParticipantCount: 2,
       overall: 4,
       taste: 4,
@@ -645,10 +650,15 @@ export function buildExampleState(nowInput: Date): AppState {
     },
     members: [
       { id: members.alex, name: "Alex", avatar: "🦊", role: "ägare" },
-      { id: members.sam, name: "Sam", avatar: "🐻", role: "admin" },
+      {
+        id: members.sam,
+        name: "Sam",
+        avatarImage: "multiavatar:v1:example-sam-v1",
+        role: "admin",
+      },
       { id: members.robin, name: "Robin", avatar: "🐝", role: "medlem" },
       { id: members.kim, name: "Kim", avatar: "🦉", role: "medlem" },
-      { id: members.noor, name: "Noor", avatar: "🐿️", role: "medlem" },
+      { id: members.noor, name: "Noor", role: "medlem" },
     ],
     places: examplePlaces,
     visits: exampleVisits,

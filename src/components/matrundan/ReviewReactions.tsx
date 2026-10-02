@@ -20,6 +20,7 @@ import {
 import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit } from "@/lib/matrundan/types";
+import { MemberAvatar } from "./MemberAvatar";
 
 interface ReactionContextValue {
   byReview: ReadonlyMap<string, ReviewReactionState>;
@@ -330,20 +331,14 @@ function ReactionCountChip({
             return (
               <div key={person.userId} className="flex min-w-0 items-center justify-between gap-2">
                 <div className="flex min-w-0 items-center gap-2">
-                  {person.avatarImage ? (
-                    <img
-                      src={person.avatarImage}
-                      alt=""
-                      className="h-7 w-7 rounded-full object-cover"
-                    />
-                  ) : (
-                    <span
-                      className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-secondary text-sm"
-                      aria-hidden="true"
-                    >
-                      {person.avatar ?? "🙂"}
-                    </span>
-                  )}
+                  <MemberAvatar
+                    member={{
+                      name: person.name,
+                      avatar: person.avatar,
+                      avatarImage: person.avatarImage,
+                    }}
+                    size={28}
+                  />
                   <div className="min-w-0 text-xs">
                     <div className="truncate font-medium">
                       {person.name}

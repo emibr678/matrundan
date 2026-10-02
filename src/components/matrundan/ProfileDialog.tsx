@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Trash2 } from "lucide-react";
+import { RefreshCw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,13 +24,20 @@ import {
 } from "@/components/ui/select";
 import { clearLocalAccountSession, loadOwnProfile } from "@/lib/matrundan/account-client";
 import {
+  createAvatarSeed,
+  multiavatarImageToken,
+  type ProfileAvatarKind,
+} from "@/lib/matrundan/avatar";
+import {
   deleteOwnAccount,
   getAccountDeletionRequirements,
   type AccountDeletionRequirements,
 } from "@/lib/matrundan/account.functions";
 import { updateProfile } from "@/lib/matrundan/live-admin";
 import { useSession } from "@/lib/matrundan/session";
+import { useOptionalStore } from "@/lib/matrundan/store";
 import { InstallAppSection } from "./AppNudges";
+import { MemberAvatar } from "./MemberAvatar";
 import { NotificationSettingsSection } from "./NotificationSettingsSection";
 
 const AVATAR_EMOJIS = [
@@ -60,8 +67,13 @@ export function ProfileDialog({
   onOpenChange: (v: boolean) => void;
   onSaved?: () => void;
 }) {
+  const store = useOptionalStore();
+  const { exampleMode } = useSession();
   const [displayName, setDisplayName] = React.useState("");
+  const [avatarKind, setAvatarKind] = React.useState<ProfileAvatarKind>("account");
   const [emoji, setEmoji] = React.useState<string | null>(null);
+  const [avatarSeed, setAvatarSeed] = React.useState<string | null>(null);
+  const [accountAvatarUrl, setAccountAvatarUrl] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const [loaded, setLoaded] = React.useState(false);
   const [deleteOpen, setDeleteOpen] = React.useState(false);
@@ -74,7 +86,10 @@ export function ProfileDialog({
         const profile = await loadOwnProfile();
         if (!profile) return;
         setDisplayName(profile.displayName);
+        setAvatarKind(profile.avatarKind);
         setEmoji(profile.avatarEmoji);
+        setAvatarSeed(profile.avatarSeed ?? createAvatarSeed());
+        setAccountAvatarUrl(profile.accountAvatarUrl);
       } catch {
         toast.error("Kunde inte läsa profilen.");
       } finally {
@@ -82,6 +97,19 @@ export function ProfileDialog({
       }
     })();
   }, [open]);
+
+  const normalizedName = displayName.trim().toLocaleLowerCase("sv-SE");
+  const duplicateName =
+    !exampleMode &&
+    normalizedName.length >= 2 &&
+    Boolean(
+      store?.state.members.some(
+        (member) =>
+          member.id !== store.state.currentUserId &&
+          member.name.trim().toLocaleLowerCase("sv-SE") === normalizedName,
+      ),
+    );
+  const generatedAvatarImage = avatarSeed ? multiavatarImageToken(avatarSeed) : null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -91,7 +119,11 @@ export function ProfileDialog({
     }
     setBusy(true);
     try {
-      await updateProfile(n, emoji);
+      await updateProfile(n, {
+        kind: avatarKind,
+        emoji,
+        seed: avatarKind === "generated" ? avatarSeed : null,
+      });
       toast.success("Profilen är uppdaterad.");
       onOpenChange(false);
       onSaved?.();
@@ -122,43 +154,137 @@ export function ProfileDialog({
                 maxLength={50}
                 required
               />
+              {duplicateName ? (
+                <p role="status" className="text-xs leading-relaxed text-muted-foreground">
+                  Det finns redan någon i gruppen som heter {displayName.trim()}. Du kan behålla
+                  namnet eller lägga till något som skiljer er åt, till exempel en initial.
+                </p>
+              ) : null}
             </div>
-            <div className="space-y-1.5">
-              <Label>Avatar (valfri emoji)</Label>
-              <div className="flex flex-wrap gap-1.5">
+
+            <div className="space-y-2">
+              <div>
+                <Label>Profilbild</Label>
+                <p className="text-xs text-muted-foreground">
+                  Välj hur du syns för andra i Matrundan.
+                </p>
+              </div>
+              <div role="radiogroup" aria-label="Profilbild" className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
-                  aria-pressed={emoji === null}
-                  onClick={() => setEmoji(null)}
+                  role="radio"
+                  aria-checked={avatarKind === "account"}
+                  onClick={() => setAvatarKind("account")}
                   className={
-                    "h-10 rounded-xl border px-3 text-xs transition " +
-                    (emoji === null
+                    "flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-xs transition " +
+                    (avatarKind === "account"
                       ? "border-primary bg-primary/10"
                       : "border-border/70 hover:bg-muted")
                   }
                 >
-                  Ingen
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: accountAvatarUrl }}
+                    size={36}
+                  />
+                  <span className="truncate">Kontobild</span>
                 </button>
-                {AVATAR_EMOJIS.map((e) => (
-                  <button
-                    key={e}
-                    type="button"
-                    aria-pressed={emoji === e}
-                    onClick={() => setEmoji(e)}
-                    className={
-                      "h-10 w-10 rounded-xl border text-xl transition " +
-                      (emoji === e
-                        ? "border-primary bg-primary/10"
-                        : "border-border/70 hover:bg-muted")
-                    }
-                  >
-                    {e}
-                  </button>
-                ))}
+                <button
+                  type="button"
+                  role="radio"
+                  aria-label="Matrundan-avatar"
+                  aria-checked={avatarKind === "generated"}
+                  onClick={() => {
+                    setAvatarKind("generated");
+                    setAvatarSeed((current) => current ?? createAvatarSeed());
+                  }}
+                  className={
+                    "flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-xs transition " +
+                    (avatarKind === "generated"
+                      ? "border-primary bg-primary/10"
+                      : "border-border/70 hover:bg-muted")
+                  }
+                >
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }}
+                    size={36}
+                  />
+                  <span className="truncate">Matrundan</span>
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={avatarKind === "emoji"}
+                  onClick={() => {
+                    setAvatarKind("emoji");
+                    setEmoji((current) => current ?? AVATAR_EMOJIS[0]);
+                  }}
+                  className={
+                    "flex min-h-20 min-w-0 flex-col items-center justify-center gap-1 rounded-xl border px-2 py-2 text-xs transition " +
+                    (avatarKind === "emoji"
+                      ? "border-primary bg-primary/10"
+                      : "border-border/70 hover:bg-muted")
+                  }
+                >
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatar: emoji ?? AVATAR_EMOJIS[0] }}
+                    size={36}
+                  />
+                  <span className="truncate">Emoji</span>
+                </button>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Utan emoji används din Google-bild om den finns.
-              </p>
+
+              {avatarKind === "generated" ? (
+                <div className="flex min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-muted/25 p-3">
+                  <MemberAvatar
+                    member={{ name: displayName || "Du", avatarImage: generatedAvatarImage }}
+                    size={64}
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium">Din avatar</div>
+                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                      Slumpa tills du hittar en som känns rätt.
+                    </p>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="mt-2"
+                      onClick={() => setAvatarSeed(createAvatarSeed())}
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                      Slumpa ny
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              {avatarKind === "emoji" ? (
+                <div className="flex flex-wrap gap-1.5" aria-label="Välj emoji">
+                  {AVATAR_EMOJIS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-label={`Välj ${value}`}
+                      aria-pressed={emoji === value}
+                      onClick={() => setEmoji(value)}
+                      className={
+                        "h-10 w-10 rounded-xl border text-xl transition " +
+                        (emoji === value
+                          ? "border-primary bg-primary/10"
+                          : "border-border/70 hover:bg-muted")
+                      }
+                    >
+                      {value}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {avatarKind === "account" && !accountAvatarUrl ? (
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Ditt konto har ingen profilbild. Då visas en neutral personikon.
+                </p>
+              ) : null}
             </div>
 
             <NotificationSettingsSection active={open} />
