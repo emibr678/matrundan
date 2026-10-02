@@ -64,17 +64,25 @@ export function isVisitReviewPending(visit: Visit, currentUserId: string): boole
  * Äldre besök kan fortfarande vara kanoniskt pending och kompletteras när de
  * öppnas, men de skapar ingen retroaktiv påminnelsebacklog.
  */
+export function isVisitDateInsideAttentionWindow(
+  visitedOn: string,
+  now: Date,
+  attentionDays = PENDING_REVIEW_ATTENTION_DAYS,
+): boolean {
+  const today = nowCalendarDayNumber(now);
+  const visitDay = localCalendarDayNumber(visitedOn);
+  if (today == null || visitDay == null) return false;
+
+  const ageDays = today - visitDay;
+  return ageDays >= 0 && ageDays <= attentionDays;
+}
+
 export function isVisitReviewInsideAttentionWindow(
   visit: Visit,
   now: Date,
   attentionDays = PENDING_REVIEW_ATTENTION_DAYS,
 ): boolean {
-  const today = nowCalendarDayNumber(now);
-  const visitDay = localCalendarDayNumber(visit.date);
-  if (today == null || visitDay == null) return false;
-
-  const ageDays = today - visitDay;
-  return ageDays >= 0 && ageDays <= attentionDays;
+  return isVisitDateInsideAttentionWindow(visit.date, now, attentionDays);
 }
 
 /**
