@@ -1,8 +1,5 @@
 export type HomeAttentionKind =
-  | "group-invitation"
-  | "pending-review"
-  | "personal-journey-intro"
-  | "app-nudge";
+  "group-invitation" | "pending-review" | "personal-journey-intro" | "app-nudge";
 
 /**
  * Hem visar högst en personlig uppmärksamhetsyta åt gången. Lågprioriterade

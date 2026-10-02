@@ -13,10 +13,7 @@ import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { useProductTourActive } from "@/components/matrundan/ProductIntroDialog";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
-import {
-  shouldShowPersonalJourneyIntro,
-  USER_GUIDANCE,
-} from "@/lib/matrundan/user-guidance";
+import { shouldShowPersonalJourneyIntro, USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
 import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
@@ -44,8 +41,7 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
-  const { mode, userGroups, pendingGroupInvitations, pendingGroupInvitationsReady } =
-    useSession();
+  const { mode, userGroups, pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
   const productTourActive = useProductTourActive();
   const { status: guidanceStatus, isAcknowledged, acknowledge } = useUserGuidance();
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);

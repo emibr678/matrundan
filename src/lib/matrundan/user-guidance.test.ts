@@ -14,9 +14,7 @@ describe("user guidance", () => {
   test("har stabila versionsstyrda identifierare", () => {
     expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@2");
     expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
-    expect(guidanceIdentifier(USER_GUIDANCE.personalJourneyIntro)).toBe(
-      "personal-journey-intro@1",
-    );
+    expect(guidanceIdentifier(USER_GUIDANCE.personalJourneyIntro)).toBe("personal-journey-intro@1");
   });
 
   test("översätter databasrader utan gruppberoende", () => {
