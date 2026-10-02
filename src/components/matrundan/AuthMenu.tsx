@@ -206,7 +206,7 @@ export function AuthMenu({
     liveMode: mode === "live",
   });
   const { data: attentionOverview, refetch: refetchAttention } = useQuery({
-    queryKey: ["personal-journey", "overview", mode],
+    queryKey: ["personal-journey", "overview", mode, mode === "live" ? userId : "demo"],
     enabled: mode === "demo" || (mode === "live" && Boolean(user)),
     retry: false,
     queryFn: () =>
