@@ -32,10 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
-import {
-  EXAMPLE_FIXTURE_REFERENCE_TIME,
-  EXAMPLE_IDS,
-} from "@/lib/matrundan/example-data";
+import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS } from "@/lib/matrundan/example-data";
 import { getPersonalJourneyAttentionGroupIds } from "@/lib/matrundan/group-attention";
 import { loadPersonalJourneyOverview } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
