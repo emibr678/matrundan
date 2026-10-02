@@ -36,7 +36,7 @@ export function avatarImageSrc(value: string | null | undefined): string | null 
   const cached = generatedAvatarCache.get(seed);
   if (cached) return cached;
 
-  const svg = multiavatar(seed);
+  const svg = multiavatar(seed, true);
   const dataUri = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
   if (generatedAvatarCache.size >= 200) {
     const oldest = generatedAvatarCache.keys().next().value;

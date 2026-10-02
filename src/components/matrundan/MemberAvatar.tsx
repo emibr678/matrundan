@@ -1,6 +1,6 @@
 import * as React from "react";
 import { UserRound } from "lucide-react";
-import { avatarImageSrc } from "@/lib/matrundan/avatar";
+import { avatarImageSrc, isMultiavatarImageToken } from "@/lib/matrundan/avatar";
 import { cn } from "@/lib/utils";
 
 type AvatarPerson = {
@@ -20,6 +20,7 @@ export function MemberAvatar({
   className?: string;
 }) {
   const fontSize = Math.round(size * 0.55);
+  const generated = isMultiavatarImageToken(member.avatarImage);
   const imageSrc = avatarImageSrc(member.avatarImage);
   const emoji = member.avatar && member.avatar.length <= 8 ? member.avatar : null;
   const style: React.CSSProperties = { width: size, height: size, fontSize };
@@ -30,7 +31,11 @@ export function MemberAvatar({
         src={imageSrc}
         alt=""
         style={style}
-        className={cn("shrink-0 rounded-full bg-secondary object-cover", className)}
+        className={cn(
+          "shrink-0 rounded-full",
+          generated ? "bg-mustard/35 object-contain" : "bg-secondary object-cover",
+          className,
+        )}
         loading="lazy"
       />
     );

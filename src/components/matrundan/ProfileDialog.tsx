@@ -242,7 +242,7 @@ export function ProfileDialog({
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium">Din Matrundan-avatar</div>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      Skapas lokalt i appen och kan slumpas om tills den känns rätt.
+                      Slumpa tills du hittar en som känns rätt.
                     </p>
                     <Button
                       type="button"
