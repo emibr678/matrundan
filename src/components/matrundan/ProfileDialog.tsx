@@ -240,7 +240,7 @@ export function ProfileDialog({
                     size={64}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium">Din Matrundan-avatar</div>
+                    <div className="text-sm font-medium">Din avatar</div>
                     <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
                       Slumpa tills du hittar en som känns rätt.
                     </p>
