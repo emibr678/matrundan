@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { getPlaceMaintenanceAccess } from "@/lib/matrundan/place-maintenance";
-import { EXAMPLE_IDS } from "@/lib/matrundan/example-scenarios";
+import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS } from "@/lib/matrundan/example-data";
 import { getPersonalJourneyAttentionGroupIds } from "@/lib/matrundan/group-attention";
 import { loadPersonalJourneyOverview } from "@/lib/matrundan/personal-journey";
 import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "@/lib/matrundan/personal-journey-demo";
@@ -205,7 +205,10 @@ export function AuthMenu({
     signedIn: Boolean(user),
     liveMode: mode === "live",
   });
-  const attentionOverview = useQuery({
+  const {
+    data: attentionOverview,
+    refetch: refetchAttention,
+  } = useQuery({
     queryKey: ["personal-journey", "overview", mode],
     enabled: mode === "demo" || (mode === "live" && Boolean(user)),
     retry: false,
@@ -215,17 +218,21 @@ export function AuthMenu({
         : loadPersonalJourneyOverview(),
   });
   const attentionGroupIds = React.useMemo(
-    () => getPersonalJourneyAttentionGroupIds(attentionOverview.data),
-    [attentionOverview.data],
+    () =>
+      getPersonalJourneyAttentionGroupIds(
+        attentionOverview,
+        mode === "demo" ? new Date(EXAMPLE_FIXTURE_REFERENCE_TIME) : new Date(),
+      ),
+    [attentionOverview, mode],
   );
   const hasAttention = attentionGroupIds.size > 0;
 
   React.useEffect(() => {
     if (typeof window === "undefined" || mode !== "live") return;
-    const refreshAttention = () => void attentionOverview.refetch();
+    const refreshAttention = () => void refetchAttention();
     window.addEventListener("matrundan:reload", refreshAttention);
     return () => window.removeEventListener("matrundan:reload", refreshAttention);
-  }, [attentionOverview.refetch, mode]);
+  }, [mode, refetchAttention]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
