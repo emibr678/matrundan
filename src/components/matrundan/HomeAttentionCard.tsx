@@ -15,7 +15,7 @@ export function HomeAttentionCard({
   actions: ReactNode;
 }) {
   return (
-    <Card className="rounded-2xl border-primary/20 bg-primary/[0.04] p-3 shadow-sm">
+    <Card className="rounded-2xl border-primary/30 bg-card p-3 shadow-sm">
       <div className="flex min-w-0 items-start gap-3">
         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
           <Icon className="h-4 w-4" aria-hidden="true" />
