@@ -1,7 +1,24 @@
 import { describe, expect, test } from "bun:test";
-import { emojiForCategory, isExplicitPlaceSymbol, resolvePlaceSymbol } from "./place-symbol";
+import {
+  emojiForCategory,
+  isExplicitPlaceSymbol,
+  resolveAutomaticPlaceSymbol,
+  resolvePlaceSymbol,
+} from "./place-symbol";
 
 describe("place-symbol", () => {
+  test("låter gruppens symboloverride vinna och null återgå till automatiken", () => {
+    const source = {
+      category: "restaurang" as const,
+      cuisines: ["Pizza"],
+      photo: "🍽️",
+    };
+
+    expect(resolvePlaceSymbol({ ...source, symbolOverride: "🍜" })).toBe("🍜");
+    expect(resolvePlaceSymbol({ ...source, symbolOverride: null })).toBe("🍕");
+    expect(resolveAutomaticPlaceSymbol({ ...source, symbolOverride: "🍜" })).toBe("🍕");
+  });
+
   test("låter en uttrycklig specialsymbol vinna över metadata", () => {
     expect(
       resolvePlaceSymbol({

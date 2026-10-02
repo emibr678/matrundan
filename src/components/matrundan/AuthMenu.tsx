@@ -4,6 +4,7 @@ import {
   Check,
   ChevronDown,
   CircleHelp,
+  Compass,
   FlaskConical,
   Home,
   Info,
@@ -16,7 +17,7 @@ import {
   UserPlus,
   Wrench,
 } from "lucide-react";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { AboutDialog } from "./AboutDialog";
 import { StagingTestToolsDialog } from "./StagingTestToolsDialog";
 import { Button } from "@/components/ui/button";
@@ -44,6 +45,13 @@ import {
   declineGroupMemberInvitation,
   type MyGroupInvitation,
 } from "@/lib/matrundan/live-admin";
+import {
+  createPersonalJourneyReturnContext,
+  getPersonalJourneyNavigationState,
+  groupHomePath,
+  isPersonalJourneyPath,
+  personalJourneyDemoSearch,
+} from "@/lib/matrundan/personal-journey-routes";
 
 const QUICK_GROUP_LIMIT = 4;
 const RECENT_GROUPS_KEY_PREFIX = "matrundan.recentGroups.v1:";
@@ -90,6 +98,20 @@ function GroupMenuItem({
       ) : current ? (
         <Check className="ml-2 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
       ) : null}
+    </DropdownMenuItem>
+  );
+}
+
+function PersonalJourneyMenuItem({ onSelect }: { onSelect: () => void }) {
+  return (
+    <DropdownMenuItem onSelect={onSelect}>
+      <Compass className="mr-2 h-4 w-4" />
+      <span className="min-w-0 flex-1">
+        <span className="block">Min matresa</span>
+        <span className="block text-xs font-normal text-muted-foreground">
+          Samlat från dina grupper
+        </span>
+      </span>
     </DropdownMenuItem>
   );
 }
@@ -150,6 +172,8 @@ export function AuthMenu({
     refreshPendingGroupInvitations: refreshPendingInvites,
   } = useSession();
   const navigate = useNavigate();
+  const location = useRouterState({ select: (state) => state.location });
+  const personalJourney = isPersonalJourneyPath(location.pathname);
   const [profileOpen, setProfileOpen] = React.useState(false);
   const [aboutOpen, setAboutOpen] = React.useState(false);
   const [createOpen, setCreateOpen] = React.useState(false);
@@ -241,6 +265,31 @@ export function AuthMenu({
     toast.success("Inbjudan avböjd.");
   }
 
+  function openPersonalJourney() {
+    const existing = getPersonalJourneyNavigationState(location.state);
+    const returnContext = personalJourney
+      ? existing.returnContext
+      : createPersonalJourneyReturnContext(location.href, activeGroupId);
+    void navigate({
+      to: "/min-matresa",
+      search: personalJourneyDemoSearch(mode),
+      state: (previous) => ({
+        ...previous,
+        personalJourney: returnContext ? { returnContext } : undefined,
+      }),
+    });
+  }
+
+  function openGroup(groupId: string) {
+    selectGroup(groupId);
+    if (personalJourney) {
+      void navigate({
+        to: groupHomePath(exampleMode),
+        state: (previous) => ({ ...previous, personalJourney: undefined }),
+      });
+    }
+  }
+
   if (!user && mode !== "demo") {
     return (
       <>
@@ -300,6 +349,21 @@ export function AuthMenu({
             </DropdownMenuLabel>
             {exampleMode ? (
               <>
+                <PersonalJourneyMenuItem onSelect={openPersonalJourney} />
+                {personalJourney ? (
+                  <DropdownMenuItem
+                    onSelect={() =>
+                      void navigate({
+                        to: "/exempel",
+                        state: (previous) => ({ ...previous, personalJourney: undefined }),
+                      })
+                    }
+                  >
+                    <span className="mr-2">{suppliedGroupEmoji ?? "🍽️"}</span>
+                    Öppna exempelgruppen
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={exitExampleMode}>
                   <Home className="mr-2 h-4 w-4" />
                   Till startsidan
@@ -418,6 +482,12 @@ export function AuthMenu({
               Platsunderhåll
             </DropdownMenuItem>
           ) : null}
+          {exampleMode || mode === "live" ? (
+            <>
+              <DropdownMenuSeparator />
+              <PersonalJourneyMenuItem onSelect={openPersonalJourney} />
+            </>
+          ) : null}
           {quickGroups.length > 0 ? (
             <>
               <DropdownMenuSeparator />
@@ -429,7 +499,7 @@ export function AuthMenu({
                   key={group.id}
                   group={group}
                   activeGroupId={activeGroupId}
-                  onSelect={selectGroup}
+                  onSelect={openGroup}
                 />
               ))}
               {showAllGroups ? (
@@ -468,7 +538,8 @@ export function AuthMenu({
         onOpenChange={setAllGroupsOpen}
         groups={userGroups}
         activeGroupId={activeGroupId}
-        onSelect={selectGroup}
+        onSelect={openGroup}
+        onSelectPersonalJourney={openPersonalJourney}
         invitations={pendingInvites}
         onAcceptInvitation={acceptPendingInvitation}
         onDeclineInvitation={declinePendingInvitation}

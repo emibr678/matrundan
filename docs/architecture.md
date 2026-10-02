@@ -153,6 +153,39 @@ Det gäller särskilt tabeller eller vyer som kan innehålla:
 - förbättringsunderlag;
 - historiska administrativa händelser.
 
+## Global personstatistik inom det privata nätverket
+
+Matrundans gruppinnehåll är fortsatt privat och gruppen är den primära
+integritetsgränsen. **Lågupplöst härledd personstatistik** är ett avgränsat
+undantag: en användare får se totalsiffror för en annan användare när de delar
+minst en aktiv grupp.
+
+Den globala personstatistiken:
+
+- härleds server-side från faktiska kanoniska deltaganden över personens grupper;
+- räknar samma kanoniska besök högst en gång men räknar verkliga återbesök;
+- får omfatta totalsiffror som besök, unika ställen, köksbredd, nivå och hur
+  många grupper som faktiskt bidrar med deltagna besök;
+- gruppantalet är endast en lågupplöst totalsiffra och får aldrig följas av
+  gruppidentiteter, gruppnamn eller annan information som gör de privata
+  grupperna härledbara;
+- får inte avslöja vilka andra grupper, ställen, besöksdatum, betyg,
+  kommentarer, bilder, konkreta gruppmedlemskap eller andra personer som ligger bakom
+  totalsiffrorna;
+- får inte returnera interna användar-ID:n när presentationen inte behöver dem;
+- upphör att vara läsbar för en annan användare när den sista gemensamma aktiva
+  grupprelationen upphör.
+
+Behörighetsregeln ägs av en serverfunktion så att ett framtida användarval för
+att dölja den samlade statistiken kan läggas till på samma gräns utan att skapa
+en parallell statistikmodell. Den egna globala statistiken ska fortsatt kunna
+beräknas även om användaren senare väljer att inte dela den med andra.
+
+Detta gör inte privata recensioner eller aktiviteter sociala: betyg,
+kommentarer, bilder, konkret besökshistorik och gruppmedlemskap följer fortsatt
+sina befintliga grupp- och synlighetsgränser. Gamificationen ska fortsatt vara
+varm, diskret och sekundär.
+
 ## Kontoradering och kontoägarskap
 
 Kontoradering använder `prepare_own_account_deletion(jsonb, boolean)` som
@@ -368,6 +401,35 @@ Använd en minimerad RPC när:
 
 En cross-group-RPC får aldrig returnera mer data bara för att den internt hade
 behörighet att läsa den.
+
+### Personlig cross-group-läsmodell
+
+`Min matresa` är en personlig läslins ovanpå användarens aktuella aktiva
+medlemskap, inte en grupp och inte en ny delningsyta. De publika
+`*_personal_journey_*_v1`-RPC:erna härleder därför användaren från `auth.uid()`
+och de läsbara grupperna från `memberships`; klienten får varken skicka ett
+användar-ID eller en lista med grupper.
+
+Läsmodellen återanvänder kanoniska `places.id` och `visits.id` som deduplicering.
+Gruppkontext returneras uttryckligt och minimerat för orientering och för att
+kunna lämna över en skrivåtgärd till en riktig grupp. Arkiverade grupper får
+fortsatt bidra med läsbar historik, men markeras som icke skrivbara. Ett avslutat
+medlemskap ska slå igenom vid nästa RPC-anrop utan klientcache som
+behörighetskälla.
+
+Omdömen och bilder får bara följa med om den inloggade användaren har aktuell
+synlighet via minst en grupp. Samma review eller media räknas högst en gång även
+om det är synligt genom flera grupper. Bildpayloaden innehåller bara en opak
+leveranstoken; rå Storage-sökväg, privata gruppöverstyrningar och reaktioner ingår
+inte. Favoriter behåller gruppkontext med unikheten
+`(user_id, place_id, group_id)`; den personliga vyn summerar dem men skriver
+aldrig en global favorit.
+
+Personlig rangordning är en transparent sortering av läsbara omdömen, inte en
+global topplista eller rekommendationsalgoritm. Högst aritmetiskt medelbetyg
+kommer först, fler unika synliga omdömen avgör vid samma medelbetyg och namn ger
+en stabil sista ordning. Samma omdöme räknas bara en gång även om det är synligt
+genom flera av användarens grupper.
 
 ## Gruppstate
 

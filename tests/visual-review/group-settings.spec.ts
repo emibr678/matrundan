@@ -333,7 +333,7 @@ test("fånga väntande gruppinbjudan på Hem och svarsvyn", async ({ page }, tes
   await capture(page, testInfo, "gruppinbjudan-hem");
 
   await page.getByRole("button", { name: "Visa inbjudan" }).click();
-  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  const dialog = page.getByRole("dialog", { name: "Dina grupper" });
   await expect(dialog.getByText("Söndagsgänget", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Gå med" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Avböj" })).toBeVisible();

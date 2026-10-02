@@ -116,7 +116,7 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
   const filterButton = page.getByRole("button", { name: "Öppna filter och sortering" });
 
   await expect(leaderboard).toBeVisible();
-  await expect(leaderboard.getByRole("link", { name: /Ledare i topplistan:/ })).toBeVisible();
+  await expect(leaderboard.getByRole("button", { name: /Ledare i topplistan:/ })).toBeVisible();
   await expect(collectionHeading).toBeVisible();
   await expect(
     collectionHeading
@@ -144,7 +144,9 @@ test("huvudvyerna har tydliga roller och handlingar på mobil", async ({ page })
 
   await search.fill("Kvarterets");
   await expect(leaderboard).toBeVisible();
-  await expect(page.getByRole("link", { name: /Kvarterets Kardemumma Café/ })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Kvarterets Kardemumma", exact: true }),
+  ).toBeVisible();
 
   await search.fill("Päronträdets Trattoria");
   const addFromSearch = page.getByRole("button", {

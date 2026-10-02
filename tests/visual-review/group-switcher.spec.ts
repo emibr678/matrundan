@@ -239,7 +239,7 @@ test("gruppbytaren skalar med recent-grupper och Alla grupper", async ({ page },
 
   await menu.getByRole("menuitem", { name: "Alla grupper" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  const dialog = page.getByRole("dialog", { name: "Dina grupper" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Aktiva grupper", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Arkiverade grupper", { exact: true })).toBeVisible();

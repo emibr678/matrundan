@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Archive, Check, UserPlus } from "lucide-react";
+import { Archive, Check, Compass, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -76,6 +76,7 @@ export function AllGroupsDialog({
   invitations = [],
   onAcceptInvitation,
   onDeclineInvitation,
+  onSelectPersonalJourney,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -85,6 +86,7 @@ export function AllGroupsDialog({
   invitations?: MyGroupInvitation[];
   onAcceptInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
   onDeclineInvitation?: (invitation: MyGroupInvitation) => Promise<void>;
+  onSelectPersonalJourney?: () => void;
 }) {
   const titleRef = React.useRef<HTMLHeadingElement>(null);
   const activeGroups = React.useMemo(
@@ -99,6 +101,11 @@ export function AllGroupsDialog({
 
   function select(groupId: string) {
     onSelect(groupId);
+    onOpenChange(false);
+  }
+
+  function selectPersonalJourney() {
+    onSelectPersonalJourney?.();
     onOpenChange(false);
   }
 
@@ -138,16 +145,40 @@ export function AllGroupsDialog({
       >
         <DialogHeader className="px-5 pb-2 pt-5 text-left">
           <DialogTitle ref={titleRef} tabIndex={-1} className="outline-none">
-            Alla grupper
+            Dina grupper
           </DialogTitle>
           <DialogDescription>
             {invitations.length > 0
-              ? "Svara på inbjudningar eller välj grupp att öppna."
-              : "Välj grupp att öppna."}
+              ? "Svara på inbjudningar eller välj vad du vill öppna."
+              : "Välj en grupp eller öppna din samlade matresa."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-4">
+          {onSelectPersonalJourney ? (
+            <section aria-labelledby="personal-journey-heading" className="space-y-2">
+              <h3
+                id="personal-journey-heading"
+                className="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Personligt
+              </h3>
+              <button
+                type="button"
+                onClick={selectPersonalJourney}
+                className="flex w-full min-w-0 items-start gap-3 rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-3 text-left transition hover:bg-primary/[0.08] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <Compass className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-medium">Min matresa</span>
+                  <span className="mt-1 block text-sm leading-snug text-muted-foreground">
+                    Samlat från dina grupper
+                  </span>
+                </span>
+              </button>
+            </section>
+          ) : null}
+
           {invitations.length > 0 ? (
             <section aria-labelledby="group-invitations-heading" className="space-y-2">
               <h3

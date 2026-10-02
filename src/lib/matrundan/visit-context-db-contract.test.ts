@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { CURRENT_GROUP_STATE_RPC, PREVIOUS_GROUP_STATE_RPC } from "./read-model-version";
 
 const root = resolve(import.meta.dir, "../../..");
 const migration = readFileSync(
@@ -62,8 +63,8 @@ describe("Issue #197 — besökskontextens databaskontrakt", () => {
     expect(migration).toContain("'{isTakeaway}'");
     expect(migration).toContain("WHEN visit_row.meal_type = 'dryck'");
     expect(migration).toContain("'ratingVisible', false");
-    expect(readModelPreflight).toContain("read_rpc_current:get_group_app_state_v5n");
-    expect(readModelPreflight).toContain("read_rpc_fallback:get_group_app_state_v5m");
-    expect(restoreScript).toContain("public.get_group_app_state_v5n(:'smoke_group_id'::uuid)");
+    expect(readModelPreflight).toContain(`read_rpc_current:${CURRENT_GROUP_STATE_RPC}`);
+    expect(readModelPreflight).toContain(`read_rpc_fallback:${PREVIOUS_GROUP_STATE_RPC}`);
+    expect(restoreScript).toContain(`public.${CURRENT_GROUP_STATE_RPC}(:'smoke_group_id'::uuid)`);
   });
 });

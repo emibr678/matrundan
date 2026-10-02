@@ -1,5 +1,11 @@
 import * as React from "react";
-import { createFileRoute, Link, stripSearchParams, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Link,
+  stripSearchParams,
+  useNavigate,
+  useRouterState,
+} from "@tanstack/react-router";
 import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { ArrowLeft, CalendarDays, MessageCircle, Users2 } from "lucide-react";
 import { z } from "zod";
@@ -11,6 +17,7 @@ import { Card } from "@/components/ui/card";
 import { appPageTitle } from "@/lib/app-environment";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
+import { getPersonalJourneyNavigationState } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
 import { formatDate, useStore } from "@/lib/matrundan/store";
 import { formatVisitContext } from "@/lib/matrundan/visit-context";
@@ -22,7 +29,7 @@ const visitSearchSchema = z.object({
   visit: fallback(z.string(), "").default(""),
   group: z.string().optional(),
   review: z.string().optional(),
-  from: z.enum(["home"]).optional(),
+  from: z.enum(["home", "min-matresa"]).optional(),
 });
 
 export const Route = createFileRoute("/besok")({
@@ -45,9 +52,13 @@ function VisitHistory() {
   const { exampleMode, mode, activeGroupId, userGroups, selectGroup } = useSession();
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/besok" });
+  const locationState = useRouterState({ select: (routerState) => routerState.location.state });
+  const personalJourneyState = getPersonalJourneyNavigationState(locationState);
   const groupArchived = state.group.lifecycleStatus === "archived";
   const requestedGroupAllowed =
-    !search.group || userGroups.some((group) => group.id === search.group);
+    mode === "demo"
+      ? !search.group || search.group === state.group.id
+      : !search.group || userGroups.some((group) => group.id === search.group);
   const requestedGroupReady = mode !== "live" || !search.group || search.group === activeGroupId;
   const visits = React.useMemo(
     () => [...state.visits].sort((left, right) => right.date.localeCompare(left.date)),
@@ -64,9 +75,38 @@ function VisitHistory() {
     [groupArchived, state.currentUserId, state.visits],
   );
 
-  const returnToHome = React.useCallback(() => {
+  const returnFromHandoff = React.useCallback(() => {
+    if (search.from === "min-matresa") {
+      const sourceGroup =
+        personalJourneyState.sourceGroupId &&
+        userGroups.find((group) => group.id === personalJourneyState.sourceGroupId);
+      if (sourceGroup && sourceGroup.id !== activeGroupId) {
+        selectGroup(sourceGroup.id);
+      }
+      void navigate({
+        href: personalJourneyState.resumeHref ?? "/min-matresa",
+        state: (previous) => ({
+          ...previous,
+          personalJourney: personalJourneyState.returnContext
+            ? { returnContext: personalJourneyState.returnContext }
+            : undefined,
+        }),
+      });
+      return;
+    }
+
     void navigate({ to: exampleMode ? "/exempel" : "/" });
-  }, [exampleMode, navigate]);
+  }, [
+    activeGroupId,
+    exampleMode,
+    navigate,
+    personalJourneyState.resumeHref,
+    personalJourneyState.returnContext,
+    personalJourneyState.sourceGroupId,
+    search.from,
+    selectGroup,
+    userGroups,
+  ]);
 
   React.useEffect(() => {
     if (
@@ -83,11 +123,22 @@ function VisitHistory() {
   return (
     <div className="mx-auto max-w-2xl space-y-5 pb-4 pt-2 md:max-w-3xl">
       <header>
-        <Button asChild variant="ghost" className="-ml-2 min-h-11 rounded-full px-3">
-          <Link to={exampleMode ? "/exempel" : "/"}>
-            <ArrowLeft className="h-4 w-4" /> Hem
-          </Link>
-        </Button>
+        {search.from === "min-matresa" ? (
+          <Button
+            type="button"
+            variant="ghost"
+            className="-ml-2 min-h-11 rounded-full px-3"
+            onClick={returnFromHandoff}
+          >
+            <ArrowLeft className="h-4 w-4" /> Min matresa
+          </Button>
+        ) : (
+          <Button asChild variant="ghost" className="-ml-2 min-h-11 rounded-full px-3">
+            <Link to={exampleMode ? "/exempel" : "/"}>
+              <ArrowLeft className="h-4 w-4" /> Hem
+            </Link>
+          </Button>
+        )}
         <h1 className="mt-2 font-display text-2xl font-semibold md:text-3xl">Alla besök</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Gruppens gemensamma måltider och minnen, med det senaste först.
@@ -218,13 +269,16 @@ function VisitHistory() {
 
       <VisitDetailSheet
         visitId={search.visit || null}
-        focusReviewId={search.review ?? null}
+        focusReviewId={search.review && search.review !== "new" ? search.review : null}
+        openOwnReview={search.review === "new"}
         open={Boolean(search.visit) && requestedGroupAllowed && requestedGroupReady}
-        onReviewFlowExit={search.from === "home" ? returnToHome : undefined}
+        onReviewFlowExit={
+          search.from === "home" || search.from === "min-matresa" ? returnFromHandoff : undefined
+        }
         onOpenChange={(open) => {
           if (open) return;
-          if (search.from === "home") {
-            returnToHome();
+          if (search.from === "home" || search.from === "min-matresa") {
+            returnFromHandoff();
             return;
           }
           void navigate({

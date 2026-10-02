@@ -38,6 +38,7 @@ export function VisitReviewsSection({
   groupArchived,
   demoReadOnly,
   focusReviewId = null,
+  openOwnReview = false,
   onChanged,
   onOwnReviewFlowExit,
 }: {
@@ -47,6 +48,7 @@ export function VisitReviewsSection({
   groupArchived: boolean;
   demoReadOnly: boolean;
   focusReviewId?: string | null;
+  openOwnReview?: boolean;
   onChanged: () => void | Promise<void>;
   onOwnReviewFlowExit?: () => void;
 }) {
@@ -230,6 +232,7 @@ export function VisitReviewsSection({
                   writable={writable}
                   mode={mode === "live" ? "live" : "demo"}
                   scoreless={!scored}
+                  initialOpen={openOwnReview}
                   onChanged={onChanged}
                   onReviewFlowExit={onOwnReviewFlowExit}
                 />
@@ -299,6 +302,7 @@ function OwnReviewPrompt({
   writable,
   mode,
   scoreless,
+  initialOpen,
   onChanged,
   onReviewFlowExit,
 }: {
@@ -310,6 +314,7 @@ function OwnReviewPrompt({
   writable: boolean;
   mode: "demo" | "live";
   scoreless: boolean;
+  initialOpen: boolean;
   onChanged: () => void | Promise<void>;
   onReviewFlowExit?: () => void;
 }) {
@@ -347,6 +352,7 @@ function OwnReviewPrompt({
             isTakeaway={visit.isTakeaway === true}
             placeOccasions={placeOccasions}
             disabled={!writable}
+            initialOpen={initialOpen}
             onSaved={onChanged}
             onExit={onReviewFlowExit}
           />
@@ -359,6 +365,7 @@ function OwnReviewPrompt({
             isTakeaway={visit.isTakeaway === true}
             placeOccasions={placeOccasions}
             disabled={!writable}
+            initialOpen={initialOpen}
             onExit={onReviewFlowExit}
           />
         )}

@@ -3,6 +3,7 @@ import { Pencil, RotateCcw, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { FoodTagMultiSelect } from "@/components/matrundan/FoodTagMultiSelect";
 import { OccasionPicker } from "@/components/matrundan/OccasionPicker";
+import { PlaceSymbolPicker } from "@/components/matrundan/PlaceSymbolPicker";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -65,6 +66,9 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
   const [category, setCategory] = React.useState<PlaceCategory>(place.category);
   const [cuisines, setCuisines] = React.useState<string[]>(place.cuisines);
   const [occasions, setOccasions] = React.useState<Occasion[]>(place.occasions);
+  const [symbolOverride, setSymbolOverride] = React.useState<string | null>(
+    place.symbolOverride ?? null,
+  );
   const [notes, setNotes] = React.useState(place.notes ?? "");
 
   React.useEffect(() => {
@@ -72,6 +76,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
     setCategory(place.category);
     setCuisines(place.cuisines);
     setOccasions(place.occasions);
+    setSymbolOverride(place.symbolOverride ?? null);
     setNotes(place.notes ?? "");
   }, [open, place]);
 
@@ -86,6 +91,7 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
         cuisinesOverride: sameFoodTags(normalizedCuisines, baseCuisines)
           ? null
           : normalizedCuisines,
+        symbolOverride,
         occasions,
         notes: notes.trim() || null,
       });
@@ -151,6 +157,16 @@ export function PlaceAdminDialog({ place }: { place: Place }) {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Symbol</Label>
+              <PlaceSymbolPicker
+                source={{ ...place, category, cuisines }}
+                value={symbolOverride}
+                onChange={setSymbolOverride}
+                disabled={submitting}
+              />
             </div>
 
             <FoodTagMultiSelect

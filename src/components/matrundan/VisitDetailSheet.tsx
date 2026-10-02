@@ -62,12 +62,14 @@ function formatVisitDate(iso: string) {
 export function VisitDetailSheet({
   visitId,
   focusReviewId = null,
+  openOwnReview = false,
   open,
   onOpenChange,
   onReviewFlowExit,
 }: {
   visitId: string | null;
   focusReviewId?: string | null;
+  openOwnReview?: boolean;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onReviewFlowExit?: () => void;
@@ -372,6 +374,7 @@ export function VisitDetailSheet({
                   groupArchived={groupArchived}
                   demoReadOnly={demoReadOnly}
                   focusReviewId={focusReviewId}
+                  openOwnReview={openOwnReview}
                   onChanged={reload}
                   onOwnReviewFlowExit={onReviewFlowExit}
                 />

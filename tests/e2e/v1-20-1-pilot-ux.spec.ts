@@ -1,4 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  CURRENT_GROUP_STATE_RPC,
+  PREVIOUS_GROUP_STATE_RPC,
+} from "../../src/lib/matrundan/read-model-version";
 
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
@@ -91,7 +95,8 @@ async function installOwnerSession(
     }
 
     if (
-      rpc === "get_group_app_state_v5n" ||
+      rpc === CURRENT_GROUP_STATE_RPC ||
+      rpc === PREVIOUS_GROUP_STATE_RPC ||
       rpc === "get_group_app_state_v5m" ||
       rpc === "get_group_app_state_v5l" ||
       rpc === "get_group_app_state_v5k" ||
@@ -421,7 +426,7 @@ test("väntande gruppinbjudan syns på Hem och öppnar befintligt svarsflöde", 
   ).toBeVisible();
   await page.getByRole("button", { name: "Visa inbjudan" }).click();
 
-  const dialog = page.getByRole("dialog", { name: "Alla grupper" });
+  const dialog = page.getByRole("dialog", { name: "Dina grupper" });
   await expect(dialog.getByText("Söndagsgänget", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Inbjuden av Karin", { exact: true })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Gå med" })).toBeVisible();

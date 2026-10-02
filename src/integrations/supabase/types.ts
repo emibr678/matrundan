@@ -324,6 +324,7 @@ export type Database = {
           practical_info_updated_at: string | null
           practical_info_updated_by: string | null
           source_group_id: string | null
+          symbol_override: string | null
           updated_at: string
           website_cross_group_proposal_at: string | null
           website_override: string | null
@@ -348,6 +349,7 @@ export type Database = {
           practical_info_updated_at?: string | null
           practical_info_updated_by?: string | null
           source_group_id?: string | null
+          symbol_override?: string | null
           updated_at?: string
           website_cross_group_proposal_at?: string | null
           website_override?: string | null
@@ -372,6 +374,7 @@ export type Database = {
           practical_info_updated_at?: string | null
           practical_info_updated_by?: string | null
           source_group_id?: string | null
+          symbol_override?: string | null
           updated_at?: string
           website_cross_group_proposal_at?: string | null
           website_override?: string | null
@@ -2717,6 +2720,7 @@ export type Database = {
       get_group_app_state_v5l: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5m: { Args: { _group_id: string }; Returns: Json }
       get_group_app_state_v5n: { Args: { _group_id: string }; Returns: Json }
+      get_group_app_state_v5o: { Args: { _group_id: string }; Returns: Json }
       get_group_place_practical_info_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2725,6 +2729,31 @@ export type Database = {
       get_notification_settings: { Args: never; Returns: Json }
       get_own_visit_guest_proposal_v1: {
         Args: { _group_id: string; _visit_id: string }
+        Returns: Json
+      }
+      get_personal_journey_overview_v1: { Args: never; Returns: Json }
+      get_personal_journey_overview_v2: { Args: never; Returns: Json }
+      get_personal_journey_place_v1: {
+        Args: { _place_id: string }
+        Returns: Json
+      }
+      get_personal_journey_stats_v1: {
+        Args: { _metric?: string }
+        Returns: Json
+      }
+      get_personal_journey_toplist_v1: {
+        Args: {
+          _cursor?: Json
+          _limit?: number
+          _meal_types?: string[]
+          _occasions?: string[]
+          _query?: string
+          _takeaway_only?: boolean
+        }
+        Returns: Json
+      }
+      get_personal_journey_visit_v1: {
+        Args: { _visit_id: string }
         Returns: Json
       }
       get_place_data_report_osm_refresh_v1: {
@@ -2949,6 +2978,37 @@ export type Database = {
         Args: { _place_id: string; _target_group_id: string }
         Returns: Json
       }
+      list_personal_journey_places_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_name?: string
+          _favorites_only?: boolean
+          _limit?: number
+          _query?: string
+          _visited_by_me_only?: boolean
+        }
+        Returns: Json
+      }
+      list_personal_journey_places_v2: {
+        Args: {
+          _cursor?: Json
+          _favorites_only?: boolean
+          _limit?: number
+          _query?: string
+          _sort?: string
+          _visited_by_me_only?: boolean
+        }
+        Returns: Json
+      }
+      list_personal_journey_visits_v1: {
+        Args: {
+          _cursor_id?: string
+          _cursor_visited_on?: string
+          _limit?: number
+          _participated_only?: boolean
+        }
+        Returns: Json
+      }
       list_place_improvement_candidates_for_maintenance_v1: {
         Args: { _limit?: number; _offset?: number; _status?: string }
         Returns: Json
@@ -3016,6 +3076,14 @@ export type Database = {
       notification_type_enabled: {
         Args: { _type: string; _user_id: string }
         Returns: boolean
+      }
+      personal_journey_can_view_global_stats_v1: {
+        Args: { _subject_id: string; _viewer_id: string }
+        Returns: boolean
+      }
+      personal_journey_effective_review_overall_v1: {
+        Args: { _review_id: string }
+        Returns: number
       }
       prepare_own_account_deletion: {
         Args: { _confirm_solo_group_deletion?: boolean; _successors?: Json }
@@ -3321,6 +3389,18 @@ export type Database = {
           _notes?: string
           _occasions?: string[]
           _place_id: string
+        }
+        Returns: undefined
+      }
+      update_group_place_metadata_v2: {
+        Args: {
+          _category_override?: string
+          _cuisines_override?: string[]
+          _group_id: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+          _symbol_override?: string
         }
         Returns: undefined
       }

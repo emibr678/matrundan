@@ -53,6 +53,7 @@ export type PlaceSymbolSource = {
   category: PlaceCategory;
   cuisines?: readonly string[] | null;
   photo?: string | null;
+  symbolOverride?: string | null;
 };
 
 export function emojiForCategory(category: PlaceCategory): string {
@@ -89,7 +90,7 @@ function resolveMetadataSymbol(
   };
 }
 
-export function resolvePlaceSymbol(source: PlaceSymbolSource): string {
+export function resolveAutomaticPlaceSymbol(source: PlaceSymbolSource): string {
   const explicitSymbol = source.photo?.trim();
   if (isExplicitPlaceSymbol(explicitSymbol)) return explicitSymbol!;
 
@@ -102,4 +103,9 @@ export function resolvePlaceSymbol(source: PlaceSymbolSource): string {
   if (cuisine.symbol) return cuisine.symbol;
 
   return emojiForCategory(source.category);
+}
+
+export function resolvePlaceSymbol(source: PlaceSymbolSource): string {
+  const override = source.symbolOverride?.trim();
+  return override || resolveAutomaticPlaceSymbol(source);
 }
