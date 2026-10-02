@@ -176,7 +176,9 @@ Gruppspecifika handlingar lämnas därför vidare till en riktig grupp när det
 behövs.
 
 Min matresa hjälper användaren att gå från utspridd historik till personlig
-orientering och återupptäckt över flera grupper.
+orientering och återupptäckt över sina grupper. Ytan kan användas även när
+användaren bara har en läsbar grupp; värdet blir tydligare när flera grupper
+bidrar.
 
 ### Översikt
 
