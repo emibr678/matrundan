@@ -6,7 +6,6 @@ import {
   resolveGuidanceAcknowledgementAction,
   setGuidancePreview,
   shouldAutoShowCoreIntro,
-  shouldShowPersonalJourneyIntro,
   USER_GUIDANCE,
 } from "./user-guidance";
 
@@ -14,7 +13,6 @@ describe("user guidance", () => {
   test("har stabila versionsstyrda identifierare", () => {
     expect(guidanceIdentifier(USER_GUIDANCE.coreIntro)).toBe("core-intro@2");
     expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
-    expect(guidanceIdentifier(USER_GUIDANCE.personalJourneyIntro)).toBe("personal-journey-intro@1");
   });
 
   test("översätter databasrader utan gruppberoende", () => {
@@ -27,6 +25,7 @@ describe("user guidance", () => {
   });
 
   test("Typ av upplevelse och omdömen använder ett gemensamt första-gångenkvitto", () => {
+    expect(Object.keys(USER_GUIDANCE)).toEqual(["coreIntro", "reviewContext"]);
     expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
   });
 
@@ -94,27 +93,6 @@ describe("user guidance", () => {
         previewing: false,
       }),
     ).toBe("ignore");
-  });
-
-  test("visar Min matresa-introt först när flera aktiva grupper gör det relevant", () => {
-    const eligible = {
-      isLive: true,
-      activeGroupCount: 2,
-      guidanceReady: true,
-      coreIntroAcknowledged: true,
-      acknowledged: false,
-      productTourActive: false,
-    };
-
-    expect(shouldShowPersonalJourneyIntro(eligible)).toBe(true);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, activeGroupCount: 1 })).toBe(false);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, guidanceReady: false })).toBe(false);
-    expect(
-      shouldShowPersonalJourneyIntro({ ...eligible, coreIntroAcknowledged: false }),
-    ).toBe(false);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, acknowledged: true })).toBe(false);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, productTourActive: true })).toBe(false);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, isLive: false })).toBe(false);
   });
 
   test("visar kärnintroduktionen först när alla automatiska grindar är klara", () => {
