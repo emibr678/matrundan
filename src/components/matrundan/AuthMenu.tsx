@@ -378,8 +378,8 @@ export function AuthMenu({
               size="sm"
               variant="outline"
               aria-label={`Profil och grupp: ${groupName}${
-  hasAttention ? ". Något väntar på dig" : ""
-}`}
+                hasAttention ? ". Något väntar på dig" : ""
+              }`}
               className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem]"
             >
               <span className="shrink-0">{groupEmoji}</span>
@@ -471,8 +471,8 @@ export function AuthMenu({
             size="sm"
             variant="outline"
             aria-label={`Profil och grupp: ${groupName}${
-  hasAttention ? ". Något väntar på dig" : ""
-}`}
+                hasAttention ? ". Något väntar på dig" : ""
+              }`}
             className="max-w-[10.5rem] min-w-0 rounded-full px-3 sm:max-w-[14rem] md:max-w-[18rem]"
           >
             <span className="shrink-0">{groupEmoji}</span>
