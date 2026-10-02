@@ -17,6 +17,9 @@ not every document by default.
 
 ## Read by task
 
+- `docs/product.md` — current product model, central concepts, main surfaces and
+  their responsibilities. Read this for product, UX/copy and feature work where
+  the intended role of an existing product area matters.
 - `docs/product-roadmap.md` — product direction, strategic themes and the
   backlog/label model.
 - `docs/architecture.md` — durable data, privacy and security decisions. Follow
@@ -166,6 +169,8 @@ reason instead of omitting the field.
 Each durable fact should have one natural owner:
 
 - README — concise human-facing project entry.
+- product — current product model, central concepts, main surfaces and their
+  responsibilities.
 - roadmap — product direction, strategic themes and backlog/label semantics.
 - Issues — detailed current scope and operational backlog state.
 - architecture + specialist architecture docs — durable design/privacy/security
@@ -179,4 +184,7 @@ A new document or agent rule should remove uncertainty or contain unique durable
 information, not merely repeat another source. Short-lived implementation plans
 and delivery status normally belong in an Issue/PR. Once finished, preserve
 lasting decisions in their canonical owner and remove or archive the temporary
-plan only when it has genuine historical value.
+plan only when it has genuine historical value. A delivery that materially
+changes an established product concept or a main surface's responsibility should
+update `docs/product.md` with the distilled current truth rather than copying
+the Issue history there.
