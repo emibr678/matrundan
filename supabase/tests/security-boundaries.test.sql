@@ -468,7 +468,7 @@ SELECT results_eq(
       AND avatar_emoji IS NULL
       AND avatar_seed IS NULL
       AND avatar_kind = 'account'
-      AND deleted_at IS NOT NULL$,
+      AND deleted_at IS NOT NULL$$,
   ARRAY[1::bigint],
   'account deletion keeps only the anonymized historical profile shell'
 );
