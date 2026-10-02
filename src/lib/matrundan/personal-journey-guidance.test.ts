@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  guidanceIdentifier,
-  shouldShowPersonalJourneyIntro,
-  USER_GUIDANCE,
-} from "./user-guidance";
+import { guidanceIdentifier, shouldShowPersonalJourneyIntro, USER_GUIDANCE } from "./user-guidance";
 
 describe("Min matresa-guidning", () => {
   test("har ett stabilt versionsstyrt guidance-id", () => {
