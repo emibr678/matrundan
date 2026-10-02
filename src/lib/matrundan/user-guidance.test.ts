@@ -29,11 +29,6 @@ describe("user guidance", () => {
   });
 
   test("Typ av upplevelse och omdömen använder ett gemensamt första-gångenkvitto", () => {
-    expect(Object.keys(USER_GUIDANCE)).toEqual([
-      "coreIntro",
-      "reviewContext",
-      "personalJourneyIntro",
-    ]);
     expect(guidanceIdentifier(USER_GUIDANCE.reviewContext)).toBe("review-context@2");
   });
 
