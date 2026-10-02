@@ -1,7 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
+import { EXAMPLE_FIXTURE_REFERENCE_TIME, EXAMPLE_IDS } from "./example-data";
 import { getPersonalJourneyAttentionGroupIds } from "./group-attention";
 import type { PersonalJourneyOverview } from "./personal-journey";
+import { DEMO_PERSONAL_JOURNEY_OVERVIEW } from "./personal-journey-demo";
 
 const NOW = new Date("2026-10-02T12:00:00+02:00");
 
@@ -98,5 +100,15 @@ describe("group attention", () => {
 
   test("utan pending finns ingen samlad signal", () => {
     expect(getPersonalJourneyAttentionGroupIds(overview([]), NOW).size).toBe(0);
+  });
+
+  test("exempelkontraktet har en synlig attention-signal vid sin fasta referenstid", () => {
+    const groupIds = getPersonalJourneyAttentionGroupIds(
+      DEMO_PERSONAL_JOURNEY_OVERVIEW,
+      new Date(EXAMPLE_FIXTURE_REFERENCE_TIME),
+    );
+
+    expect(groupIds.has(EXAMPLE_IDS.group)).toBe(true);
+    expect(groupIds.size).toBe(2);
   });
 });
