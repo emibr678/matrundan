@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const USER_GUIDANCE = {
   coreIntro: { key: "core-intro", version: 2 },
   reviewContext: { key: "review-context", version: 2 },
+  personalJourneyIntro: { key: "personal-journey-intro", version: 1 },
 } as const;
 
 export type UserGuidanceDefinition = (typeof USER_GUIDANCE)[keyof typeof USER_GUIDANCE];
@@ -62,6 +63,33 @@ export type CoreIntroEligibility = {
   acknowledged: boolean;
   alreadyHandled: boolean;
 };
+
+export type PersonalJourneyIntroEligibility = {
+  isLive: boolean;
+  activeGroupCount: number;
+  guidanceReady: boolean;
+  coreIntroAcknowledged: boolean;
+  acknowledged: boolean;
+  productTourActive: boolean;
+};
+
+export function shouldShowPersonalJourneyIntro({
+  isLive,
+  activeGroupCount,
+  guidanceReady,
+  coreIntroAcknowledged,
+  acknowledged,
+  productTourActive,
+}: PersonalJourneyIntroEligibility): boolean {
+  return (
+    isLive &&
+    activeGroupCount >= 2 &&
+    guidanceReady &&
+    coreIntroAcknowledged &&
+    !acknowledged &&
+    !productTourActive
+  );
+}
 
 export function shouldAutoShowCoreIntro({
   isLive,

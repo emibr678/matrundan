@@ -22,9 +22,10 @@ export function PersonalJourneyReviewGroupChoices({
       className={["rounded-xl border border-border/70 bg-background/55 p-3", className].join(" ")}
     >
       <div>
-        <div className="text-sm font-medium">Välj grupp för omdömet</div>
+        <div className="text-sm font-medium">Välj grupp</div>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          Din kommentar visas i gruppen du väljer.
+          Du lämnar omdömet en gång. Betyget följer besöket mellan grupperna. Kommentaren visas
+          först i gruppen du väljer.
         </p>
       </div>
       <div className="mt-3 space-y-2">

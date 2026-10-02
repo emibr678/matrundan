@@ -1,6 +1,6 @@
 import * as React from "react";
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ChevronRight, Heart, UserPlus } from "lucide-react";
+import { ChevronRight, Compass, Heart, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,6 +13,8 @@ import { HomeAttentionCard } from "@/components/matrundan/HomeAttentionCard";
 import { PendingVisitReviewCard } from "@/components/matrundan/PendingVisitReviewCard";
 import { useProductTourActive } from "@/components/matrundan/ProductIntroDialog";
 import { resolveHomeAttention } from "@/lib/matrundan/home-attention";
+import { shouldShowPersonalJourneyIntro, USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { getAttentionPendingVisitReviews } from "@/lib/matrundan/pending-visit-reviews";
 import { effectiveReviewOverall } from "@/lib/matrundan/review-model";
 import type { VisibleReview } from "@/lib/matrundan/types";
@@ -39,8 +41,20 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
-  const { pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
+  const { mode, userGroups, pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
   const productTourActive = useProductTourActive();
+  const { status: guidanceStatus, isAcknowledged, acknowledge } = useUserGuidance();
+  const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
+  const personalJourneyIntroAcknowledged = isAcknowledged(USER_GUIDANCE.personalJourneyIntro);
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
+  const personalJourneyIntroEligible = shouldShowPersonalJourneyIntro({
+    isLive: mode === "live",
+    activeGroupCount,
+    guidanceReady: guidanceStatus === "ready",
+    coreIntroAcknowledged,
+    acknowledged: personalJourneyIntroAcknowledged,
+    productTourActive,
+  });
   const [visitTarget, setVisitTarget] = React.useState<{
     placeId: string;
     completeNextStopOnSave: boolean;
@@ -67,6 +81,7 @@ export function Home() {
     pendingGroupInvitationsReady,
     pendingGroupInvitations.length,
     pendingReviewItems.length,
+    personalJourneyIntroEligible,
   );
 
   const untried = React.useMemo(
@@ -160,6 +175,41 @@ export function Home() {
       ) : attentionKind === "pending-review" ? (
         <section aria-label="Omdömen att komplettera">
           <PendingVisitReviewCard visits={pendingReviewItems} />
+        </section>
+      ) : attentionKind === "personal-journey-intro" ? (
+        <section aria-label="Introduktion till Min matresa">
+          <HomeAttentionCard
+            icon={Compass}
+            title="Upptäck Min matresa"
+            description={
+              <>
+                Nu när du är med i flera grupper får du i{" "}
+                <strong className="font-medium text-foreground">Min matresa</strong> en samlad
+                överblick över dina besök, din topplista och statistik från alla dina grupper.
+              </>
+            }
+            actions={
+              <>
+                <Button asChild type="button" size="sm">
+                  <Link
+                    to="/min-matresa"
+                    onClick={() => void acknowledge(USER_GUIDANCE.personalJourneyIntro)}
+                  >
+                    Öppna Min matresa
+                    <ChevronRight className="h-4 w-4" aria-hidden="true" />
+                  </Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void acknowledge(USER_GUIDANCE.personalJourneyIntro)}
+                >
+                  Stäng
+                </Button>
+              </>
+            }
+          />
         </section>
       ) : attentionKind === "app-nudge" && !productTourActive ? (
         <AppNudges />

@@ -1,3 +1,4 @@
+import * as React from "react";
 import {
   createFileRoute,
   Link,
@@ -15,6 +16,8 @@ import {
   groupHomePath,
 } from "@/lib/matrundan/personal-journey-routes";
 import { useSession } from "@/lib/matrundan/session";
+import { USER_GUIDANCE } from "@/lib/matrundan/user-guidance";
+import { useUserGuidance } from "@/lib/matrundan/user-guidance-context";
 import { useStore } from "@/lib/matrundan/store";
 
 const personalJourneySearchSchema = z.object({
@@ -38,6 +41,8 @@ function PersonalJourneyLayout() {
   const location = useRouterState({ select: (state) => state.location });
   const { state } = useStore();
   const { mode, exampleMode, activeGroupId, userGroups, selectGroup } = useSession();
+  const { status: guidanceStatus, isAcknowledged, acknowledge } = useUserGuidance();
+  const personalJourneyIntroAcknowledged = isAcknowledged(USER_GUIDANCE.personalJourneyIntro);
   const navigationState = getPersonalJourneyNavigationState(location.state);
   const returnContext = navigationState.returnContext;
   const availableGroups = mode === "live" ? userGroups : [];
@@ -48,6 +53,14 @@ function PersonalJourneyLayout() {
     availableGroups[0] ??
     null;
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
+
+  React.useEffect(() => {
+    if (mode !== "live" || guidanceStatus !== "ready" || personalJourneyIntroAcknowledged) {
+      return;
+    }
+
+    void acknowledge(USER_GUIDANCE.personalJourneyIntro);
+  }, [acknowledge, guidanceStatus, mode, personalJourneyIntroAcknowledged]);
 
   function keepReturnContext(previous: typeof location.state) {
     return {

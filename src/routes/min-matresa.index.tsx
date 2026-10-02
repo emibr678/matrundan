@@ -173,7 +173,7 @@ function PersonalJourneyOverview() {
                 writableGroups.length === 1
                   ? writableGroups[0].groupName
                   : writableGroups.length > 1
-                    ? `${writableGroups.length} grupper`
+                    ? `Finns i ${writableGroups.length} grupper`
                     : "Arkiverad grupp";
               return (
                 <div key={item.visitId} className="p-3">
