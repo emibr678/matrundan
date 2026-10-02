@@ -108,6 +108,7 @@ Olika dokument har olika ansvar:
 | Källa | Ansvar |
 | --- | --- |
 | [AGENTS.md](./AGENTS.md) | Kort bindande agentkonstitution och dokumentrouter |
+| [docs/product.md](./docs/product.md) | Aktuell produktmodell, centrala begrepp och huvudytornas ansvar |
 | [docs/product-roadmap.md](./docs/product-roadmap.md) | Strategisk produktinriktning, teman och backlogmodell |
 | GitHub Issues + labels | Detaljerat scope, status, prioritet och operativ arbetsordning |
 | [docs/architecture.md](./docs/architecture.md) | Varaktiga arkitektur-, integritets- och säkerhetsbeslut |
