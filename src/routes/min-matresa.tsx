@@ -55,21 +55,12 @@ function PersonalJourneyLayout() {
   const groupName = activeGroup?.name ?? fallbackGroup?.name ?? state.group.name ?? "gruppen";
 
   React.useEffect(() => {
-    if (
-      mode !== "live" ||
-      guidanceStatus !== "ready" ||
-      personalJourneyIntroAcknowledged
-    ) {
+    if (mode !== "live" || guidanceStatus !== "ready" || personalJourneyIntroAcknowledged) {
       return;
     }
 
     void acknowledge(USER_GUIDANCE.personalJourneyIntro);
-  }, [
-    acknowledge,
-    guidanceStatus,
-    mode,
-    personalJourneyIntroAcknowledged,
-  ]);
+  }, [acknowledge, guidanceStatus, mode, personalJourneyIntroAcknowledged]);
 
   function keepReturnContext(previous: typeof location.state) {
     return {

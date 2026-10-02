@@ -21,7 +21,9 @@ export function StagingTestToolsDialog({
 }) {
   const { isPreviewing, preview, clearPreview } = useUserGuidance();
   const reviewContextPreviewing = isPreviewing(USER_GUIDANCE.reviewContext);
-  const personalJourneyIntroPreviewing = isPreviewing(USER_GUIDANCE.personalJourneyIntro);
+  const personalJourneyIntroPreviewing = isPreviewing(
+    USER_GUIDANCE.personalJourneyIntro,
+  );
 
   if (!IS_STAGING) return null;
 
@@ -73,7 +75,8 @@ export function StagingTestToolsDialog({
             </p>
             {personalJourneyIntroPreviewing ? (
               <div className="mt-2 text-xs font-medium text-amber-800">
-                Simuleringen är aktiv tills du öppnar Min matresa, stänger kortet eller avbryter här.
+                Simuleringen är aktiv tills du öppnar Min matresa, stänger kortet eller avbryter
+                här.
               </div>
             ) : null}
             <Button

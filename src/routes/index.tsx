@@ -44,7 +44,8 @@ export const Route = createFileRoute("/")({
 
 export function Home() {
   const { state, demoReadOnly, getPlace, memberById } = useStore();
-  const { mode, userGroups, pendingGroupInvitations, pendingGroupInvitationsReady } = useSession();
+  const { mode, userGroups, pendingGroupInvitations, pendingGroupInvitationsReady } =
+    useSession();
   const productTourActive = useProductTourActive();
   const { status: guidanceStatus, isAcknowledged, acknowledge } = useUserGuidance();
   const coreIntroAcknowledged = isAcknowledged(USER_GUIDANCE.coreIntro);
@@ -186,7 +187,7 @@ export function Home() {
           <HomeAttentionCard
             icon={Compass}
             title="Se hela din matresa"
-            description="Nu när du är med i flera grupper kan du se dina besök, topplistor och statistik samlat i Min matresa."
+            description="Nu när du är med i flera grupper kan du se besök, topplista och statistik samlat i Min matresa."
             actions={
               <>
                 <Button asChild type="button" size="sm">

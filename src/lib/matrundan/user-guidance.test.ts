@@ -116,7 +116,9 @@ describe("user guidance", () => {
     expect(shouldShowPersonalJourneyIntro(eligible)).toBe(true);
     expect(shouldShowPersonalJourneyIntro({ ...eligible, activeGroupCount: 1 })).toBe(false);
     expect(shouldShowPersonalJourneyIntro({ ...eligible, guidanceReady: false })).toBe(false);
-    expect(shouldShowPersonalJourneyIntro({ ...eligible, coreIntroAcknowledged: false })).toBe(false);
+    expect(
+      shouldShowPersonalJourneyIntro({ ...eligible, coreIntroAcknowledged: false }),
+    ).toBe(false);
     expect(shouldShowPersonalJourneyIntro({ ...eligible, acknowledged: true })).toBe(false);
     expect(shouldShowPersonalJourneyIntro({ ...eligible, productTourActive: true })).toBe(false);
     expect(shouldShowPersonalJourneyIntro({ ...eligible, isLive: false })).toBe(false);
