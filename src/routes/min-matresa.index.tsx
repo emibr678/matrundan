@@ -57,7 +57,7 @@ function PersonalJourneyOverview() {
   const navigate = useNavigate();
   const location = useRouterState({ select: (state) => state.location });
   const navigationState = getPersonalJourneyNavigationState(location.state);
-  const { mode, activeGroupId, selectGroup } = useSession();
+  const { mode, user, activeGroupId, selectGroup } = useSession();
   const [reviewGroupChoice, setReviewGroupChoice] =
     React.useState<PersonalJourneyPendingReview | null>(null);
   const stats = useQuery({
@@ -69,7 +69,7 @@ function PersonalJourneyOverview() {
         : loadPersonalJourneyStats("visits"),
   });
   const overview = useQuery({
-    queryKey: ["personal-journey", "overview", mode],
+    queryKey: ["personal-journey", "overview", mode, mode === "live" ? user?.id : "demo"],
     retry: false,
     queryFn: () =>
       mode === "demo"
