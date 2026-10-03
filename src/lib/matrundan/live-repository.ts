@@ -1,4 +1,3 @@
-import { beginLoadingMeasurement, measureLoading } from "./loading-diagnostics";
 /**
  * Live-repository: läser en grupps state via den säkra, versionshanterade
  * read-modelen. Vid just en saknad aktuell RPC får klienten tillfälligt falla
@@ -331,13 +330,8 @@ async function readGroupPayload(groupId: string): Promise<Payload | null> {
 }
 
 export async function loadLiveState(groupId: string): Promise<AppState | null> {
-  const total = beginLoadingMeasurement("group-total");
-  const p = await measureLoading("group-read-model", () => readGroupPayload(groupId), total.id);
-  if (!p) {
-    total.end();
-    return null;
-  }
-  const mapBeforePhotos = beginLoadingMeasurement("map-before-photos", total.id);
+  const p = await readGroupPayload(groupId);
+  if (!p) return null;
 
   const home = p.group.homeLocation;
   const configuredRadius = p.group.defaultSearchRadiusKm ?? 1;
@@ -444,26 +438,14 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
   const rawPhotoRows = p.visits.flatMap((visit) =>
     visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [],
   );
-  mapBeforePhotos.end();
-  const photos = beginLoadingMeasurement("photos-total", total.id);
   const [signedPhotoUrls, deliveredPhotoUrls] = await Promise.all([
-    measureLoading(
-      "photo-signing",
-      () => createSignedVisitPhotoUrls(
-        rawPhotoRows.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
-      ),
-      total.id,
+    createSignedVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
     ),
-    measureLoading(
-      "photo-delivery",
-      () => createDeliveredVisitPhotoUrls(
-        rawPhotoRows.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
-      ),
-      total.id,
+    createDeliveredVisitPhotoUrls(
+      rawPhotoRows.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
     ),
   ]);
-  photos.end();
-  const mapAfterPhotos = beginLoadingMeasurement("map-after-photos", total.id);
 
   const visits: Visit[] = p.visits.map((v) => {
     const participantIds = v.participantIds ?? [];
@@ -565,7 +547,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     text: a.text ?? "Aktivitet",
   }));
 
-  const state: AppState = {
+  return {
     version: APP_VERSION,
     currentUserId: p.currentUserId,
     group,
@@ -578,7 +560,4 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     nextStopDateProposal: mapNextStopDateProposal(p.nextStopDateProposal),
     nextStop: mapNextStop(p.nextStop),
   };
-  mapAfterPhotos.end();
-  total.end();
-  return state;
 }

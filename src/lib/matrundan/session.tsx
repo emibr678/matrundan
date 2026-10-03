@@ -1,4 +1,3 @@
-import { beginLoadingMeasurement } from "./loading-diagnostics";
 /**
  * Sessions- och läges-hantering för Matrundan.
  *
@@ -175,10 +174,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const measurement = beginLoadingMeasurement("group-list");
     const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
     const { data, error } = await rpc("list_user_groups_v4b");
-    measurement.end();
     if (error) {
       console.error("[Matrundan] kunde inte läsa medlemskap:", error);
       setUserGroups([]);
@@ -227,10 +224,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     let cancelled = false;
-    const bootstrap = beginLoadingMeasurement("auth-bootstrap");
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (cancelled) return;
-      beginLoadingMeasurement("auth-event:" + _event).end();
       setSession(nextSession);
       if (nextSession?.user) {
         void loadGroups(nextSession.user.id);
@@ -239,7 +234,6 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       }
     });
     supabase.auth.getSession().then(({ data }) => {
-      bootstrap.end();
       if (cancelled) return;
       setSession(data.session);
       if (data.session?.user) {
