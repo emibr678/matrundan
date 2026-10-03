@@ -139,6 +139,7 @@ test("inloggad laddningsvy renderas utan StoreProvider-krasch", async ({ page })
   await expect(pendingGroupMenu).toHaveAccessibleName("Profil och grupp: Grupp");
   await expect(page.getByText("Något gick snett")).toHaveCount(0);
 
+  await expect(page.getByText("Skapa er första grupp")).toHaveCount(0);
   releaseGroups?.();
 
   await expect(page.getByRole("button", { name: "Profil och grupp: Testgruppen" })).toBeVisible();

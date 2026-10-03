@@ -301,34 +301,20 @@ export async function liveDeleteVisitPhoto(
   if (previousPath) await removeStoragePath(previousPath);
 }
 
-const deliveredObjectUrls = new Map<string, string>();
-
-export async function createDeliveredVisitPhotoUrls(tokens: string[]) {
+export async function createDeliveredVisitPhotoUrls(
+  tokens: string[],
+  options: { signal: AbortSignal; ownUrl: (url: string) => void },
+) {
   const unique = [...new Set(tokens.filter(Boolean))];
-  const keep = new Set(unique);
-
-  for (const [token, url] of deliveredObjectUrls) {
-    if (!keep.has(token)) {
-      URL.revokeObjectURL(url);
-      deliveredObjectUrls.delete(token);
-    }
-  }
-
   const result = new Map<string, string>();
   if (unique.length === 0 || typeof window === "undefined") return result;
 
   const { data } = await supabase.auth.getSession();
   const accessToken = data.session?.access_token;
-  if (!accessToken) return result;
+  if (!accessToken || options.signal.aborted) return result;
 
   await Promise.all(
     unique.map(async (token) => {
-      const cached = deliveredObjectUrls.get(token);
-      if (cached) {
-        result.set(token, cached);
-        return;
-      }
-
       try {
         const response = await fetch(`/api/visit-photo/${encodeURIComponent(token)}`, {
           method: "GET",
@@ -337,14 +323,18 @@ export async function createDeliveredVisitPhotoUrls(tokens: string[]) {
             Accept: "image/*",
           },
           cache: "no-store",
+          signal: options.signal,
         });
         if (!response.ok) return;
         const blob = await response.blob();
+        if (options.signal.aborted) return;
         const url = URL.createObjectURL(blob);
-        deliveredObjectUrls.set(token, url);
+        options.ownUrl(url);
         result.set(token, url);
       } catch (error) {
-        console.error("[Matrundan] Kunde inte hämta delad besöksbild:", error);
+        if (!options.signal.aborted) {
+          console.error("[Matrundan] Kunde inte hämta delad besöksbild:", error);
+        }
       }
     }),
   );
