@@ -4,6 +4,7 @@
  * tillbaka till föregående kompatibla version så att gruppen fortfarande kan
  * läsas medan databasdriftsättningen färdigställs.
  */
+import { GroupReadError, type LiveGroupRead } from "./live-group-cache";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   Activity,
@@ -303,7 +304,17 @@ function mapNextStop(row: NextStopStateRow | null | undefined): NextStopState | 
   };
 }
 
-async function readGroupPayload(groupId: string): Promise<Payload | null> {
+function groupReadFailure(error: { code?: string; message?: string } | null): GroupReadError {
+  const denied =
+    !error ||
+    ["42501", "PGRST301", "PGRST302", "PGRST303"].includes(error.code ?? "") ||
+    /not a member|access denied|not authenticated|membership|inte medlem|saknar behörighet/i.test(
+      error?.message ?? "",
+    );
+  return new GroupReadError(denied);
+}
+
+async function readGroupPayload(groupId: string): Promise<Payload> {
   const current = await supabase.rpc(CURRENT_GROUP_STATE_RPC as "get_group_app_state", {
     _group_id: groupId,
   });
@@ -312,7 +323,7 @@ async function readGroupPayload(groupId: string): Promise<Payload | null> {
 
   if (!shouldFallbackToPreviousGroupStateRpc(current.error)) {
     console.error(`[Matrundan] ${CURRENT_GROUP_STATE_RPC}:`, current.error);
-    return null;
+    throw groupReadFailure(current.error);
   }
 
   console.warn(
@@ -323,15 +334,14 @@ async function readGroupPayload(groupId: string): Promise<Payload | null> {
   });
   if (previous.error || !previous.data) {
     console.error(`[Matrundan] ${PREVIOUS_GROUP_STATE_RPC}:`, previous.error);
-    return null;
+    throw groupReadFailure(previous.error);
   }
 
   return previous.data as unknown as Payload;
 }
 
-export async function loadLiveState(groupId: string): Promise<AppState | null> {
+export async function loadLiveGroup(groupId: string): Promise<LiveGroupRead> {
   const p = await readGroupPayload(groupId);
-  if (!p) return null;
 
   const home = p.group.homeLocation;
   const configuredRadius = p.group.defaultSearchRadiusKm ?? 1;
@@ -435,18 +445,6 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     };
   });
 
-  const rawPhotoRows = p.visits.flatMap((visit) =>
-    visit.photos?.length ? visit.photos : visit.photo ? [visit.photo] : [],
-  );
-  const [signedPhotoUrls, deliveredPhotoUrls] = await Promise.all([
-    createSignedVisitPhotoUrls(
-      rawPhotoRows.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
-    ),
-    createDeliveredVisitPhotoUrls(
-      rawPhotoRows.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
-    ),
-  ]);
-
   const visits: Visit[] = p.visits.map((v) => {
     const participantIds = v.participantIds ?? [];
     const visibleReviews: VisibleReview[] = v.reviews.map((r) => ({
@@ -492,11 +490,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     const photos = rawPhotos.map((photo) => ({
       ...photo,
       createdAt: photo.createdAt ?? photo.updatedAt,
-      url: photo.storagePath
-        ? signedPhotoUrls.get(photo.storagePath)
-        : photo.deliveryToken
-          ? deliveredPhotoUrls.get(photo.deliveryToken)
-          : undefined,
+      url: undefined,
     }));
 
     return {
@@ -547,7 +541,7 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     text: a.text ?? "Aktivitet",
   }));
 
-  return {
+  const state: AppState = {
     version: APP_VERSION,
     currentUserId: p.currentUserId,
     group,
@@ -559,5 +553,49 @@ export async function loadLiveState(groupId: string): Promise<AppState | null> {
     nextPlaceId: p.nextPlaceId,
     nextStopDateProposal: mapNextStopDateProposal(p.nextStopDateProposal),
     nextStop: mapNextStop(p.nextStop),
+  };
+
+  const objectUrls = new Set<string>();
+  let disposed = false;
+  return {
+    state,
+    dispose() {
+      disposed = true;
+      objectUrls.forEach((url) => URL.revokeObjectURL(url));
+      objectUrls.clear();
+    },
+    async loadPhotos(signal) {
+      const rawPhotos = state.visits.flatMap((visit) => visit.photos ?? []);
+      const [signed, delivered] = await Promise.all([
+        createSignedVisitPhotoUrls(
+          rawPhotos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
+        ),
+        createDeliveredVisitPhotoUrls(
+          rawPhotos.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
+          {
+            signal,
+            ownUrl(url) {
+              if (disposed || signal.aborted) URL.revokeObjectURL(url);
+              else objectUrls.add(url);
+            },
+          },
+        ),
+      ]);
+      if (disposed || signal.aborted) return state;
+      return {
+        ...state,
+        visits: state.visits.map((visit) => {
+          const photos = (visit.photos ?? []).map((photo) => ({
+            ...photo,
+            url: photo.storagePath
+              ? signed.get(photo.storagePath)
+              : photo.deliveryToken
+                ? delivered.get(photo.deliveryToken)
+                : undefined,
+          }));
+          return { ...visit, photos, photo: photos[0] ?? null };
+        }),
+      };
+    },
   };
 }

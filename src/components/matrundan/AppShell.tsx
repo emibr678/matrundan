@@ -16,18 +16,11 @@ import {
   type DemoStateChangedDetail,
 } from "@/lib/matrundan/demo-state";
 import { createExampleState } from "@/lib/matrundan/example-data";
-import { loadLiveState } from "@/lib/matrundan/live-repository";
+import { LiveGroupCache } from "@/lib/matrundan/live-group-cache";
+import { loadLiveGroup } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
 import { UserGuidanceProvider } from "@/lib/matrundan/user-guidance-context";
-import type { AppState } from "@/lib/matrundan/types";
-
-const LIVE_LOAD_ERROR = "Kunde inte läsa gruppens data.";
-
-function requireLiveState(state: AppState | null): AppState {
-  if (!state) throw new Error(LIVE_LOAD_ERROR);
-  return state;
-}
 
 export function AppShell() {
   return (
@@ -41,13 +34,36 @@ export function AppShell() {
 }
 
 function ShellBody() {
-  const { loading, mode, exampleMode, needsOnboarding, activeGroupId, user } = useSession();
+  const {
+    loading,
+    mode,
+    exampleMode,
+    needsOnboarding,
+    activeGroupId,
+    user,
+    userGroups,
+    groupsStatus,
+    sessionEpoch,
+    refreshGroups,
+  } = useSession();
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
   const isPublicStandaloneRoute = pathname === "/integritet" || pathname === "/nytt-losenord";
-  const [liveState, setLiveState] = React.useState<AppState | null>(null);
-  const [liveError, setLiveError] = React.useState<string | null>(null);
+  const cache = React.useMemo(() => {
+    // A batched logout/login can return to the same user with a new session.
+    void sessionEpoch;
+    return new LiveGroupCache(user?.id ?? "", loadLiveGroup);
+  }, [user?.id, sessionEpoch]);
+  const getSnapshot = React.useCallback(
+    () => cache.getSnapshot(mode === "live" ? activeGroupId : null),
+    [cache, mode, activeGroupId],
+  );
+  const { state: liveState, error: liveError } = React.useSyncExternalStore(
+    cache.subscribe,
+    getSnapshot,
+    getSnapshot,
+  );
   const [demoRevision, setDemoRevision] = React.useState(0);
   const [demoHydrationRevision, setDemoHydrationRevision] = React.useState(0);
   const demoInitialState = React.useMemo(() => {
@@ -65,38 +81,33 @@ function ShellBody() {
 
   const reloadLive = React.useCallback(async () => {
     if (mode !== "live" || !activeGroupId) return;
-    setLiveError(null);
-    try {
-      const nextState = requireLiveState(await loadLiveState(activeGroupId));
-      setLiveState(nextState);
-    } catch (error) {
-      console.error(error);
-      setLiveError(LIVE_LOAD_ERROR);
-    }
-  }, [mode, activeGroupId]);
+    cache.invalidateOthers(activeGroupId);
+    await cache.load(activeGroupId, true);
+  }, [cache, mode, activeGroupId]);
+
+  React.useEffect(() => () => cache.clear(), [cache]);
 
   React.useEffect(() => {
-    let cancelled = false;
-    if (mode !== "live" || !activeGroupId) {
-      setLiveState(null);
-      setLiveError(null);
-      return;
-    }
-    setLiveState(null);
-    setLiveError(null);
-    loadLiveState(activeGroupId)
-      .then((nextState) => requireLiveState(nextState))
-      .then((nextState) => {
-        if (!cancelled) setLiveState(nextState);
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) setLiveError(LIVE_LOAD_ERROR);
-      });
-    return () => {
-      cancelled = true;
+    if (groupsStatus === "ready") cache.retain(userGroups.map((group) => group.id));
+  }, [cache, groupsStatus, userGroups]);
+
+  React.useEffect(() => {
+    void cache.activate(mode === "live" ? activeGroupId : null);
+  }, [cache, mode, activeGroupId]);
+
+  React.useEffect(() => {
+    if (mode === "live" && activeGroupId && !liveState && !liveError)
+      void cache.load(activeGroupId);
+  }, [cache, mode, activeGroupId, liveState, liveError]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || mode !== "live" || !activeGroupId) return;
+    const refresh = () => {
+      void cache.load(activeGroupId);
     };
-  }, [mode, activeGroupId]);
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [cache, mode, activeGroupId]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -159,14 +170,16 @@ function ShellBody() {
   }
 
   if (mode === "live" && !liveState) {
+    const error = liveError ?? (groupsStatus === "error" ? "Kunde inte hämta dina grupper." : null);
+    const retry = activeGroupId ? reloadLive : refreshGroups;
     return (
       <div className="paper-grain min-h-dvh">
         <Header showAuth />
         <div className="mx-auto max-w-md px-6 py-16 text-center text-sm text-muted-foreground">
-          {liveError ? (
+          {error ? (
             <div className="space-y-4">
-              <p>{liveError}</p>
-              <Button type="button" variant="outline" onClick={() => void reloadLive()}>
+              <p>{error}</p>
+              <Button type="button" variant="outline" onClick={() => void retry()}>
                 Försök igen
               </Button>
             </div>
@@ -184,7 +197,7 @@ function ShellBody() {
     <StoreProvider
       key={
         mode === "live"
-          ? `live:${activeGroupId ?? ""}`
+          ? `live:${user?.id ?? ""}:${sessionEpoch}:${activeGroupId ?? ""}`
           : `demo:${exampleMode ? "example" : "sandbox"}:${demoRevision}`
       }
       mode={storeMode}
@@ -195,6 +208,17 @@ function ShellBody() {
       activeGroupId={mode === "live" ? activeGroupId : null}
     >
       <ProductIntroController>
+        {mode === "live" && liveError ? (
+          <div
+            role="status"
+            className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2 text-sm text-muted-foreground"
+          >
+            <span>Kunde inte uppdatera gruppen.</span>
+            <Button type="button" variant="ghost" size="sm" onClick={() => void reloadLive()}>
+              Försök igen
+            </Button>
+          </div>
+        ) : null}
         <ShellChrome exampleMode={exampleMode} />
       </ProductIntroController>
     </StoreProvider>

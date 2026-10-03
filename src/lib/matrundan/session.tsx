@@ -4,6 +4,7 @@
  * Filtrerar på aktivt medlemskap, men behåller både aktiva och arkiverade
  * grupper så att historiken kan öppnas utan att medlemskapets livscykel ändras.
  */
+import { AccountGroups } from "./account-groups";
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +34,8 @@ type RpcCall = (fn: string, args?: Record<string, unknown>) => Promise<RpcRespon
 
 interface SessionState {
   loading: boolean;
+  groupsStatus: "idle" | "loading" | "ready" | "error";
+  sessionEpoch: number;
   user: User | null;
   session: Session | null;
   mode: AppMode;
@@ -123,11 +126,52 @@ export function consumePendingInvitePath(): string | null {
   }
 }
 
+async function readUserGroups(): Promise<UserGroupSummary[]> {
+  const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
+  const { data, error } = await rpc("list_user_groups_v4b");
+  if (error) throw error;
+  return ((data ?? []) as UserGroupSummary[])
+    .map((group): UserGroupSummary => ({
+      id: group.id,
+      name: group.name,
+      emoji: group.emoji,
+      description: typeof group.description === "string" ? group.description : null,
+      memberPreviewNames: Array.isArray(group.memberPreviewNames)
+        ? group.memberPreviewNames
+            .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+            .map((name) => name.trim())
+            .slice(0, 2)
+        : [],
+      otherMemberCount:
+        typeof group.otherMemberCount === "number" && Number.isFinite(group.otherMemberCount)
+          ? Math.max(0, Math.trunc(group.otherMemberCount))
+          : 0,
+      role: group.role,
+      lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
+    }))
+    .sort((a, b) => {
+      if (a.lifecycleStatus !== b.lifecycleStatus) {
+        return a.lifecycleStatus === "active" ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, "sv");
+    });
+}
+
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const demoRoute = React.useMemo(resolveDemoRoute, []);
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
-  const [userGroups, setUserGroups] = React.useState<UserGroupSummary[]>([]);
+  const groupsLoader = React.useMemo(() => new AccountGroups(readUserGroups), []);
+  const groupsSnapshot = React.useSyncExternalStore(
+    groupsLoader.subscribe,
+    groupsLoader.getSnapshot,
+    groupsLoader.getSnapshot,
+  );
+  const sessionUserId = React.useRef<string | null>(null);
+  const userGroups = React.useMemo(
+    () => (groupsSnapshot.userId === session?.user.id ? groupsSnapshot.groups : []),
+    [groupsSnapshot, session?.user.id],
+  );
   const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
   const [pendingInvitesResolvedUserId, setPendingInvitesResolvedUserId] = React.useState<
     string | null
@@ -146,12 +190,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      setPendingInvites(await listMyGroupInvitations());
+      const invites = await listMyGroupInvitations();
+      if (sessionUserId.current !== userId) return;
+      setPendingInvites(invites);
     } catch (error) {
       console.error("[Matrundan] kunde inte läsa gruppinbjudningar:", error);
-      setPendingInvites([]);
+      if (sessionUserId.current === userId) setPendingInvites([]);
     } finally {
-      setPendingInvitesResolvedUserId(userId);
+      if (sessionUserId.current === userId) setPendingInvitesResolvedUserId(userId);
     }
   }, [demoRoute.forceDemo, session?.user?.id]);
 
@@ -168,84 +214,60 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", refresh);
   }, [demoRoute.forceDemo, refreshPendingInvites, session?.user?.id]);
 
-  const loadGroups = React.useCallback(async (uid: string | undefined) => {
-    if (!uid) {
-      setUserGroups([]);
-      return;
-    }
-
-    const rpc = supabase.rpc.bind(supabase) as unknown as RpcCall;
-    const { data, error } = await rpc("list_user_groups_v4b");
-    if (error) {
-      console.error("[Matrundan] kunde inte läsa medlemskap:", error);
-      setUserGroups([]);
-      return;
-    }
-
-    const groups: UserGroupSummary[] = ((data ?? []) as UserGroupSummary[])
-      .map((group): UserGroupSummary => ({
-        id: group.id,
-        name: group.name,
-        emoji: group.emoji,
-        description: typeof group.description === "string" ? group.description : null,
-        memberPreviewNames: Array.isArray(group.memberPreviewNames)
-          ? group.memberPreviewNames
-              .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-              .map((name) => name.trim())
-              .slice(0, 2)
-          : [],
-        otherMemberCount:
-          typeof group.otherMemberCount === "number" && Number.isFinite(group.otherMemberCount)
-            ? Math.max(0, Math.trunc(group.otherMemberCount))
-            : 0,
-        role: group.role,
-        lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
-      }))
-      .sort((a, b) => {
-        if (a.lifecycleStatus !== b.lifecycleStatus) {
-          return a.lifecycleStatus === "active" ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name, "sv");
-      });
-
-    setUserGroups(groups);
+  React.useEffect(() => {
+    if (groupsSnapshot.status !== "ready" || groupsSnapshot.userId !== session?.user.id) return;
     setActiveGroupId((current) => {
-      if (current && groups.some((group) => group.id === current)) return current;
-      const first = groups.find((group) => group.lifecycleStatus === "active") ?? groups[0];
+      if (current && userGroups.some((group) => group.id === current)) return current;
+      const first = userGroups.find((group) => group.lifecycleStatus === "active") ?? userGroups[0];
       const firstId = first?.id ?? null;
-      if (firstId && typeof window !== "undefined") {
-        window.localStorage.setItem(ACTIVE_GROUP_KEY, firstId);
-      } else if (!firstId && typeof window !== "undefined") {
-        window.localStorage.removeItem(ACTIVE_GROUP_KEY);
+      if (typeof window !== "undefined") {
+        if (firstId) window.localStorage.setItem(ACTIVE_GROUP_KEY, firstId);
+        else window.localStorage.removeItem(ACTIVE_GROUP_KEY);
       }
       return firstId;
     });
-  }, []);
+  }, [groupsSnapshot, session?.user.id, userGroups]);
 
   React.useEffect(() => {
     let cancelled = false;
+    let authEventSeen = false;
+    const applySession = (nextSession: Session | null) => {
+      const uid = nextSession?.user.id ?? null;
+      if (sessionUserId.current !== uid) {
+        sessionUserId.current = uid;
+        groupsLoader.setAccount(uid);
+        setPendingInvites([]);
+        setPendingInvitesResolvedUserId(null);
+      }
+      setSession(nextSession);
+      setLoading(false);
+      // Leave the synchronous Auth callback before calling another Supabase API.
+      if (uid && !demoRoute.forceDemo) {
+        setTimeout(() => {
+          if (!cancelled && sessionUserId.current === uid) void groupsLoader.load();
+        }, 0);
+      }
+    };
     const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
       if (cancelled) return;
-      setSession(nextSession);
-      if (nextSession?.user) {
-        void loadGroups(nextSession.user.id);
-      } else {
-        setUserGroups([]);
-      }
+      authEventSeen = true;
+      applySession(nextSession);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      setSession(data.session);
-      if (data.session?.user) {
-        void loadGroups(data.session.user.id);
-      }
-      setLoading(false);
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled && !authEventSeen) applySession(data.session);
+      })
+      .catch(() => {
+        if (!cancelled && !authEventSeen) applySession(null);
+      });
     return () => {
       cancelled = true;
       subscription.subscription.unsubscribe();
+      sessionUserId.current = null;
+      groupsLoader.reset();
     };
-  }, [loadGroups]);
+  }, [demoRoute.forceDemo, groupsLoader]);
 
   const selectGroup = React.useCallback((groupId: string) => {
     setActiveGroupId(groupId);
@@ -281,8 +303,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.removeItem(ACTIVE_GROUP_KEY);
     }
     setActiveGroupId(null);
-    setUserGroups([]);
-  }, []);
+    groupsLoader.reset();
+  }, [groupsLoader]);
 
   const signInWithPassword = React.useCallback(
     async (email: string, password: string, opts?: { redirectPath?: string }) => {
@@ -341,10 +363,10 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       window.localStorage.removeItem(ACTIVE_GROUP_KEY);
     }
     setActiveGroupId(null);
-    setUserGroups([]);
+    groupsLoader.reset();
     setPendingInvites([]);
     setPendingInvitesResolvedUserId(null);
-  }, []);
+  }, [groupsLoader]);
 
   const exitExampleMode = React.useCallback(() => {
     clearExampleSession();
@@ -354,8 +376,17 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const refreshGroups = React.useCallback(async () => {
-    await loadGroups(session?.user?.id);
-  }, [loadGroups, session?.user?.id]);
+    await groupsLoader.load(true);
+  }, [groupsLoader]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user.id) return;
+    const refresh = () => {
+      void refreshGroups();
+    };
+    window.addEventListener("focus", refresh);
+    return () => window.removeEventListener("focus", refresh);
+  }, [demoRoute.forceDemo, refreshGroups, session?.user.id]);
 
   const value = React.useMemo<SessionState>(() => {
     const user = session?.user ?? null;
@@ -366,12 +397,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
     return {
       loading,
+      groupsStatus: groupsSnapshot.status,
+      sessionEpoch: groupsSnapshot.epoch,
       user,
       session,
       mode,
       exampleMode: isDemo && demoRoute.exampleMode,
-      needsOnboarding: isLive && userGroups.length === 0,
-      activeGroupId: isLive ? activeGroupId : null,
+      needsOnboarding: isLive && groupsSnapshot.resolved && userGroups.length === 0,
+      activeGroupId: isLive ? (activeGroup?.id ?? null) : null,
       activeGroupRole:
         isLive && activeGroup?.lifecycleStatus === "active"
           ? activeGroup.role
@@ -404,6 +437,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     demoRoute.forceDemo,
     exitExampleMode,
     loading,
+    groupsSnapshot,
     pendingInvites,
     pendingInvitesResolvedUserId,
     refreshGroups,

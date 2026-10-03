@@ -153,6 +153,29 @@ Det gäller särskilt tabeller eller vyer som kan innehålla:
 - förbättringsunderlag;
 - historiska administrativa händelser.
 
+## Sessionens gruppdata i klienten
+
+Liveklienten återanvänder högst fem gruppers serverbekräftade data i minnet under
+aktuell kontosession. Nyckeln omfattar kontot och den riktiga gruppen. Gruppen måste
+fortfarande finnas i den senast lästa medlemskapslistan. Varje gruppbyte och återkomst
+till appen revaliderar serverdata; vid återbesök visas poster äldre än fem minuter
+först efter ny läsning. En redan öppen vy töms inte bara på grund av cacheålder. Inget gruppinnehåll sparas beständigt i denna cache.
+
+Sessionbootstrap delar medlemskapshämtning mellan auth-händelser och getSession.
+En ännu oläst eller felande grupplista är aldrig ett bevis på att kontot saknar
+grupper. Konto-/requestgeneration hindrar sena svar från att återinföra tidigare
+sessionsdata. Utloggning och kontobyte rensar även gruppbundna bildresurser.
+
+Gruppens basdata visas innan bildsignering och privat bildleverans är klara.
+Bildresurser ägs av respektive läsrevision och frigörs vid ersättning, eviction
+och sessionsslut. Bildfel blockerar inte gruppinnehållet.
+
+Mutation och uttrycklig omladdning tvingar en ny läsrevision och ogiltigförklarar
+andra gruppers cache konservativt eftersom kanoniska besök och media kan vara
+delade. Bekräftat åtkomstfel rensar gruppens data; tillfälligt nätfel får bevara
+tidigare bekräftat innehåll med återförsök. Revalidering i bakgrunden kan kortvarigt
+visa gammalt innehåll och ersätter aldrig serverns behörighetskontroller.
+
 ## Global personstatistik inom det privata nätverket
 
 Matrundans gruppinnehåll är fortsatt privat och gruppen är den primära
