@@ -131,31 +131,30 @@ async function readUserGroups(): Promise<UserGroupSummary[]> {
   const { data, error } = await rpc("list_user_groups_v4b");
   if (error) throw error;
   return ((data ?? []) as UserGroupSummary[])
-      .map((group): UserGroupSummary => ({
-        id: group.id,
-        name: group.name,
-        emoji: group.emoji,
-        description: typeof group.description === "string" ? group.description : null,
-        memberPreviewNames: Array.isArray(group.memberPreviewNames)
-          ? group.memberPreviewNames
-              .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
-              .map((name) => name.trim())
-              .slice(0, 2)
-          : [],
-        otherMemberCount:
-          typeof group.otherMemberCount === "number" && Number.isFinite(group.otherMemberCount)
-            ? Math.max(0, Math.trunc(group.otherMemberCount))
-            : 0,
-        role: group.role,
-        lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
-      }))
-      .sort((a, b) => {
-        if (a.lifecycleStatus !== b.lifecycleStatus) {
-          return a.lifecycleStatus === "active" ? -1 : 1;
-        }
-        return a.name.localeCompare(b.name, "sv");
-      });
-
+    .map((group): UserGroupSummary => ({
+      id: group.id,
+      name: group.name,
+      emoji: group.emoji,
+      description: typeof group.description === "string" ? group.description : null,
+      memberPreviewNames: Array.isArray(group.memberPreviewNames)
+        ? group.memberPreviewNames
+            .filter((name): name is string => typeof name === "string" && name.trim().length > 0)
+            .map((name) => name.trim())
+            .slice(0, 2)
+        : [],
+      otherMemberCount:
+        typeof group.otherMemberCount === "number" && Number.isFinite(group.otherMemberCount)
+          ? Math.max(0, Math.trunc(group.otherMemberCount))
+          : 0,
+      role: group.role,
+      lifecycleStatus: group.lifecycleStatus === "archived" ? "archived" : "active",
+    }))
+    .sort((a, b) => {
+      if (a.lifecycleStatus !== b.lifecycleStatus) {
+        return a.lifecycleStatus === "active" ? -1 : 1;
+      }
+      return a.name.localeCompare(b.name, "sv");
+    });
 }
 
 export function SessionProvider({ children }: { children: React.ReactNode }) {
@@ -163,9 +162,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = React.useState<Session | null>(null);
   const [loading, setLoading] = React.useState(true);
   const groupsLoader = React.useMemo(() => new AccountGroups(readUserGroups), []);
-  const groupsSnapshot = React.useSyncExternalStore(groupsLoader.subscribe, groupsLoader.getSnapshot, groupsLoader.getSnapshot);
+  const groupsSnapshot = React.useSyncExternalStore(
+    groupsLoader.subscribe,
+    groupsLoader.getSnapshot,
+    groupsLoader.getSnapshot,
+  );
   const sessionUserId = React.useRef<string | null>(null);
-  const userGroups = React.useMemo(() => groupsSnapshot.userId === session?.user.id ? groupsSnapshot.groups : [], [groupsSnapshot, session?.user.id]);
+  const userGroups = React.useMemo(
+    () => (groupsSnapshot.userId === session?.user.id ? groupsSnapshot.groups : []),
+    [groupsSnapshot, session?.user.id],
+  );
   const [pendingInvites, setPendingInvites] = React.useState<MyGroupInvitation[]>([]);
   const [pendingInvitesResolvedUserId, setPendingInvitesResolvedUserId] = React.useState<
     string | null
@@ -247,11 +253,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       authEventSeen = true;
       applySession(nextSession);
     });
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!cancelled && !authEventSeen) applySession(data.session);
-    }).catch(() => {
-      if (!cancelled && !authEventSeen) applySession(null);
-    });
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!cancelled && !authEventSeen) applySession(data.session);
+      })
+      .catch(() => {
+        if (!cancelled && !authEventSeen) applySession(null);
+      });
     return () => {
       cancelled = true;
       subscription.subscription.unsubscribe();
@@ -372,7 +381,9 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (typeof window === "undefined" || demoRoute.forceDemo || !session?.user.id) return;
-    const refresh = () => { void refreshGroups(); };
+    const refresh = () => {
+      void refreshGroups();
+    };
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, [demoRoute.forceDemo, refreshGroups, session?.user.id]);
@@ -392,7 +403,7 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
       session,
       mode,
       exampleMode: isDemo && demoRoute.exampleMode,
-      needsOnboarding: isLive && groupsSnapshot.status === "ready" && userGroups.length === 0,
+      needsOnboarding: isLive && groupsSnapshot.resolved && userGroups.length === 0,
       activeGroupId: isLive ? (activeGroup?.id ?? null) : null,
       activeGroupRole:
         isLive && activeGroup?.lifecycleStatus === "active"

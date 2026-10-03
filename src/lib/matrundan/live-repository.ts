@@ -305,7 +305,12 @@ function mapNextStop(row: NextStopStateRow | null | undefined): NextStopState | 
 }
 
 function groupReadFailure(error: { code?: string; message?: string } | null): GroupReadError {
-  const denied = error?.code === "42501" || /not a member|access denied|not authenticated|membership|inte medlem|saknar behörighet/i.test(error?.message ?? "");
+  const denied =
+    !error ||
+    ["42501", "PGRST301", "PGRST302", "PGRST303"].includes(error.code ?? "") ||
+    /not a member|access denied|not authenticated|membership|inte medlem|saknar behörighet/i.test(
+      error?.message ?? "",
+    );
   return new GroupReadError(denied);
 }
 
@@ -440,9 +445,6 @@ export async function loadLiveGroup(groupId: string): Promise<LiveGroupRead> {
     };
   });
 
-  const signedPhotoUrls = new Map<string, string>();
-  const deliveredPhotoUrls = new Map<string, string>();
-
   const visits: Visit[] = p.visits.map((v) => {
     const participantIds = v.participantIds ?? [];
     const visibleReviews: VisibleReview[] = v.reviews.map((r) => ({
@@ -488,11 +490,7 @@ export async function loadLiveGroup(groupId: string): Promise<LiveGroupRead> {
     const photos = rawPhotos.map((photo) => ({
       ...photo,
       createdAt: photo.createdAt ?? photo.updatedAt,
-      url: photo.storagePath
-        ? signedPhotoUrls.get(photo.storagePath)
-        : photo.deliveryToken
-          ? deliveredPhotoUrls.get(photo.deliveryToken)
-          : undefined,
+      url: undefined,
     }));
 
     return {
@@ -569,14 +567,19 @@ export async function loadLiveGroup(groupId: string): Promise<LiveGroupRead> {
     async loadPhotos(signal) {
       const rawPhotos = state.visits.flatMap((visit) => visit.photos ?? []);
       const [signed, delivered] = await Promise.all([
-        createSignedVisitPhotoUrls(rawPhotos.flatMap((photo) => photo.storagePath ? [photo.storagePath] : [])),
-        createDeliveredVisitPhotoUrls(rawPhotos.flatMap((photo) => photo.deliveryToken ? [photo.deliveryToken] : []), {
-          signal,
-          ownUrl(url) {
-            if (disposed || signal.aborted) URL.revokeObjectURL(url);
-            else objectUrls.add(url);
+        createSignedVisitPhotoUrls(
+          rawPhotos.flatMap((photo) => (photo.storagePath ? [photo.storagePath] : [])),
+        ),
+        createDeliveredVisitPhotoUrls(
+          rawPhotos.flatMap((photo) => (photo.deliveryToken ? [photo.deliveryToken] : [])),
+          {
+            signal,
+            ownUrl(url) {
+              if (disposed || signal.aborted) URL.revokeObjectURL(url);
+              else objectUrls.add(url);
+            },
           },
-        }),
+        ),
       ]);
       if (disposed || signal.aborted) return state;
       return {
@@ -584,7 +587,11 @@ export async function loadLiveGroup(groupId: string): Promise<LiveGroupRead> {
         visits: state.visits.map((visit) => {
           const photos = (visit.photos ?? []).map((photo) => ({
             ...photo,
-            url: photo.storagePath ? signed.get(photo.storagePath) : photo.deliveryToken ? delivered.get(photo.deliveryToken) : undefined,
+            url: photo.storagePath
+              ? signed.get(photo.storagePath)
+              : photo.deliveryToken
+                ? delivered.get(photo.deliveryToken)
+                : undefined,
           }));
           return { ...visit, photos, photo: photos[0] ?? null };
         }),

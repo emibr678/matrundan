@@ -158,8 +158,8 @@ Det gäller särskilt tabeller eller vyer som kan innehålla:
 Liveklienten återanvänder högst fem gruppers serverbekräftade data i minnet under
 aktuell kontosession. Nyckeln omfattar kontot och den riktiga gruppen. Gruppen måste
 fortfarande finnas i den senast lästa medlemskapslistan. Varje gruppbyte och återkomst
-till appen revaliderar serverdata; poster äldre än fem minuter visas inte före ny
-läsning. Inget gruppinnehåll sparas beständigt i denna cache.
+till appen revaliderar serverdata; vid återbesök visas poster äldre än fem minuter
+först efter ny läsning. En redan öppen vy töms inte bara på grund av cacheålder. Inget gruppinnehåll sparas beständigt i denna cache.
 
 Sessionbootstrap delar medlemskapshämtning mellan auth-händelser och getSession.
 En ännu oläst eller felande grupplista är aldrig ett bevis på att kontot saknar

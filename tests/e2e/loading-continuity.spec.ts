@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
-import {
-  CURRENT_GROUP_STATE_RPC,
-} from "../../src/lib/matrundan/read-model-version";
+import { CURRENT_GROUP_STATE_RPC } from "../../src/lib/matrundan/read-model-version";
 
 // Playwrights portabla testmiljö använder http://127.0.0.1:54321 som Supabase-URL.
 // Supabase härleder då sin lokala auth-storage key från hostens projektref "127".
 const SUPABASE_AUTH_STORAGE_KEY = "sb-127-auth-token";
 
-test("session och gruppbyte behåller kontinuitet medan grupper och bilder laddas", async ({ page }) => {
+test("session och gruppbyte behåller kontinuitet medan grupper och bilder laddas", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 800 });
   const userId = "11111111-1111-4111-8111-111111111111";
   const groupId = "22222222-2222-4222-8222-222222222222";
@@ -75,7 +75,13 @@ test("session och gruppbyte behåller kontinuitet medan grupper och bilder ladda
           role: "owner",
           lifecycleStatus: "active",
         },
-        { id: otherGroupId, name: "Grupp B", emoji: "🍽️", role: "owner", lifecycleStatus: "active" },
+        {
+          id: otherGroupId,
+          name: "Grupp B",
+          emoji: "🍽️",
+          role: "owner",
+          lifecycleStatus: "active",
+        },
       ]),
     });
   });
@@ -107,15 +113,32 @@ test("session och gruppbyte behåller kontinuitet medan grupper och bilder ladda
       },
     ],
     places: [],
-    visits: [{
-      id: "visit-1", placeId: "not-yet-collected", date: "2026-10-02", meal: "middag",
-      createdBy: userId, linkType: "original", linkedBy: userId, linkedAt: now,
-      externalParticipantCount: 0, countsForProgression: true, participantIds: [userId],
-      participants: [], reviews: [], photo: {
-        storagePath: "group/visit/photo.jpg", uploadedBy: userId, mimeType: "image/jpeg",
-        byteSize: 100, width: 100, height: 100, updatedAt: now,
+    visits: [
+      {
+        id: "visit-1",
+        placeId: "not-yet-collected",
+        date: "2026-10-02",
+        meal: "middag",
+        createdBy: userId,
+        linkType: "original",
+        linkedBy: userId,
+        linkedAt: now,
+        externalParticipantCount: 0,
+        countsForProgression: true,
+        participantIds: [userId],
+        participants: [],
+        reviews: [],
+        photo: {
+          storagePath: "group/visit/photo.jpg",
+          uploadedBy: userId,
+          mimeType: "image/jpeg",
+          byteSize: 100,
+          width: 100,
+          height: 100,
+          updatedAt: now,
+        },
       },
-    }],
+    ],
     favorites: [],
     activity: [],
     nextPlaceId: null,
@@ -123,15 +146,21 @@ test("session och gruppbyte behåller kontinuitet medan grupper och bilder ladda
   };
 
   let releasePhotos!: () => void;
-  const photosCanRespond = new Promise<void>((resolve) => { releasePhotos = resolve; });
+  const photosCanRespond = new Promise<void>((resolve) => {
+    releasePhotos = resolve;
+  });
   await page.route("**/storage/v1/object/sign/visit-photos", async (route) => {
     await photosCanRespond;
     await route.fulfill({ status: 200, contentType: "application/json", body: "[]" });
   });
   let releaseB!: () => void;
   let releaseLateA!: () => void;
-  const bCanRespond = new Promise<void>((resolve) => { releaseB = resolve; });
-  const lateACanRespond = new Promise<void>((resolve) => { releaseLateA = resolve; });
+  const bCanRespond = new Promise<void>((resolve) => {
+    releaseB = resolve;
+  });
+  const lateACanRespond = new Promise<void>((resolve) => {
+    releaseLateA = resolve;
+  });
   const reads = new Map<string, number>();
   await page.route(`**/rest/v1/rpc/${CURRENT_GROUP_STATE_RPC}`, async (route) => {
     const id = route.request().postDataJSON()._group_id as string;
@@ -140,8 +169,12 @@ test("session och gruppbyte behåller kontinuitet medan grupper och bilder ladda
     if (id === otherGroupId && count === 1) await bCanRespond;
     if (id === groupId && count === 2) await lateACanRespond;
     await route.fulfill({
-      status: 200, contentType: "application/json",
-      body: JSON.stringify({ ...appState, group: { ...appState.group, id, name: id === groupId ? "Grupp A" : "Grupp B" } }),
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ...appState,
+        group: { ...appState.group, id, name: id === groupId ? "Grupp A" : "Grupp B" },
+      }),
     });
   });
 
@@ -163,7 +196,8 @@ test("session och gruppbyte behåller kontinuitet medan grupper och bilder ladda
   await expect(page.getByText("Hämtar gruppens data…")).toHaveCount(0);
   expect(groupListCalls).toBe(1);
   const widths = await page.evaluate(() => ({
-    client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth,
+    client: document.documentElement.clientWidth,
+    scroll: document.documentElement.scrollWidth,
   }));
   expect(widths.scroll).toBeLessThanOrEqual(widths.client);
 

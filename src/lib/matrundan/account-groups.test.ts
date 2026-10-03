@@ -4,7 +4,10 @@ import { AccountGroups } from "./account-groups";
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason: unknown) => void;
-  const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; });
+  const promise = new Promise<T>((yes, no) => {
+    resolve = yes;
+    reject = no;
+  });
   return { promise, resolve, reject };
 }
 
@@ -12,7 +15,10 @@ describe("sessionens grupphämtning", () => {
   test("bootstrap och upprepade auth-händelser delar ett anrop", async () => {
     const response = deferred<string[]>();
     let calls = 0;
-    const groups = new AccountGroups(() => { calls += 1; return response.promise; });
+    const groups = new AccountGroups(() => {
+      calls += 1;
+      return response.promise;
+    });
     groups.setAccount("a");
     const first = groups.load();
     const second = groups.load();

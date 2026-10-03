@@ -5,12 +5,18 @@ import type { AppState } from "./types";
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
-  const promise = new Promise<T>((yes) => { resolve = yes; });
+  const promise = new Promise<T>((yes) => {
+    resolve = yes;
+  });
   return { promise, resolve };
 }
 
 function read(groupId: string, label = groupId): LiveGroupRead {
-  const state: AppState = { ...DEMO_STATE, currentUserId: "user", group: { ...DEMO_STATE.group, id: groupId, name: label } };
+  const state: AppState = {
+    ...DEMO_STATE,
+    currentUserId: "user",
+    group: { ...DEMO_STATE.group, id: groupId, name: label },
+  };
   return { state, loadPhotos: async () => state, dispose() {} };
 }
 
@@ -19,7 +25,7 @@ describe("gruppcache under aktuell session", () => {
     const photos = deferred<AppState>();
     const a = read("a");
     a.loadPhotos = () => photos.promise;
-    const cache = new LiveGroupCache("user", async (id) => id === "a" ? a : read(id));
+    const cache = new LiveGroupCache("user", async (id) => (id === "a" ? a : read(id)));
     await cache.load("a");
     expect(cache.getSnapshot("a").state?.group.id).toBe("a");
     expect(cache.getSnapshot("b").state).toBeNull();
@@ -53,7 +59,12 @@ describe("gruppcache under aktuell session", () => {
     response = Promise.resolve(read("a", "efter ändring"));
     await cache.load("a", true);
     let disposed = false;
-    old.resolve({ ...read("a", "före ändring"), dispose() { disposed = true; } });
+    old.resolve({
+      ...read("a", "före ändring"),
+      dispose() {
+        disposed = true;
+      },
+    });
     await pending;
     expect(disposed).toBe(true);
     expect(cache.getSnapshot("a").state?.group.name).toBe("efter ändring");
@@ -78,7 +89,12 @@ describe("gruppcache under aktuell session", () => {
     let disposed = 0;
     const cache = new LiveGroupCache("user", async (id) => {
       if (fail) throw fail;
-      return { ...read(id), dispose() { disposed += 1; } };
+      return {
+        ...read(id),
+        dispose() {
+          disposed += 1;
+        },
+      };
     });
     await cache.load("a");
     fail = new GroupReadError(false);
@@ -96,8 +112,13 @@ describe("gruppcache under aktuell session", () => {
     let signal: AbortSignal | undefined;
     let disposed = 0;
     const a = read("a");
-    a.loadPhotos = (nextSignal) => { signal = nextSignal; return photos.promise; };
-    a.dispose = () => { disposed += 1; };
+    a.loadPhotos = (nextSignal) => {
+      signal = nextSignal;
+      return photos.promise;
+    };
+    a.dispose = () => {
+      disposed += 1;
+    };
     const cache = new LiveGroupCache("user", async () => a);
     await cache.load("a");
     cache.clear();
@@ -120,7 +141,12 @@ describe("gruppcache under aktuell session", () => {
 
   test("medlemskap, cross-group-mutation och LRU rensar berörda poster", async () => {
     let disposed = 0;
-    const cache = new LiveGroupCache("user", async (id) => ({ ...read(id), dispose() { disposed += 1; } }));
+    const cache = new LiveGroupCache("user", async (id) => ({
+      ...read(id),
+      dispose() {
+        disposed += 1;
+      },
+    }));
     for (const id of ["a", "b", "c", "d", "e", "f"]) await cache.load(id);
     expect(cache.getSnapshot("a").state).toBeNull();
     expect(disposed).toBe(1);
@@ -131,13 +157,31 @@ describe("gruppcache under aktuell session", () => {
     expect(cache.getSnapshot("f").state?.group.id).toBe("f");
   });
 
+  test("aktiv vy försvinner inte på grund av cacheålder under ett pågående flöde", async () => {
+    let now = 1;
+    const cache = new LiveGroupCache(
+      "user",
+      async (id) => read(id),
+      () => now,
+    );
+    await cache.activate("a");
+    now += 6 * 60 * 1000;
+    expect(cache.getSnapshot("a").state?.group.id).toBe("a");
+    await cache.activate("b");
+    expect(cache.getSnapshot("a").state).toBeNull();
+  });
+
   test("utgången cache kan inte låsa retry bakom laddningsvy", async () => {
     let now = 1;
     let fail = false;
-    const cache = new LiveGroupCache("user", async (id) => {
-      if (fail) throw new GroupReadError(false);
-      return read(id);
-    }, () => now);
+    const cache = new LiveGroupCache(
+      "user",
+      async (id) => {
+        if (fail) throw new GroupReadError(false);
+        return read(id);
+      },
+      () => now,
+    );
     await cache.load("a");
     now += 6 * 60 * 1000;
     expect(cache.getSnapshot("a").state).toBeNull();

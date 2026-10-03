@@ -34,14 +34,36 @@ export function AppShell() {
 }
 
 function ShellBody() {
-  const { loading, mode, exampleMode, needsOnboarding, activeGroupId, user, userGroups, groupsStatus, sessionEpoch, refreshGroups } = useSession();
+  const {
+    loading,
+    mode,
+    exampleMode,
+    needsOnboarding,
+    activeGroupId,
+    user,
+    userGroups,
+    groupsStatus,
+    sessionEpoch,
+    refreshGroups,
+  } = useSession();
   const router = useRouter();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const isInvitationRoute = pathname.startsWith("/inbjudan/");
   const isPublicStandaloneRoute = pathname === "/integritet" || pathname === "/nytt-losenord";
-  const cache = React.useMemo(() => new LiveGroupCache(user?.id ?? "", loadLiveGroup), [user?.id, sessionEpoch]);
-  const getSnapshot = React.useCallback(() => cache.getSnapshot(mode === "live" ? activeGroupId : null), [cache, mode, activeGroupId]);
-  const { state: liveState, error: liveError } = React.useSyncExternalStore(cache.subscribe, getSnapshot, getSnapshot);
+  const cache = React.useMemo(() => {
+    // A batched logout/login can return to the same user with a new session.
+    void sessionEpoch;
+    return new LiveGroupCache(user?.id ?? "", loadLiveGroup);
+  }, [user?.id, sessionEpoch]);
+  const getSnapshot = React.useCallback(
+    () => cache.getSnapshot(mode === "live" ? activeGroupId : null),
+    [cache, mode, activeGroupId],
+  );
+  const { state: liveState, error: liveError } = React.useSyncExternalStore(
+    cache.subscribe,
+    getSnapshot,
+    getSnapshot,
+  );
   const [demoRevision, setDemoRevision] = React.useState(0);
   const [demoHydrationRevision, setDemoHydrationRevision] = React.useState(0);
   const demoInitialState = React.useMemo(() => {
@@ -70,16 +92,19 @@ function ShellBody() {
   }, [cache, groupsStatus, userGroups]);
 
   React.useEffect(() => {
-    if (mode === "live" && activeGroupId) void cache.load(activeGroupId);
+    void cache.activate(mode === "live" ? activeGroupId : null);
   }, [cache, mode, activeGroupId]);
 
   React.useEffect(() => {
-    if (mode === "live" && activeGroupId && !liveState && !liveError) void cache.load(activeGroupId);
+    if (mode === "live" && activeGroupId && !liveState && !liveError)
+      void cache.load(activeGroupId);
   }, [cache, mode, activeGroupId, liveState, liveError]);
 
   React.useEffect(() => {
     if (typeof window === "undefined" || mode !== "live" || !activeGroupId) return;
-    const refresh = () => { void cache.load(activeGroupId); };
+    const refresh = () => {
+      void cache.load(activeGroupId);
+    };
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
   }, [cache, mode, activeGroupId]);
@@ -184,7 +209,10 @@ function ShellBody() {
     >
       <ProductIntroController>
         {mode === "live" && liveError ? (
-          <div role="status" className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2 text-sm text-muted-foreground">
+          <div
+            role="status"
+            className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-2 px-4 py-2 text-sm text-muted-foreground"
+          >
             <span>Kunde inte uppdatera gruppen.</span>
             <Button type="button" variant="ghost" size="sm" onClick={() => void reloadLive()}>
               Försök igen
