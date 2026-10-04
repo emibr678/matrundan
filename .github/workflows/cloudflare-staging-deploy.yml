@@ -170,6 +170,12 @@ jobs:
           console.log('Resolved staging browser configuration from locked environment identity and current Worker bindings.');
           NODE
 
+      - name: Verify staging password accounts require email confirmation
+        if: steps.guard.outputs.deploy == 'true'
+        env:
+          MATRUNDAN_AUTH_ENVIRONMENT: Staging
+        run: node scripts/supabase-auth-policy-check.mjs
+
       - name: Verify staging database contains every main migration
         if: steps.guard.outputs.deploy == 'true'
         run: |
@@ -300,6 +306,7 @@ jobs:
             echo "- SHA: \`$TARGET_SHA\`"
             echo '- Trigger: same-run `CI / required` on current `main` (or explicit manual retry)'
             echo '- Candidate gate: `CI / required` green for exact current main SHA'
+            echo '- Supabase Staging email confirmation: required for password accounts'
             echo '- Supabase Staging migration compatibility: verified read-only through migrations API; no migration applied'
             echo '- Worker: `staging` (`--env staging`)'
             echo "- URL: $STAGING_PUBLIC_URL"

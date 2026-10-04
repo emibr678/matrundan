@@ -238,6 +238,13 @@ jobs:
         with:
           node-version: 22.12.0
 
+      - name: Verify production password accounts require email confirmation
+        env:
+          SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}
+          SUPABASE_PUBLISHABLE_KEY: ${{ env.PROD_SUPABASE_PUBLISHABLE_KEY }}
+          MATRUNDAN_AUTH_ENVIRONMENT: Production
+        run: node scripts/supabase-auth-policy-check.mjs
+
       - name: Validate VAPID public key format
         run: |
           set -euo pipefail
@@ -713,6 +720,7 @@ jobs:
             echo '- GitHub production configuration: complete'
             echo '- Preview URLs: enabled without changing production workers.dev availability'
             echo '- Supabase privileged credential: verified against production project'
+            echo '- Supabase Production email confirmation: required for password accounts'
             echo '- Geoapify server key + production/preview browser origins: verified'
             echo '- Existing VAPID private key: verified'
             echo '- Production build: verified'
