@@ -39,6 +39,26 @@ describe("release-security gate", () => {
     expect(workflow).not.toContain("supabase db push");
   });
 
+  test("production preflight blocks drift from required email confirmation", () => {
+    const workflow = readFileSync(resolve(process.cwd(), prodPreflightWorkflow), "utf8");
+    const authPolicyIndex = workflow.indexOf(
+      "Verify production password accounts require email confirmation",
+    );
+    const uploadIndex = workflow.indexOf("Upload and verify inert Worker app candidate");
+
+    expect(authPolicyIndex).toBeGreaterThan(-1);
+    expect(uploadIndex).toBeGreaterThan(authPolicyIndex);
+    expect(workflow).toContain("SUPABASE_URL: ${{ env.PROD_SUPABASE_URL }}");
+    expect(workflow).toContain(
+      "SUPABASE_PUBLISHABLE_KEY: ${{ env.PROD_SUPABASE_PUBLISHABLE_KEY }}",
+    );
+    expect(workflow).toContain("MATRUNDAN_AUTH_ENVIRONMENT: Production");
+    expect(workflow).toContain("node scripts/supabase-auth-policy-check.mjs");
+    expect(workflow).toContain(
+      "Supabase Production email confirmation: required for password accounts",
+    );
+  });
+
   test("changes to Supabase security tests trigger database CI", () => {
     const source = readFileSync(resolve(process.cwd(), repoToolsScript), "utf8");
 
