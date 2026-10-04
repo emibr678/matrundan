@@ -545,6 +545,92 @@ test("flera målgrupper behåller lyckade resultat och återförsöker bara fela
   expect(writes).toEqual([SECOND_TARGET_GROUP_ID, TARGET_GROUP_ID, TARGET_GROUP_ID]);
 });
 
+test("registreringsretry behåller avstängt kommentarval och väljer bara kvarvarande grupp", async ({
+  page,
+}, testInfo) => {
+  await seedSession(page);
+  await mockLive(page, false);
+
+  let creates = 0;
+  const writes: Array<{ groupId: string; shareComment: boolean }> = [];
+  let retry = false;
+
+  await page.route("**/rest/v1/rpc/create_visit_with_review_v5", async (route) => {
+    creates++;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(VISIT_ID),
+    });
+  });
+  await page.route("**/rest/v1/rpc/find_registration_visit_duplicate_v2", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+  });
+  await page.route("**/rest/v1/rpc/share_visit_to_group_v5", async (route) => {
+    const body = route.request().postDataJSON();
+    writes.push({
+      groupId: body._target_group_id,
+      shareComment: body._share_own_comment,
+    });
+    const failsBeforeRetry = body._target_group_id === TARGET_GROUP_ID && !retry;
+    await route.fulfill({
+      status: failsBeforeRetry ? 400 : 200,
+      contentType: "application/json",
+      body: failsBeforeRetry
+        ? JSON.stringify({ message: "Medlemskapet ändrades" })
+        : JSON.stringify(body._target_group_id),
+    });
+  });
+
+  await page.goto(`/matstallen/${PLACE_ID}`);
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  const form = page.getByRole("dialog", { name: "Registrera besök" });
+  await form.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
+  await form.getByLabel("Kommentar (frivilligt)").fill("Ska inte delas.");
+
+  const commentSwitch = form.getByRole("switch", { name: "Dela min kommentar" });
+  await expect(commentSwitch).toBeChecked();
+  await commentSwitch.click();
+  await expect(commentSwitch).not.toBeChecked();
+
+  await form.getByRole("button", { name: /Stockholms skärgård/ }).click();
+  await form.getByRole("button", { name: "Spara besök", exact: true }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Spara besöket i 3 grupper?" });
+  await confirmation.getByRole("button", { name: "Spara i 3 grupper" }).click();
+
+  await expect.poll(() => creates).toBe(1);
+  await expect(form).toHaveCount(0);
+  await expect(page.getByText("Besöket kunde inte läggas till i alla grupper.")).toBeVisible();
+
+  retry = true;
+  await page.getByRole("button", { name: "Försök igen" }).click();
+
+  const retryDialog = page.getByRole("dialog", { name: "Lägg till besöket i fler grupper" });
+  await expect(retryDialog).toBeVisible();
+  await expect(retryDialog.getByRole("button", { name: /Jobbgänget/ })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(retryDialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(retryDialog.getByRole("switch", { name: "Dela min kommentar" })).not.toBeChecked();
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-460-registreringsretry");
+
+  await retryDialog.getByRole("button", { name: "Spara i vald grupp" }).click();
+  await expect(retryDialog).toHaveCount(0);
+
+  expect(writes).toEqual([
+    { groupId: TARGET_GROUP_ID, shareComment: false },
+    { groupId: SECOND_TARGET_GROUP_ID, shareComment: false },
+    { groupId: TARGET_GROUP_ID, shareComment: false },
+  ]);
+});
+
 for (const fromNextStop of [false, true]) {
   test(`registrering bekräftar förvalda grupper före skrivning och behåller utkastet vid tillbaka (${fromNextStop ? "Hem" : "ställets sida"})`, async ({
     page,
