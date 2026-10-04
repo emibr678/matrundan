@@ -40,6 +40,21 @@ describe("staging-deployens kontrakt", () => {
     );
   });
 
+  test("låser e-postbekräftelse för lösenordskonton före stagingdeploy", () => {
+    const configIndex = workflow.indexOf("Resolve public staging build configuration");
+    const authPolicyIndex = workflow.indexOf(
+      "Verify staging password accounts require email confirmation",
+    );
+    const deployIndex = workflow.indexOf("Deploy exact candidate to Worker staging");
+
+    expect(configIndex).toBeGreaterThan(-1);
+    expect(authPolicyIndex).toBeGreaterThan(configIndex);
+    expect(deployIndex).toBeGreaterThan(authPolicyIndex);
+    expect(workflow).toContain("MATRUNDAN_AUTH_ENVIRONMENT: Staging");
+    expect(workflow).toContain("node scripts/supabase-auth-policy-check.mjs");
+    expect(workflow).toContain("Supabase Staging email confirmation: required for password accounts");
+  });
+
   test("bygger, deployar och health-verifierar exakt release-SHA", () => {
     expect(workflow).toContain("WORKERS_CI_COMMIT_SHA: ${{ env.TARGET_SHA }}");
     expect(workflow).toContain("MATRUNDAN_RELEASE_SHA: ${{ env.TARGET_SHA }}");
