@@ -52,7 +52,9 @@ describe("staging-deployens kontrakt", () => {
     expect(deployIndex).toBeGreaterThan(authPolicyIndex);
     expect(workflow).toContain("MATRUNDAN_AUTH_ENVIRONMENT: Staging");
     expect(workflow).toContain("node scripts/supabase-auth-policy-check.mjs");
-    expect(workflow).toContain("Supabase Staging email confirmation: required for password accounts");
+    expect(workflow).toContain(
+      "Supabase Staging email confirmation: required for password accounts",
+    );
   });
 
   test("bygger, deployar och health-verifierar exakt release-SHA", () => {
