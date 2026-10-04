@@ -105,6 +105,11 @@ export function VisitDialog({
   const [sharePayload, setSharePayload] = React.useState<{
     visitId: string;
     groupId: string;
+    initialSelection?: {
+      groupIds: string[];
+      shareComment: boolean;
+      sharePhoto: boolean;
+    };
   } | null>(null);
   const [guestLinkPayload, setGuestLinkPayload] = React.useState<{
     visitId: string;
@@ -342,9 +347,10 @@ export function VisitDialog({
         sharePhoto: photoFile != null && photoError == null && sharePhoto,
       })),
     );
-    const failed = results
-      .filter((result) => result.status === "failed" || result.status === "pending")
-      .map((result) => result.job.label);
+    const remaining = results.filter(
+      (result) => result.status === "failed" || result.status === "pending",
+    );
+    const failed = remaining.map((result) => result.job.label);
     const sharedCount = results.filter((result) => result.status === "success").length;
     if (sharedCount > 0 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("matrundan:reload"));
@@ -367,7 +373,7 @@ export function VisitDialog({
           : currentPlace.name,
       duration: canShare && sharedCount === 0 ? 8000 : undefined,
       action:
-        canShare && sharedCount === 0 && activeGroupId && created?.id
+        canShare && targets.length === 0 && activeGroupId && created?.id
           ? {
               label: "Lägg till i annan grupp",
               onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
@@ -381,7 +387,16 @@ export function VisitDialog({
           activeGroupId && created?.id
             ? {
                 label: "Försök igen",
-                onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
+                onClick: () =>
+                  setSharePayload({
+                    visitId: created.id,
+                    groupId: activeGroupId,
+                    initialSelection: {
+                      groupIds: remaining.map((result) => result.job.groupId),
+                      shareComment: hasComment && shareComment,
+                      sharePhoto: photoFile != null && photoError == null && sharePhoto,
+                    },
+                  }),
               }
             : undefined,
       });
@@ -952,6 +967,7 @@ export function VisitDialog({
         visitId={sharePayload?.visitId ?? null}
         currentGroupId={sharePayload?.groupId ?? ""}
         open={sharePayload !== null}
+        initialSelection={sharePayload?.initialSelection ?? null}
         onOpenChange={(nextOpen) => {
           if (!nextOpen) setSharePayload(null);
         }}
