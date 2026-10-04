@@ -230,9 +230,7 @@ export function EmailAuthDialog({
                 </button>
               </div>
               {mode === "signup" ? (
-                <p className="text-xs text-muted-foreground">
-                  Minst 8 tecken.
-                </p>
+                <p className="text-xs text-muted-foreground">Minst 8 tecken.</p>
               ) : null}
             </div>
           ) : null}
