@@ -11,6 +11,7 @@ import { formatMealType, formatOwnVisitDate } from "@/lib/matrundan/sharing-sele
 import type { StrongVisitDuplicateCandidate } from "@/lib/matrundan/visit-duplicates";
 
 export function VisitDuplicatePrompt({
+  targetName,
   candidate,
   mode,
   busy,
@@ -18,6 +19,7 @@ export function VisitDuplicatePrompt({
   onUseExisting,
   onDifferentVisit,
 }: {
+  targetName?: string;
   candidate: StrongVisitDuplicateCandidate | null;
   mode: "register" | "share";
   busy: boolean;
@@ -39,6 +41,7 @@ export function VisitDuplicatePrompt({
               : "Gruppen verkar redan ha det här besöket"}
           </AlertDialogTitle>
           <AlertDialogDescription className="space-y-2 text-left">
+            {targetName ? <span className="block font-medium">{targetName}</span> : null}
             <span className="block">
               Du har redan ett besök {visitSummary} där du är deltagare.
             </span>

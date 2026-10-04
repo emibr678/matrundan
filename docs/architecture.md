@@ -1046,6 +1046,18 @@ review får därför ha olika `review_group_reactions` i två grupper. Delning f
 aldrig kopiera eller projicera källgruppens reaktörer, reaktionsantal eller annan
 gruppintern social aktivitet; målgruppen börjar med sin egen reaktionskontext.
 
+Delning sparas atomiskt per målgrupp och serialiseras på det kanoniska besöket.
+Aktivt målmedlemskap, aktiv grupp och faktiskt deltagande revalideras vid
+skrivningen. En redan existerande länk kan endast kompletteras med aktörens eget
+innehåll; återförsök skapar ingen ny aktivitet eller omdömesversion. Avstängda
+innehållsval återkallar inte tidigare synlighet. Andra målgruppers lyckade
+transaktioner består om ett mål misslyckas.
+
+Konsekvensläsningen för egna kanoniska innehållsändringar returnerar endast
+booleaner om annan gruppsynlighet. Den kräver legitim aktuell gruppkontext;
+originalgruppens moderator kan också läsa bildkonsekvensen inför borttagning.
+Ingen annan gruppidentitet, medlemslista eller media-/Storage-sökväg returneras.
+
 Ursprungsgrupp, privata kommentarer, medlemskap och interna ID:n får aldrig
 exponeras i delningspayloaden.
 

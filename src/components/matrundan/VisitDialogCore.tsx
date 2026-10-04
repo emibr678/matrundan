@@ -24,11 +24,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  listPlaceShareTargets,
-  shareVisitToGroup,
-  type PlaceShareTarget,
-} from "@/lib/matrundan/live-sharing";
+import { listPlaceShareTargets, type PlaceShareTarget } from "@/lib/matrundan/live-sharing";
 import {
   deriveReviewOverall,
   reviewModelForContext,
@@ -47,6 +43,8 @@ import {
   type StrongVisitDuplicateCandidate,
 } from "@/lib/matrundan/visit-duplicates";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
+import { useVisitShareBatch } from "./useVisitShareBatch";
+import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
@@ -78,6 +76,7 @@ export function VisitDialog({
   const navigate = useNavigate();
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { activeGroupId } = useSession();
+  const shareBatch = useVisitShareBatch();
   const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
   const [shareTargetsLoading, setShareTargetsLoading] = React.useState(false);
   const [shareTargetsError, setShareTargetsError] = React.useState<string | null>(null);
@@ -279,7 +278,7 @@ export function VisitDialog({
     ];
   }
 
-  async function persistNewVisit(allowStrongDuplicate = false) {
+  async function persistNewVisit() {
     const hasReview = scoredVisit && reviewModel != null;
     const created = await addVisit({
       placeId: currentPlace.id,
@@ -321,22 +320,19 @@ export function VisitDialog({
     }
 
     const targets = canShare && created?.id ? shareGroupIds : [];
-    const failed: string[] = [];
-    let sharedCount = 0;
-    for (const groupId of targets) {
-      try {
-        await shareVisitToGroup(
-          created.id,
-          groupId,
-          hasComment ? shareComment : false,
-          allowStrongDuplicate,
-          photoFile != null && photoError == null && sharePhoto,
-        );
-        sharedCount += 1;
-      } catch {
-        failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
-      }
-    }
+    const results = await shareBatch.run(
+      targets.map((groupId) => ({
+        visitId: created!.id,
+        groupId,
+        label: shareableGroups.find((group) => group.groupId === groupId)?.name ?? "Gruppen",
+        shareComment: hasComment && shareComment,
+        sharePhoto: photoFile != null && photoError == null && sharePhoto,
+      })),
+    );
+    const failed = results
+      .filter((result) => result.status === "failed" || result.status === "pending")
+      .map((result) => result.job.label);
+    const sharedCount = results.filter((result) => result.status === "success").length;
     if (sharedCount > 0 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("matrundan:reload"));
     }
@@ -368,6 +364,13 @@ export function VisitDialog({
     if (failed.length > 0) {
       toast.warning("Besöket kunde inte läggas till i alla grupper.", {
         description: failed.join(", "),
+        action:
+          activeGroupId && created?.id
+            ? {
+                label: "Försök igen",
+                onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
+              }
+            : undefined,
       });
     }
     if (photoError) {
@@ -429,7 +432,7 @@ export function VisitDialog({
     setDuplicateCandidate(null);
     setBusy(true);
     try {
-      await persistNewVisit(true);
+      await persistNewVisit();
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
@@ -756,7 +759,7 @@ export function VisitDialog({
               <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                    <Label className="text-sm font-medium">Lägg till besöket i fler grupper</Label>
                     <p className="text-xs text-muted-foreground">
                       Välj vilka grupper som också ska få besöket.
                     </p>
@@ -907,6 +910,7 @@ export function VisitDialog({
         onUseExisting={() => void openExistingVisit()}
         onDifferentVisit={() => void registerDifferentVisit()}
       />
+      {shareBatch.duplicatePrompt}
     </>
   );
 }

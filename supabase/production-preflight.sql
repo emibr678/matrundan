@@ -6,6 +6,8 @@
 
 WITH checks(name, ok) AS (
   VALUES
+    ('sharing:consistency-rpcs', to_regprocedure('public.share_visit_to_group_v5(uuid,uuid,boolean,boolean,boolean)') IS NOT NULL AND to_regprocedure('public.list_visit_share_targets_v6(uuid)') IS NOT NULL AND to_regprocedure('public.list_own_visits_for_place_on_add_v2(uuid,uuid)') IS NOT NULL AND to_regprocedure('public.get_visit_content_impact_v1(uuid,uuid,uuid)') IS NOT NULL),
+    ('sharing:consistency-security', (SELECT count(*) = 4 AND bool_and(proc.prosecdef AND proc.proconfig @> ARRAY['search_path=public']::text[] AND has_function_privilege('authenticated', proc.oid, 'EXECUTE') AND NOT has_function_privilege('anon', proc.oid, 'EXECUTE')) FROM pg_proc proc WHERE proc.oid IN (to_regprocedure('public.share_visit_to_group_v5(uuid,uuid,boolean,boolean,boolean)'), to_regprocedure('public.list_visit_share_targets_v6(uuid)'), to_regprocedure('public.list_own_visits_for_place_on_add_v2(uuid,uuid)'), to_regprocedure('public.get_visit_content_impact_v1(uuid,uuid,uuid)')))),
     ('personal_journey_rpc:toplist-v1', to_regprocedure('public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)') IS NOT NULL),
     ('personal_journey_rpc:toplist-no-anon', NOT has_function_privilege('anon', 'public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer)', 'EXECUTE')),
     ('personal_journey_rpc:global-stats-v1', to_regprocedure('public.get_personal_journey_stats_v1(text)') IS NOT NULL),

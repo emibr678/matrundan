@@ -165,6 +165,18 @@ Här hör bland annat hemma:
 Gruppen är inte en social feed. Aktivitet och gamification ska hjälpa igenkänning
 och gemenskap utan att konkurrera med matresan.
 
+### Lägg till ett besök i fler grupper
+
+Efterhandsdelning utgår från besöksdetaljens handling **Lägg till besöket i en
+annan grupp**. **Redigera besök** korrigerar händelsen och deltagandet. Ett eller
+flera mål kan väljas; **Dela min kommentar** och **Dela min bild** är gemensamma
+val för handlingen och förvalda när eget innehåll finns. Tidigare besök som
+erbjuds när ett ställe läggs till börjar däremot ovalda.
+
+En befintlig besökslänk kan kompletteras med deltagarens eget innehåll. Den
+skapar ingen ny händelse. Ändrad kommentar eller utbytt/borttagen bild påverkar
+alla grupper där innehållet redan visas; konsekvensen förklaras vid ändringen.
+
 ## Min matresa — personlig lins över riktiga grupper
 
 **Min matresa** är en sekundär personlig sammanställning av sådant användaren
