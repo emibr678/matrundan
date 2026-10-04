@@ -1,6 +1,6 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
-SELECT plan(24);
+SELECT plan(25);
 
 INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
 ('39800000-0000-4000-8000-000000000001','sharing-1@example.invalid','{"full_name":"Person 1"}'::jsonb),
@@ -63,7 +63,10 @@ SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub='39800000-0000-4000-8000-000000000002';
 SELECT throws_ok($$SELECT public.share_visit_to_group_v5('39830000-0000-4000-8000-000000000001','39810000-0000-4000-8000-000000000003',true,false,true)$$,'P0001','Målgruppen är inte aktiv','Archived group rejected even on existing link');
 RESET ROLE;
-DELETE FROM public.visit_group_links WHERE visit_id='39830000-0000-4000-8000-000000000001' AND group_id='39810000-0000-4000-8000-000000000002';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub='39800000-0000-4000-8000-000000000001';
+SELECT lives_ok($$SELECT public.remove_shared_visit_from_group('39830000-0000-4000-8000-000000000001','39810000-0000-4000-8000-000000000002')$$,'Participant removes shared link through the supported mutation');
+RESET ROLE;
 SELECT is((SELECT count(*) FROM public.visit_media_group_visibility WHERE visit_id='39830000-0000-4000-8000-000000000001' AND group_id='39810000-0000-4000-8000-000000000002')::bigint,0::bigint,'Unlink removes target photo grants');
 SELECT is((SELECT count(*) FROM public.review_group_visibility WHERE group_id='39810000-0000-4000-8000-000000000002' AND review_id IN ('39840000-0000-4000-8000-000000000001','39840000-0000-4000-8000-000000000002'))::bigint,0::bigint,'Unlink removes target review visibility');
 SELECT is((SELECT count(*) FROM public.visits WHERE id='39830000-0000-4000-8000-000000000001')::bigint,1::bigint,'Unlink preserves canonical event');

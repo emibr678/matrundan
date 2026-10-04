@@ -298,5 +298,11 @@ $function$;
 REVOKE ALL ON FUNCTION public.close_next_stop_v2_on_original_visit()
   FROM PUBLIC, anon, authenticated;
 
+REVOKE ALL ON FUNCTION public.create_visit_with_review_v5(
+  uuid, uuid, date, text, uuid[], boolean, smallint, smallint, smallint, smallint, text, text[], text[]
+) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.create_visit_with_review_v5(
+  uuid, uuid, date, text, uuid[], boolean, smallint, smallint, smallint, smallint, text, text[], text[]
+) TO authenticated;
 
 COMMIT;
