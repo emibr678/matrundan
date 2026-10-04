@@ -601,3 +601,42 @@ for (const fromNextStop of [false, true]) {
     await expect(form).toHaveCount(0);
   });
 }
+
+test("registreraren redigerar ett delat besök utan att få tillgång till privata gäster", async ({
+  page,
+}, testInfo) => {
+  await seedSession(page);
+  await mockLive(page, false);
+  const appState = sourceState();
+  appState.visits[0].createdBy = USER_ID;
+  appState.visits[0].linkType = "shared";
+  let updatePayload: Record<string, unknown> | undefined;
+  await page.route("**/rest/v1/rpc/get_group_app_state_v5*", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(appState),
+    }),
+  );
+  await page.route("**/rest/v1/rpc/update_visit_v1", async (route) => {
+    updatePayload = route.request().postDataJSON();
+    appState.visits[0].date = String(updatePayload?._visited_on);
+    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+  });
+  await page.goto(`/besok?visit=${VISIT_ID}`);
+  const sheet = page.getByRole("dialog").first();
+  await sheet.getByRole("button", { name: "Besöksalternativ" }).click();
+  await page.getByRole("menuitem", { name: "Redigera besök" }).click();
+  const edit = page.getByRole("dialog", { name: "Redigera besök" });
+  await expect(edit.getByText(/ändringarna gäller alla grupper/)).toBeVisible();
+  await expect(edit.getByRole("button", { name: "Lägg till gäst" })).toHaveCount(0);
+  await edit.getByLabel("Datum", { exact: true }).fill("2026-09-21");
+  await capture(page, testInfo, "issue-398-redigera-delat-besok");
+  await edit.getByRole("button", { name: "Spara ändringar" }).click();
+  await expect(edit).not.toBeVisible();
+  expect(updatePayload?._group_id).toBe(SOURCE_GROUP_ID);
+  expect(updatePayload?._visit_id).toBe(VISIT_ID);
+  expect(updatePayload?._visited_on).toBe("2026-09-21");
+  expect(updatePayload?._guests).toEqual([]);
+  expect(updatePayload?._removed_guest_ids).toEqual([]);
+});

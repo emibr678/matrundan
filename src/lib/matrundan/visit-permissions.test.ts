@@ -31,10 +31,13 @@ describe("behörighet för att redigera originalbesök", () => {
     expect(canEditOriginalVisit(originalVisit, "admin", false)).toBe(false);
   });
 
-  test("delade besök och arkiverade grupper nekas även för registreraren", () => {
+  test("registreraren kan redigera delade besök men inte arkiverade grupper", () => {
     expect(
       canEditOriginalVisit({ createdBy: "creator", linkType: "shared" }, "creator", false),
-    ).toBe(false);
+    ).toBe(true);
     expect(canEditOriginalVisit(originalVisit, "creator", true)).toBe(false);
+    expect(canEditOriginalVisit({ createdBy: "creator", linkType: "shared" }, "admin", false)).toBe(
+      false,
+    );
   });
 });

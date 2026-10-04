@@ -261,7 +261,7 @@ export function EditVisitDialog({
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">Redigera besök</DialogTitle>
           <DialogDescription>
-            {place.name} · rätta den gemensamma händelsen utan att skapa ett nytt besök.
+            {place.name} · ändringarna gäller alla grupper där besöket finns.
           </DialogDescription>
         </DialogHeader>
 
@@ -371,66 +371,79 @@ export function EditVisitDialog({
               </p>
             ) : null}
 
-            {guests.length > 0 ? (
-              <div className="flex flex-wrap gap-2" aria-label="Gäster på besöket">
-                {guests.map((guest) => (
-                  <Badge
-                    key={guest.key}
-                    variant="secondary"
-                    className="min-h-9 max-w-full gap-1 rounded-full pr-1 pl-3"
-                  >
-                    <span aria-hidden>👤</span>
-                    <span className="truncate">{guest.name}</span>
-                    <button
-                      type="button"
-                      className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      onClick={() =>
-                        setGuests((current) => current.filter((item) => item.key !== guest.key))
-                      }
-                      disabled={isBusy}
-                      aria-label={`Ta bort gästen ${guest.name}`}
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-
-            {guestInputOpen ? (
-              <div className="space-y-2 rounded-xl border border-border/70 p-3">
-                <Label htmlFor={`edit-visit-guest-${visit.id}`} className="sr-only">
-                  Gästens namn
-                </Label>
-                <Input
-                  id={`edit-visit-guest-${visit.id}`}
-                  value={guestName}
-                  maxLength={60}
-                  placeholder="Gästens namn"
-                  onChange={(event) => setGuestName(event.target.value)}
-                  disabled={isBusy}
-                  autoFocus
-                />
-                <div className="flex flex-wrap justify-end gap-2">
-                  <Button type="button" variant="ghost" onClick={closeGuestInput} disabled={isBusy}>
-                    Avbryt
-                  </Button>
-                  <Button type="button" variant="outline" onClick={addGuest} disabled={isBusy}>
-                    Lägg till
-                  </Button>
-                </div>
-              </div>
+            {visit.linkType === "shared" ? (
+              <p className="text-xs text-muted-foreground">
+                Gäster ändras i gruppen där besöket registrerades.
+              </p>
             ) : (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="min-h-11 w-fit rounded-full px-3 text-primary"
-                onClick={() => setGuestInputOpen(true)}
-                disabled={isBusy || guests.length >= 10}
-              >
-                <UserPlus className="h-4 w-4" /> Lägg till gäst
-              </Button>
+              <>
+                {guests.length > 0 ? (
+                  <div className="flex flex-wrap gap-2" aria-label="Gäster på besöket">
+                    {guests.map((guest) => (
+                      <Badge
+                        key={guest.key}
+                        variant="secondary"
+                        className="min-h-9 max-w-full gap-1 rounded-full pr-1 pl-3"
+                      >
+                        <span aria-hidden>👤</span>
+                        <span className="truncate">{guest.name}</span>
+                        <button
+                          type="button"
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/60 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          onClick={() =>
+                            setGuests((current) => current.filter((item) => item.key !== guest.key))
+                          }
+                          disabled={isBusy}
+                          aria-label={`Ta bort gästen ${guest.name}`}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
+
+                {guestInputOpen ? (
+                  <div className="space-y-2 rounded-xl border border-border/70 p-3">
+                    <Label htmlFor={`edit-visit-guest-${visit.id}`} className="sr-only">
+                      Gästens namn
+                    </Label>
+                    <Input
+                      id={`edit-visit-guest-${visit.id}`}
+                      value={guestName}
+                      maxLength={60}
+                      placeholder="Gästens namn"
+                      onChange={(event) => setGuestName(event.target.value)}
+                      disabled={isBusy}
+                      autoFocus
+                    />
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={closeGuestInput}
+                        disabled={isBusy}
+                      >
+                        Avbryt
+                      </Button>
+                      <Button type="button" variant="outline" onClick={addGuest} disabled={isBusy}>
+                        Lägg till
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="min-h-11 w-fit rounded-full px-3 text-primary"
+                    onClick={() => setGuestInputOpen(true)}
+                    disabled={isBusy || guests.length >= 10}
+                  >
+                    <UserPlus className="h-4 w-4" /> Lägg till gäst
+                  </Button>
+                )}
+              </>
             )}
           </fieldset>
         </div>
