@@ -899,17 +899,26 @@ export function VisitDialog({
 
       <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
         <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
-          <AlertDialogHeader>
+          <AlertDialogHeader className="text-left">
             <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3">
-                <p>Besöket sparas i {state.group.name} och läggs även till i:</p>
-                <ul className="list-disc space-y-1 pl-5">
+                <p>Besöket sparas i:</p>
+                <ul role="list" className="list-none space-y-2 p-0">
+                  <li className="flex items-start gap-3">
+                    <span aria-hidden="true" className="shrink-0">
+                      {state.group.emoji}
+                    </span>
+                    <span className="min-w-0 break-words">{state.group.name}</span>
+                  </li>
                   {shareableGroups
                     .filter((group) => shareGroupIds.includes(group.groupId))
                     .map((group) => (
-                      <li key={group.groupId} className="break-words">
-                        {group.name}
+                      <li key={group.groupId} className="flex items-start gap-3">
+                        <span aria-hidden="true" className="shrink-0">
+                          {group.emoji}
+                        </span>
+                        <span className="min-w-0 break-words">{group.name}</span>
                       </li>
                     ))}
                 </ul>
