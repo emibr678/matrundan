@@ -1,8 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-const emailAuthSource = await Bun.file(
-  "src/components/matrundan/EmailAuthDialog.tsx",
-).text();
+const emailAuthSource = await Bun.file("src/components/matrundan/EmailAuthDialog.tsx").text();
 const newPasswordSource = await Bun.file("src/routes/nytt-losenord.tsx").text();
 
 describe("Issue #427 – lösenordscopy", () => {
