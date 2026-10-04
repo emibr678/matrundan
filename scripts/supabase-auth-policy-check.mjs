@@ -31,9 +31,7 @@ export async function verifySupabaseEmailConfirmationPolicy({
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);
-    throw new Error(
-      `supabase-auth-policy: could not read ${label} Auth settings (${reason})`,
-    );
+    throw new Error(`supabase-auth-policy: could not read ${label} Auth settings (${reason})`);
   }
 
   const payload = await response.json().catch(() => null);
