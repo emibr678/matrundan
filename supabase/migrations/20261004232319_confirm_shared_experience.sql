@@ -107,6 +107,9 @@ END $function$;
 
 REVOKE ALL ON FUNCTION public.share_visit_to_group_v6(uuid,uuid,boolean,boolean,boolean,text[]) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.share_visit_to_group_v6(uuid,uuid,boolean,boolean,boolean,text[]) TO authenticated;
--- CREATE OR REPLACE preserves the existing read-RPC grants.
+REVOKE ALL ON FUNCTION public.list_visit_share_targets_v6(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.list_place_share_targets_v4b(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_visit_share_targets_v6(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.list_place_share_targets_v4b(uuid) TO authenticated;
 NOTIFY pgrst, 'reload schema';
 COMMIT;
