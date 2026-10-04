@@ -82,7 +82,7 @@ function NewPasswordPage() {
       const message = error instanceof Error ? error.message.toLowerCase() : "";
       toast.error(
         message.includes("pwned") || message.includes("compromised")
-          ? "Lösenordet finns i kända läckor. Välj ett annat."
+          ? "Lösenordet godkändes inte. Välj ett annat lösenord med minst 8 tecken."
           : "Kunde inte uppdatera lösenordet. Begär en ny återställningslänk.",
       );
     } finally {
