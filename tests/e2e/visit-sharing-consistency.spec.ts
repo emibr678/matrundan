@@ -594,7 +594,7 @@ test("registreringsretry behåller avstängt kommentarval och väljer bara kvarv
   await commentSwitch.click();
   await expect(commentSwitch).not.toBeChecked();
 
-  await form.getByRole("button", { name: /Stockholms skärgård/ }).click();
+  await form.getByRole("checkbox", { name: "Dela besöket med Stockholms skärgård" }).click();
   await form.getByRole("button", { name: "Spara besök", exact: true }).click();
   const confirmation = page.getByRole("alertdialog", { name: "Spara besöket i 3 grupper?" });
   await confirmation.getByRole("button", { name: "Spara i 3 grupper" }).click();
