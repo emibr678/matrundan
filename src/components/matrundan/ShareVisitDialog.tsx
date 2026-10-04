@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label";
 import { listVisitShareTargets, type VisitShareTarget } from "@/lib/matrundan/live-sharing";
 import { useSession } from "@/lib/matrundan/session";
 import { useVisitShareBatch } from "./useVisitShareBatch";
+import { useStore } from "@/lib/matrundan/store";
+import type { Occasion } from "@/lib/matrundan/types";
+import { VisitShareExperience } from "./VisitShareExperience";
 
 interface Props {
   visitId: string | null;
@@ -33,6 +36,9 @@ function canSelect(target: VisitShareTarget) {
 }
 export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, onShared }: Props) {
   const { userGroups } = useSession();
+  const { state } = useStore();
+  const [experience, setExperience] = React.useState<Occasion[] | null>(null);
+  const [experienceConfirmed, setExperienceConfirmed] = React.useState(false);
   const [targets, setTargets] = React.useState<VisitShareTarget[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -56,6 +62,8 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     setFailures([]);
     setShareComment(true);
     setSharePhoto(true);
+    setExperience(null);
+    setExperienceConfirmed(false);
     listVisitShareTargets(visitId)
       .then((rows) => {
         if (!cancelled) setTargets(rows);
@@ -69,9 +77,16 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     return () => {
       cancelled = true;
     };
-  }, [open, visitId]);
+  }, [open, visitId, currentGroupId]);
   const otherGroups = targets.filter((target) => target.groupId !== currentGroupId);
   const chosen = otherGroups.filter((target) => selected.includes(target.groupId));
+  const visit = state.visits.find((item) => item.id === visitId);
+  const suggestedExperience =
+    state.group.id === currentGroupId
+      ? (state.places.find((place) => place.id === visit?.placeId)?.occasions ?? [])
+      : [];
+  const experienceValue = experience ?? suggestedExperience;
+  const unclassified = chosen.filter((target) => !target.hasExperienceClassification);
   const hasComment = chosen.some(
     (target) => target.ownHasComment && (!target.alreadyLinked || !target.ownCommentShared),
   );
@@ -95,6 +110,10 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
           alreadyLinked: target.alreadyLinked,
           shareComment: target.ownHasComment && shareComment,
           sharePhoto: target.ownHasPhoto && sharePhoto,
+          confirmedExperience:
+            !target.hasExperienceClassification && experienceConfirmed
+              ? experienceValue
+              : undefined,
         })),
       );
       const successful = results.filter((result) => result.status === "success");
@@ -116,6 +135,9 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
               ? {
                   ...target,
                   alreadyLinked: true,
+                  hasExperienceClassification:
+                    target.hasExperienceClassification ||
+                    (experienceConfirmed && experienceValue.length > 0),
                   ownCommentShared:
                     target.ownCommentShared || (target.ownHasComment && shareComment),
                   ownPhotoShared: target.ownPhotoShared || (target.ownHasPhoto && sharePhoto),
@@ -310,6 +332,18 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
               </p>
             </div>
           ) : null}
+          <VisitShareExperience
+            id="share-experience"
+            groups={unclassified.map((target) => target.name)}
+            value={experienceValue}
+            onChange={setExperience}
+            confirmed={experienceConfirmed}
+            onConfirmedChange={(confirmed) => {
+              if (confirmed) setExperience([...experienceValue]);
+              setExperienceConfirmed(confirmed);
+            }}
+            disabled={submitting}
+          />
           {failures.length > 0 ? (
             <div role="alert" className="space-y-1 text-sm">
               <p className="font-medium">De här grupperna återstår</p>

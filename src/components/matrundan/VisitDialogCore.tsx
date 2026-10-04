@@ -54,6 +54,7 @@ import {
 } from "@/lib/matrundan/visit-duplicates";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { useVisitShareBatch } from "./useVisitShareBatch";
+import { VisitShareExperience } from "./VisitShareExperience";
 import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
@@ -98,6 +99,8 @@ export function VisitDialog({
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
   const [confirmGroups, setConfirmGroups] = React.useState(false);
+  const [shareExperience, setShareExperience] = React.useState<Occasion[] | null>(null);
+  const [shareExperienceConfirmed, setShareExperienceConfirmed] = React.useState(false);
   const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
@@ -167,6 +170,8 @@ export function VisitDialog({
       setShareTargetsError(null);
       setShareGroupIds([]);
       setConfirmGroups(false);
+      setShareExperience(null);
+      setShareExperienceConfirmed(false);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -224,6 +229,10 @@ export function VisitDialog({
   const applicableOccasions = placeNeedsOccasionClassification
     ? reviewOccasions
     : currentPlace.occasions;
+  const shareExperienceValue = shareExperience ?? applicableOccasions;
+  const unclassifiedTargets = shareableGroups.filter(
+    (group) => shareGroupIds.includes(group.groupId) && !group.hasExperienceClassification,
+  );
   const reviewModel = scoredVisit
     ? reviewModelForContext({ isTakeaway, occasions: applicableOccasions })
     : null;
@@ -340,6 +349,11 @@ export function VisitDialog({
         label: shareableGroups.find((group) => group.groupId === groupId)?.name ?? "Gruppen",
         shareComment: hasComment && shareComment,
         sharePhoto: photoFile != null && photoError == null && sharePhoto,
+        confirmedExperience:
+          shareExperienceConfirmed &&
+          !shareableGroups.find((group) => group.groupId === groupId)?.hasExperienceClassification
+            ? shareExperienceValue
+            : undefined,
       })),
     );
     const failed = results
@@ -932,6 +946,18 @@ export function VisitDialog({
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <VisitShareExperience
+            id="register-share-experience"
+            groups={unclassifiedTargets.map((group) => group.name)}
+            value={shareExperienceValue}
+            onChange={setShareExperience}
+            confirmed={shareExperienceConfirmed}
+            onConfirmedChange={(confirmed) => {
+              if (confirmed) setShareExperience([...shareExperienceValue]);
+              setShareExperienceConfirmed(confirmed);
+            }}
+            disabled={isBusy}
+          />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
             <AlertDialogAction
