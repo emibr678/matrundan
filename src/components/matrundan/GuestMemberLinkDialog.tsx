@@ -79,11 +79,13 @@ export function GuestMemberLinkDialog({
   const [selectedMemberId, setSelectedMemberId] = React.useState<string | null>(null);
   const [completedGuestIds, setCompletedGuestIds] = React.useState<string[]>([]);
   const [continuation, setContinuation] = React.useState<{ memberName: string } | null>(null);
+  const [contextual, setContextual] = React.useState(Boolean(initialGuestId));
   const [submitting, setSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     if (!open || !visitId || !sourceGroupId) return;
     let cancelled = false;
+    setContextual(Boolean(initialGuestId));
     setLoading(true);
     setLoadError(null);
     setTargets([]);
@@ -130,12 +132,16 @@ export function GuestMemberLinkDialog({
     if (continuation) return;
     setSelectedGuestId((current) => {
       if (current && guests.some((guest) => guest.id === current)) return current;
+      if (contextual)
+        return initialGuestId && guests.some((guest) => guest.id === initialGuestId)
+          ? initialGuestId
+          : null;
       if (initialGuestId && guests.some((guest) => guest.id === initialGuestId)) {
         return initialGuestId;
       }
       return guests.length === 1 ? guests[0].id : null;
     });
-  }, [continuation, guests, initialGuestId]);
+  }, [continuation, guests, initialGuestId, contextual]);
 
   const groups = React.useMemo(() => {
     if (!selectedGuestId) return [];
@@ -221,7 +227,7 @@ export function GuestMemberLinkDialog({
       <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-md">
         <DialogHeader>
           <DialogTitle>
-            {initialGuestName
+            {contextual && initialGuestName
               ? `Koppla ${initialGuestName} till gruppmedlem`
               : "Koppla gäst till gruppmedlem"}
           </DialogTitle>
@@ -256,7 +262,7 @@ export function GuestMemberLinkDialog({
           </div>
         ) : loadError ? (
           <div className="py-6 text-sm text-destructive">{loadError}</div>
-        ) : targets.length === 0 || guests.length === 0 ? (
+        ) : targets.length === 0 || guests.length === 0 || (contextual && !selectedGuestId) ? (
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
             <p className="text-sm font-medium">Ingen möjlig koppling just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
@@ -266,30 +272,34 @@ export function GuestMemberLinkDialog({
           </Card>
         ) : (
           <div className="space-y-5">
-            <section className="space-y-2">
-              <h3 className="text-sm font-medium">1. Vilken gäst?</h3>
-              <div className="flex flex-wrap gap-2">
-                {guests.map((guest) => (
-                  <Button
-                    key={guest.id}
-                    type="button"
-                    size="sm"
-                    variant={selectedGuestId === guest.id ? "default" : "outline"}
-                    onClick={() => {
-                      setSelectedGuestId(guest.id);
-                      setSelectedGroupId(null);
-                      setSelectedMemberId(null);
-                    }}
-                  >
-                    {guest.name}
-                  </Button>
-                ))}
-              </div>
-            </section>
+            {!contextual ? (
+              <section className="space-y-2">
+                <h3 className="text-sm font-medium">1. Vilken gäst?</h3>
+                <div className="flex flex-wrap gap-2">
+                  {guests.map((guest) => (
+                    <Button
+                      key={guest.id}
+                      type="button"
+                      size="sm"
+                      variant={selectedGuestId === guest.id ? "default" : "outline"}
+                      onClick={() => {
+                        setSelectedGuestId(guest.id);
+                        setSelectedGroupId(null);
+                        setSelectedMemberId(null);
+                      }}
+                    >
+                      {guest.name}
+                    </Button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
 
             {selectedGuestId ? (
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">2. I vilken grupp?</h3>
+                <h3 className="text-sm font-medium">
+                  {contextual ? "1. I vilken grupp?" : "2. I vilken grupp?"}
+                </h3>
                 <div className="space-y-2">
                   {groups.map((group) => (
                     <button
@@ -321,7 +331,9 @@ export function GuestMemberLinkDialog({
 
             {selectedGroupId ? (
               <section className="space-y-2">
-                <h3 className="text-sm font-medium">3. Vem är gästen?</h3>
+                <h3 className="text-sm font-medium">
+                  {contextual ? `2. Vem är ${initialGuestName ?? "gästen"}?` : "3. Vem är gästen?"}
+                </h3>
                 <div className="space-y-2">
                   {members.map((member) => {
                     const label = statusLabel(member.proposalStatus);
@@ -372,7 +384,13 @@ export function GuestMemberLinkDialog({
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Klar
             </Button>
-            <Button type="button" onClick={() => setContinuation(null)}>
+            <Button
+              type="button"
+              onClick={() => {
+                setContextual(false);
+                setContinuation(null);
+              }}
+            >
               Koppla en till
             </Button>
           </DialogFooter>

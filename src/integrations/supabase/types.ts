@@ -2781,6 +2781,10 @@ export type Database = {
         Returns: Json
       }
       get_place_maintenance_access_v1: { Args: never; Returns: boolean }
+      get_visit_content_impact_v1: {
+        Args: { _group_id: string; _photo_owner_id?: string; _visit_id: string }
+        Returns: Json
+      }
       get_visit_review_reactions_v1: {
         Args: { _group_id: string; _visit_id: string }
         Returns: Json
@@ -2978,6 +2982,10 @@ export type Database = {
         Args: { _place_id: string; _target_group_id: string }
         Returns: Json
       }
+      list_own_visits_for_place_on_add_v2: {
+        Args: { _place_id: string; _target_group_id: string }
+        Returns: Json
+      }
       list_personal_journey_places_v1: {
         Args: {
           _cursor_id?: string
@@ -3037,6 +3045,10 @@ export type Database = {
         Returns: Json
       }
       list_visit_share_targets_v5: {
+        Args: { _visit_id: string }
+        Returns: Json
+      }
+      list_visit_share_targets_v6: {
         Args: { _visit_id: string }
         Returns: Json
       }
@@ -3351,6 +3363,16 @@ export type Database = {
         Returns: string
       }
       share_visit_to_group_v4: {
+        Args: {
+          _allow_strong_duplicate?: boolean
+          _share_own_comment?: boolean
+          _share_own_photo?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
+      share_visit_to_group_v5: {
         Args: {
           _allow_strong_duplicate?: boolean
           _share_own_comment?: boolean

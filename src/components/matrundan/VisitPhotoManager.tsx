@@ -29,6 +29,7 @@ import {
 import { useStore } from "@/lib/matrundan/store";
 import type { Visit, VisitPhoto } from "@/lib/matrundan/types";
 import { MemberAvatar } from "./MemberAvatar";
+import { useVisitContentImpact } from "./useVisitContentImpact";
 import { ShareOwnVisitPhotoDialog } from "./ShareOwnVisitPhotoDialog";
 import {
   canAddOrReplaceVisitPhoto,
@@ -148,6 +149,17 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
     state.currentUserId,
     currentRole,
     groupArchived,
+  );
+  const editImpact = useVisitContentImpact(
+    mode === "live" && Boolean(file && ownPhoto),
+    visit.id,
+    state.group.id,
+  );
+  const deleteImpact = useVisitContentImpact(
+    mode === "live" && Boolean(pendingDeletePhoto),
+    visit.id,
+    state.group.id,
+    pendingDeletePhoto?.uploadedBy,
   );
   const disabled = busy || submitting;
   const canAddOwnPhoto = canContribute && !ownPhoto && !file;
@@ -397,6 +409,14 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
         }}
       />
 
+      {file &&
+      ownPhoto &&
+      (editImpact?.impact?.photoSharedElsewhere || (mode === "live" && !editImpact?.impact)) ? (
+        <p className="text-xs text-muted-foreground">
+          Den nya bilden visas i alla grupper där du har delat bilden.
+        </p>
+      ) : null}
+
       <AlertDialog
         open={pendingDeletePhoto != null}
         onOpenChange={(open) => {
@@ -411,9 +431,12 @@ export function VisitPhotoManager({ visit }: { visit: Visit }) {
                 : `Ta bort ${pendingDeleteOwner}s bild?`}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingDeletePhoto?.uploadedBy === state.currentUserId
-                ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
-                : `Du tar bort en bild som ${pendingDeleteOwner} har lagt till. Bilden försvinner från besöket för hela gruppen och det går inte att ångra.`}
+              {deleteImpact?.impact?.photoSharedElsewhere ||
+              (mode === "live" && !deleteImpact?.impact)
+                ? "Bilden tas bort från alla grupper där den visas. Det går inte att ångra."
+                : pendingDeletePhoto?.uploadedBy === state.currentUserId
+                  ? "Bilden försvinner från det här besöket för gruppen. Det går inte att ångra."
+                  : `Du tar bort en bild som ${pendingDeleteOwner} har lagt till. Bilden försvinner från besöket för hela gruppen och det går inte att ångra.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

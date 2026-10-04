@@ -342,7 +342,7 @@ export function VisitDetailSheet({
                           className="h-auto min-h-8 max-w-full justify-start px-1.5 py-1 text-xs font-normal text-muted-foreground hover:text-foreground"
                           onClick={() => {
                             setGuestLinkTarget({
-                              id: guestParticipant.id,
+                              id: guestParticipant.id.replace(/^guest:/, ""),
                               name: guestParticipant.name,
                             });
                             setGuestLinkOpen(true);

@@ -34,6 +34,7 @@ import { useSession } from "@/lib/matrundan/session";
 import { useStore } from "@/lib/matrundan/store";
 import type { VisibleReview } from "@/lib/matrundan/types";
 import { getOwnVisitPhoto } from "@/lib/matrundan/visit-photo";
+import { useVisitContentImpact } from "./useVisitContentImpact";
 import { ReviewEditFields } from "./ReviewEditFields";
 import { VisitPhotoField } from "./VisitPhotoField";
 
@@ -92,6 +93,7 @@ export function EditReviewDialog({
   const [commentVisible, setCommentVisible] = React.useState(review.commentVisible);
   const [photoFile, setPhotoFile] = React.useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = React.useState(false);
+  const impact = useVisitContentImpact(open && mode === "live", visit?.id, state.group.id);
   const archived = state.group.lifecycleStatus === "archived";
   const complete = historicalOverallOnly
     ? Number.isInteger(overall) && overall >= 1 && overall <= 5
@@ -299,6 +301,15 @@ export function EditReviewDialog({
             }
           />
 
+          {comment !== (review.comment ?? "") &&
+          (impact?.impact?.commentSharedElsewhere || (mode === "live" && !impact?.impact)) ? (
+            <p className="text-xs text-muted-foreground">
+              {!impact?.impact
+                ? "Om kommentaren visas i andra grupper ändras texten där också."
+                : "Texten ändras även i andra grupper där din kommentar visas."}
+            </p>
+          ) : null}
+
           {mode === "live" && activeGroupId && visit?.linkType === "shared" && comment.trim() ? (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-muted/30 p-3">
               <span className="text-sm font-medium">Visa kommentaren i den här gruppen</span>
@@ -329,6 +340,15 @@ export function EditReviewDialog({
               }}
               compact
             />
+          ) : null}
+          {(photoFile || removePhoto) &&
+          ownPhoto &&
+          (impact?.impact?.photoSharedElsewhere || (mode === "live" && !impact?.impact)) ? (
+            <p className="text-xs text-muted-foreground">
+              {removePhoto
+                ? "Bilden tas bort från alla grupper där den visas."
+                : "Den nya bilden visas i alla grupper där du har delat bilden."}
+            </p>
           ) : null}
         </div>
 
