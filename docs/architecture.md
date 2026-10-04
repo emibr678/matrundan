@@ -643,11 +643,13 @@ Servern avvisar ett nytt besök där `auth.uid()` inte finns bland de validerade
 
 `update_visit_v1` är den serverstyrda korrigeringsytan för ett redan kanoniskt
 besök. Endast den autentiserade registreraren får använda den, från besökets
-originalgrupp där registreraren fortfarande har aktivt medlemskap. Datum,
-besökskontext och deltagare som hör till originalgruppen kan korrigeras utan att
+valfri aktiv grupp där besöket är länkat och registreraren har aktivt medlemskap.
+Datum, besökskontext och deltagare som hör till den aktuella gruppen kan korrigeras utan att
 ett nytt `visits.id` skapas. Identifierade deltagare som endast hör till en
 annan länkad grupp bevaras server-side och får inte försvinna för att klienten i
-originalgruppen saknar rätt att se deras identitet.
+aktuell grupp saknar rätt att se deras identitet. Gäster kan endast korrigeras
+från originalgruppen, där deras privata namn är synliga. Administratörsrollen
+i en mottagande grupp ger ingen rätt att redigera besöket.
 
 Privata gäster uppdateras genom stabila `visit_guests.id`, aldrig genom
 namnmatchning. En gäst med en pågående eller accepterad #214-koppling får inte
@@ -1045,6 +1047,18 @@ Reaktioner är uttryckligen gruppspecifika trots att reviewn är kanonisk. Samma
 review får därför ha olika `review_group_reactions` i två grupper. Delning får
 aldrig kopiera eller projicera källgruppens reaktörer, reaktionsantal eller annan
 gruppintern social aktivitet; målgruppen börjar med sin egen reaktionskontext.
+
+Delning sparas atomiskt per målgrupp och serialiseras på det kanoniska besöket.
+Aktivt målmedlemskap, aktiv grupp och faktiskt deltagande revalideras vid
+skrivningen. En redan existerande länk kan endast kompletteras med aktörens eget
+innehåll; återförsök skapar ingen ny aktivitet eller omdömesversion. Avstängda
+innehållsval återkallar inte tidigare synlighet. Andra målgruppers lyckade
+transaktioner består om ett mål misslyckas.
+
+Konsekvensläsningen för egna kanoniska innehållsändringar returnerar endast
+booleaner om annan gruppsynlighet. Den kräver legitim aktuell gruppkontext;
+originalgruppens moderator kan också läsa bildkonsekvensen inför borttagning.
+Ingen annan gruppidentitet, medlemslista eller media-/Storage-sökväg returneras.
 
 Ursprungsgrupp, privata kommentarer, medlemskap och interna ID:n får aldrig
 exponeras i delningspayloaden.

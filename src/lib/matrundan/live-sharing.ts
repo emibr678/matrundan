@@ -25,6 +25,7 @@ const visitShareTargetSchema = z.object({
   ownHasComment: z.boolean(),
   ownHasPhoto: z.boolean(),
   ownPhotoShared: z.boolean(),
+  ownCommentShared: z.boolean(),
   sharedVisitsCountForProgression: z.boolean(),
 });
 
@@ -45,6 +46,7 @@ const ownVisitForPlaceSchema = z.object({
   groupEmoji: z.string(),
   alreadySharedToTarget: z.boolean(),
   ownHasComment: z.boolean(),
+  ownHasPhoto: z.boolean(),
 });
 
 export interface VisibleParticipant {
@@ -68,6 +70,7 @@ export interface VisitShareTarget {
   ownHasComment: boolean;
   ownHasPhoto: boolean;
   ownPhotoShared: boolean;
+  ownCommentShared: boolean;
   sharedVisitsCountForProgression: boolean;
 }
 
@@ -88,11 +91,12 @@ export interface OwnVisitForPlace {
   groupEmoji: string;
   alreadySharedToTarget: boolean;
   ownHasComment: boolean;
+  ownHasPhoto: boolean;
 }
 
 export async function listVisitShareTargets(visitId: string): Promise<VisitShareTarget[]> {
   return rpcClient.call(
-    "list_visit_share_targets_v5",
+    "list_visit_share_targets_v6",
     { _visit_id: visitId },
     z.array(visitShareTargetSchema),
     "Kunde inte läsa vilka grupper besöket kan delas till.",
@@ -113,7 +117,7 @@ export async function listOwnVisitsForPlaceOnAdd(
   targetGroupId: string,
 ): Promise<OwnVisitForPlace[]> {
   return rpcClient.call(
-    "list_own_visits_for_place_on_add",
+    "list_own_visits_for_place_on_add_v2",
     { _place_id: placeId, _target_group_id: targetGroupId },
     z.array(ownVisitForPlaceSchema),
     "Kunde inte läsa dina tidigare besök på stället.",
@@ -128,7 +132,7 @@ export async function shareVisitToGroup(
   shareOwnPhoto = false,
 ): Promise<string> {
   return rpcClient.call(
-    "share_visit_to_group_v4",
+    "share_visit_to_group_v5",
     {
       _visit_id: visitId,
       _target_group_id: targetGroupId,
@@ -172,4 +176,20 @@ export async function setReviewGroupVisibility(
     _rating_visible: ratingVisible,
     _comment_visible: commentVisible,
   });
+}
+
+export interface VisitContentImpact {
+  commentSharedElsewhere: boolean;
+  photoSharedElsewhere: boolean;
+}
+export async function getVisitContentImpact(
+  visitId: string,
+  groupId: string,
+  photoOwnerId?: string,
+): Promise<VisitContentImpact> {
+  return rpcClient.call(
+    "get_visit_content_impact_v1",
+    { _visit_id: visitId, _group_id: groupId, _photo_owner_id: photoOwnerId ?? null },
+    z.object({ commentSharedElsewhere: z.boolean(), photoSharedElsewhere: z.boolean() }),
+  );
 }

@@ -1,6 +1,7 @@
 import * as React from "react";
 import { ArrowLeft, Clock3, Globe2, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { useVisitShareBatch } from "./useVisitShareBatch";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
 import { PlaceDataLimitedInfoNotice } from "./PlaceDataSignalNotice";
@@ -27,11 +28,7 @@ import {
   hideDemoPlaceSuggestion,
   hideGroupPlaceSuggestion,
 } from "@/lib/matrundan/hidden-place-suggestions";
-import {
-  listOwnVisitsForPlaceOnAdd,
-  shareVisitToGroup,
-  type OwnVisitForPlace,
-} from "@/lib/matrundan/live-sharing";
+import { listOwnVisitsForPlaceOnAdd, type OwnVisitForPlace } from "@/lib/matrundan/live-sharing";
 import {
   reportableSuggestionFromPlaceSuggestion,
   type ReportablePlaceSuggestion,
@@ -189,7 +186,10 @@ export function AddPlaceResultDialogs({
   const [syncPlaceName, setSyncPlaceName] = React.useState("");
   const [syncVisits, setSyncVisits] = React.useState<OwnVisitForPlace[]>([]);
   const [syncVisitIds, setSyncVisitIds] = React.useState<string[]>([]);
-  const [syncShareComment, setSyncShareComment] = React.useState(false);
+  const [syncShareComment, setSyncShareComment] = React.useState(true);
+  const [syncSharePhoto, setSyncSharePhoto] = React.useState(true);
+  const [syncError, setSyncError] = React.useState<string | null>(null);
+  const syncBatch = useVisitShareBatch();
   const [syncBusy, setSyncBusy] = React.useState(false);
   const isBusy = busy || hideBusy || submitting || syncBusy;
   const allSyncVisitsSelected =
@@ -219,7 +219,9 @@ export function AddPlaceResultDialogs({
     setSyncPlaceName("");
     setSyncVisits([]);
     setSyncVisitIds([]);
-    setSyncShareComment(false);
+    setSyncShareComment(true);
+    setSyncSharePhoto(true);
+    setSyncError(null);
   }
 
   async function hideSuggestionForGroup(suggestion: PlaceSuggestion): Promise<void> {
@@ -281,7 +283,9 @@ export function AddPlaceResultDialogs({
             setSyncPlaceName(added.name);
             setSyncVisits(shareableVisits);
             setSyncVisitIds([]);
-            setSyncShareComment(false);
+            setSyncShareComment(true);
+            setSyncSharePhoto(true);
+            setSyncError(null);
             setSyncOpen(true);
           }
         } catch (error) {
@@ -310,44 +314,38 @@ export function AddPlaceResultDialogs({
   async function confirmSyncVisits() {
     if (!activeGroupId || syncVisitIds.length === 0 || syncBusy) return;
     setSyncBusy(true);
-    const failedIds: string[] = [];
-    const failedGroups: string[] = [];
-    const successfulIds: string[] = [];
-
-    for (const visitId of syncVisitIds) {
-      const visit = syncVisits.find((candidate) => candidate.visitId === visitId);
-      if (!visit) continue;
-      try {
-        await shareVisitToGroup(
-          visitId,
-          activeGroupId,
-          visit.ownHasComment ? syncShareComment : false,
+    try {
+      const selected = syncVisits.filter((visit) => syncVisitIds.includes(visit.visitId));
+      const results = await syncBatch.run(
+        selected.map((visit) => ({
+          visitId: visit.visitId,
+          groupId: activeGroupId,
+          label: state.group.name,
+          shareComment: visit.ownHasComment && syncShareComment,
+          sharePhoto: visit.ownHasPhoto && syncSharePhoto,
+        })),
+      );
+      const successful = results.filter((result) => result.status === "success");
+      const remaining = results.filter(
+        (result) => result.status === "failed" || result.status === "pending",
+      );
+      if (successful.length > 0) {
+        window.dispatchEvent(new Event("matrundan:reload"));
+        toast.success(
+          `${successful.length} ${successful.length === 1 ? "besök tillagt" : "besök tillagda"} i gruppen.`,
         );
-        successfulIds.push(visitId);
-      } catch {
-        failedIds.push(visitId);
-        failedGroups.push(visit.groupName);
       }
-    }
-
-    if (successfulIds.length > 0 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("matrundan:reload"));
-    }
-    if (failedIds.length > 0) {
-      setSyncVisits((current) => current.filter((visit) => failedIds.includes(visit.visitId)));
-      setSyncVisitIds(failedIds);
+      if (remaining.length > 0) {
+        const ids = remaining.map((result) => result.job.visitId);
+        setSyncVisits((current) => current.filter((visit) => ids.includes(visit.visitId)));
+        setSyncVisitIds(ids);
+        setSyncError(
+          remaining.map((result) => result.error ?? "Besöket är inte sparat ännu.").join(" "),
+        );
+      } else resetSync();
+    } finally {
       setSyncBusy(false);
-      toast.warning("Några besök kunde inte delas.", {
-        description: `${[...new Set(failedGroups)].join(", ")}. Försök igen eller hoppa över.`,
-      });
-      return;
     }
-
-    setSyncBusy(false);
-    resetSync();
-    toast.success(
-      `${successfulIds.length} ${successfulIds.length === 1 ? "besök delat" : "besök delade"} till gruppen`,
-    );
   }
 
   const reportablePending: ReportablePlaceSuggestion | null = pending
@@ -437,19 +435,18 @@ export function AddPlaceResultDialogs({
       >
         <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl">Dela tidigare besök</DialogTitle>
+            <DialogTitle className="font-display text-2xl">Lägg till tidigare besök</DialogTitle>
             <DialogDescription>
               {syncVisits.length === 1
                 ? `Du har ett tidigare besök på ${syncPlaceName} i en annan grupp.`
                 : `Du har ${syncVisits.length} tidigare besök på ${syncPlaceName} i andra grupper.`}{" "}
-              Välj vilka du vill dela till den här gruppen.
+              Välj vilka besök du vill lägga till i den här gruppen.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
             <div className="flex items-start justify-between gap-3">
               <p className="text-xs text-muted-foreground">
-                Besöken länkas till den här gruppen. Medlemmarna här ser inte ursprungsgruppen eller
-                privata kommentarer. Din egen kommentar delas bara om du väljer det.
+                Andras kommentarer och bilder följer inte med.
               </p>
               <button
                 type="button"
@@ -485,7 +482,7 @@ export function AddPlaceResultDialogs({
                         )
                       }
                       disabled={syncBusy}
-                      aria-label={`Dela besöket från ${visit.groupName}`}
+                      aria-label={`Lägg till besöket ${formatOwnVisitDate(visit.visitedOn)} från ${visit.groupName}`}
                     />
                     <span aria-hidden>{visit.groupEmoji ?? "🍽️"}</span>
                     <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">
@@ -503,7 +500,7 @@ export function AddPlaceResultDialogs({
             ) ? (
               <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
                 <Label htmlFor="sync-share-comment" className="text-sm font-normal">
-                  Dela även mina kommentarer
+                  Dela min kommentar
                 </Label>
                 <Switch
                   id="sync-share-comment"
@@ -512,6 +509,29 @@ export function AddPlaceResultDialogs({
                   disabled={syncBusy}
                 />
               </div>
+            ) : null}
+            {syncVisits.some(
+              (visit) => syncVisitIds.includes(visit.visitId) && visit.ownHasPhoto,
+            ) ? (
+              <div className="flex min-h-11 items-center justify-between gap-3 rounded-xl bg-secondary/40 px-3 py-2">
+                <Label htmlFor="sync-share-photo" className="text-sm font-normal">
+                  Dela min bild
+                </Label>
+                <Switch
+                  id="sync-share-photo"
+                  checked={syncSharePhoto}
+                  onCheckedChange={setSyncSharePhoto}
+                  disabled={syncBusy}
+                />
+              </div>
+            ) : null}
+            {syncVisitIds.length > 1 ? (
+              <p className="text-xs text-muted-foreground">Valen gäller alla markerade besök.</p>
+            ) : null}
+            {syncError ? (
+              <p role="alert" className="text-sm">
+                {syncError} Lyckade besök är sparade. Försök igen med de besök som återstår.
+              </p>
             ) : null}
           </div>
           <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
@@ -524,11 +544,12 @@ export function AddPlaceResultDialogs({
               onClick={confirmSyncVisits}
             >
               {syncBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Dela valda besök
+              Lägg till valda besök
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {syncBatch.duplicatePrompt}
     </>
   );
 }

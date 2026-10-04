@@ -2,6 +2,16 @@ import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, UserPlus, UserRoundCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -24,11 +34,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  listPlaceShareTargets,
-  shareVisitToGroup,
-  type PlaceShareTarget,
-} from "@/lib/matrundan/live-sharing";
+import { listPlaceShareTargets, type PlaceShareTarget } from "@/lib/matrundan/live-sharing";
 import {
   deriveReviewOverall,
   reviewModelForContext,
@@ -47,6 +53,8 @@ import {
   type StrongVisitDuplicateCandidate,
 } from "@/lib/matrundan/visit-duplicates";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
+import { useVisitShareBatch } from "./useVisitShareBatch";
+import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
 import { ReviewScoreFields } from "./ReviewScoreFields";
@@ -78,6 +86,7 @@ export function VisitDialog({
   const navigate = useNavigate();
   const { addVisit, saveVisitPhoto, state, getPlace, submitting, mode } = useStore();
   const { activeGroupId } = useSession();
+  const shareBatch = useVisitShareBatch();
   const [shareTargets, setShareTargets] = React.useState<PlaceShareTarget[]>([]);
   const [shareTargetsLoading, setShareTargetsLoading] = React.useState(false);
   const [shareTargetsError, setShareTargetsError] = React.useState<string | null>(null);
@@ -88,6 +97,8 @@ export function VisitDialog({
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
+  const [confirmGroups, setConfirmGroups] = React.useState(false);
+  const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
     React.useState<StrongVisitDuplicateCandidate | null>(null);
@@ -155,6 +166,7 @@ export function VisitDialog({
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
+      setConfirmGroups(false);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -279,7 +291,7 @@ export function VisitDialog({
     ];
   }
 
-  async function persistNewVisit(allowStrongDuplicate = false) {
+  async function persistNewVisit() {
     const hasReview = scoredVisit && reviewModel != null;
     const created = await addVisit({
       placeId: currentPlace.id,
@@ -321,22 +333,19 @@ export function VisitDialog({
     }
 
     const targets = canShare && created?.id ? shareGroupIds : [];
-    const failed: string[] = [];
-    let sharedCount = 0;
-    for (const groupId of targets) {
-      try {
-        await shareVisitToGroup(
-          created.id,
-          groupId,
-          hasComment ? shareComment : false,
-          allowStrongDuplicate,
-          photoFile != null && photoError == null && sharePhoto,
-        );
-        sharedCount += 1;
-      } catch {
-        failed.push(shareableGroups.find((group) => group.groupId === groupId)?.name ?? "en grupp");
-      }
-    }
+    const results = await shareBatch.run(
+      targets.map((groupId) => ({
+        visitId: created!.id,
+        groupId,
+        label: shareableGroups.find((group) => group.groupId === groupId)?.name ?? "Gruppen",
+        shareComment: hasComment && shareComment,
+        sharePhoto: photoFile != null && photoError == null && sharePhoto,
+      })),
+    );
+    const failed = results
+      .filter((result) => result.status === "failed" || result.status === "pending")
+      .map((result) => result.job.label);
+    const sharedCount = results.filter((result) => result.status === "success").length;
     if (sharedCount > 0 && typeof window !== "undefined") {
       window.dispatchEvent(new Event("matrundan:reload"));
     }
@@ -368,6 +377,13 @@ export function VisitDialog({
     if (failed.length > 0) {
       toast.warning("Besöket kunde inte läggas till i alla grupper.", {
         description: failed.join(", "),
+        action:
+          activeGroupId && created?.id
+            ? {
+                label: "Försök igen",
+                onClick: () => setSharePayload({ visitId: created.id, groupId: activeGroupId }),
+              }
+            : undefined,
       });
     }
     if (photoError) {
@@ -387,8 +403,9 @@ export function VisitDialog({
     return true;
   }
 
-  const submit = async () => {
-    if (isBusy || !validateVisitDraft()) return;
+  const saveRegistration = async () => {
+    if (isBusy || savingRegistration.current || !validateVisitDraft()) return;
+    savingRegistration.current = true;
 
     setBusy(true);
     try {
@@ -420,16 +437,23 @@ export function VisitDialog({
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
+      savingRegistration.current = false;
       setBusy(false);
     }
   };
+
+  function submit() {
+    if (isBusy || !validateVisitDraft()) return;
+    if (canShare && shareGroupIds.length > 0) setConfirmGroups(true);
+    else void saveRegistration();
+  }
 
   async function registerDifferentVisit() {
     if (isBusy || !validateVisitDraft()) return;
     setDuplicateCandidate(null);
     setBusy(true);
     try {
-      await persistNewVisit(true);
+      await persistNewVisit();
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
@@ -756,7 +780,7 @@ export function VisitDialog({
               <div className="space-y-3 rounded-2xl border border-border/70 bg-secondary/40 p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 space-y-1">
-                    <Label className="text-sm font-medium">Dela med dina andra grupper</Label>
+                    <Label className="text-sm font-medium">Lägg till besöket i fler grupper</Label>
                     <p className="text-xs text-muted-foreground">
                       Välj vilka grupper som också ska få besöket.
                     </p>
@@ -873,6 +897,57 @@ export function VisitDialog({
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader className="text-left">
+            <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Besöket sparas i:</p>
+                <ul role="list" className="list-none space-y-2 p-0">
+                  <li className="flex items-start gap-3">
+                    <span aria-hidden="true" className="shrink-0">
+                      {state.group.emoji}
+                    </span>
+                    <span className="min-w-0 break-words">{state.group.name}</span>
+                  </li>
+                  {shareableGroups
+                    .filter((group) => shareGroupIds.includes(group.groupId))
+                    .map((group) => (
+                      <li key={group.groupId} className="flex items-start gap-3">
+                        <span aria-hidden="true" className="shrink-0">
+                          {group.emoji}
+                        </span>
+                        <span className="min-w-0 break-words">{group.name}</span>
+                      </li>
+                    ))}
+                </ul>
+                {hasComment && shareComment && photoFile && sharePhoto ? (
+                  <p>Din kommentar och bild delas också.</p>
+                ) : hasComment && shareComment ? (
+                  <p>Din kommentar delas också.</p>
+                ) : photoFile && sharePhoto ? (
+                  <p>Din bild delas också.</p>
+                ) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBusy}
+              onClick={(event) => {
+                event.preventDefault();
+                setConfirmGroups(false);
+                void saveRegistration();
+              }}
+            >
+              Spara i {shareGroupIds.length + 1} grupper
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <ShareVisitDialog
         visitId={sharePayload?.visitId ?? null}
         currentGroupId={sharePayload?.groupId ?? ""}
@@ -907,6 +982,7 @@ export function VisitDialog({
         onUseExisting={() => void openExistingVisit()}
         onDifferentVisit={() => void registerDifferentVisit()}
       />
+      {shareBatch.duplicatePrompt}
     </>
   );
 }

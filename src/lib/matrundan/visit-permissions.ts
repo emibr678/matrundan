@@ -5,7 +5,7 @@ export function canEditOriginalVisit(
   currentUserId: string,
   groupArchived: boolean,
 ) {
-  if (groupArchived || visit.linkType === "shared") return false;
+  if (groupArchived) return false;
   return visit.createdBy === currentUserId;
 }
 

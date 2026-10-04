@@ -608,8 +608,8 @@ export function StoreProvider({
         assertDemoWritable(state, demoReadOnly);
         const target = state.visits.find((item) => item.id === visitId);
         if (!target) throw new Error("Besöket finns inte.");
-        if (target.linkType === "shared" || target.createdBy !== state.currentUserId) {
-          throw new Error("Bara den som registrerade originalbesöket kan redigera det.");
+        if (target.createdBy !== state.currentUserId) {
+          throw new Error("Bara den som registrerade besöket kan redigera det.");
         }
         if (!input.participantIds.includes(state.currentUserId)) {
           throw new Error("Den som registrerade besöket måste vara deltagare.");

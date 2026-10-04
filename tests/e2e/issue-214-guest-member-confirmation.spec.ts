@@ -394,7 +394,12 @@ for (const viewport of VIEWPORTS) {
 
     await visitDialog.getByRole("button", { name: "Koppla Joppe till gruppmedlem" }).click();
     const linkDialog = page.getByRole("dialog", { name: "Koppla Joppe till gruppmedlem" });
-    await expect(linkDialog.getByText("Joppe", { exact: true })).toBeVisible();
+    await expect(
+      linkDialog.getByRole("heading", { name: "Koppla Joppe till gruppmedlem" }),
+    ).toBeVisible();
+    await expect(linkDialog.getByText("1. Vilken gäst?", { exact: true })).toHaveCount(0);
+    await expect(linkDialog.getByText("1. I vilken grupp?", { exact: true })).toBeVisible();
+    await expect(linkDialog.getByText("2. Vem är Joppe?", { exact: true })).toBeVisible();
     await expect(linkDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
     await expect(linkDialog.getByRole("button", { name: "Johan Andersson" })).toBeVisible();
     await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
