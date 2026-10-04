@@ -2,6 +2,16 @@ import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { Loader2, UserPlus, UserRoundCheck, X } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -87,6 +97,8 @@ export function VisitDialog({
   const showShareSection =
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
+  const [confirmGroups, setConfirmGroups] = React.useState(false);
+  const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
     React.useState<StrongVisitDuplicateCandidate | null>(null);
@@ -154,6 +166,7 @@ export function VisitDialog({
       setShareTargets([]);
       setShareTargetsError(null);
       setShareGroupIds([]);
+      setConfirmGroups(false);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -390,8 +403,9 @@ export function VisitDialog({
     return true;
   }
 
-  const submit = async () => {
-    if (isBusy || !validateVisitDraft()) return;
+  const saveRegistration = async () => {
+    if (isBusy || savingRegistration.current || !validateVisitDraft()) return;
+    savingRegistration.current = true;
 
     setBusy(true);
     try {
@@ -423,9 +437,16 @@ export function VisitDialog({
     } catch (error) {
       toast.error((error as Error).message || "Kunde inte spara besöket.");
     } finally {
+      savingRegistration.current = false;
       setBusy(false);
     }
   };
+
+  function submit() {
+    if (isBusy || !validateVisitDraft()) return;
+    if (canShare && shareGroupIds.length > 0) setConfirmGroups(true);
+    else void saveRegistration();
+  }
 
   async function registerDifferentVisit() {
     if (isBusy || !validateVisitDraft()) return;
@@ -875,6 +896,48 @@ export function VisitDialog({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
+        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>Besöket sparas i {state.group.name} och läggs även till i:</p>
+                <ul className="list-disc space-y-1 pl-5">
+                  {shareableGroups
+                    .filter((group) => shareGroupIds.includes(group.groupId))
+                    .map((group) => (
+                      <li key={group.groupId} className="break-words">
+                        {group.name}
+                      </li>
+                    ))}
+                </ul>
+                {hasComment && shareComment && photoFile && sharePhoto ? (
+                  <p>Din kommentar och bild delas också.</p>
+                ) : hasComment && shareComment ? (
+                  <p>Din kommentar delas också.</p>
+                ) : photoFile && sharePhoto ? (
+                  <p>Din bild delas också.</p>
+                ) : null}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isBusy}
+              onClick={(event) => {
+                event.preventDefault();
+                setConfirmGroups(false);
+                void saveRegistration();
+              }}
+            >
+              Spara i {shareGroupIds.length + 1} grupper
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ShareVisitDialog
         visitId={sharePayload?.visitId ?? null}

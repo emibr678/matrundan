@@ -523,3 +523,53 @@ test("flera målgrupper behåller lyckade resultat och återförsöker bara fela
   await expect(dialog).toHaveCount(0);
   expect(writes).toEqual([SECOND_TARGET_GROUP_ID, TARGET_GROUP_ID, TARGET_GROUP_ID]);
 });
+
+test("registrering bekräftar förvalda grupper före skrivning och behåller utkastet vid tillbaka", async ({
+  page,
+}, testInfo) => {
+  await seedSession(page);
+  await mockLive(page, true);
+  let creates = 0;
+  await page.route("**/rest/v1/rpc/create_visit_with_review_v5", async (route) => {
+    creates++;
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(VISIT_ID),
+    });
+  });
+  await page.route("**/rest/v1/rpc/find_registration_visit_duplicate_v2", async (route) => {
+    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+  });
+  await page.route("**/rest/v1/rpc/share_visit_to_group_v5", async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(TARGET_GROUP_ID),
+    });
+  });
+  await page.goto(`/matstallen/${PLACE_ID}`);
+  await page.getByRole("button", { name: "Registrera besök" }).click();
+  const form = page.getByRole("dialog", { name: "Registrera besök" });
+  await form.getByRole("combobox").first().click();
+  await page.getByRole("option", { name: "Ett glas" }).click();
+  await form.getByLabel("Kommentar (frivilligt)").fill("En fin kväll.");
+  await expect(form.getByRole("switch", { name: "Dela min kommentar" })).toBeChecked();
+  await form.getByRole("button", { name: "Spara besök", exact: true }).click();
+  const confirmation = page.getByRole("alertdialog", { name: "Spara besöket i 2 grupper?" });
+  await expect(confirmation).toBeVisible();
+  await expect(
+    confirmation.getByText("Jobbgänget med ett lite längre namn", { exact: true }),
+  ).toBeVisible();
+  await expect(confirmation.getByText("Din kommentar delas också.", { exact: true })).toBeVisible();
+  expect(creates).toBe(0);
+  await expectNoHorizontalOverflow(page);
+  await stabilize(page);
+  await capture(page, testInfo, "issue-398-bekrafta-grupper");
+  await confirmation.getByRole("button", { name: "Ändra grupper" }).click();
+  await expect(form.getByLabel("Kommentar (frivilligt)")).toHaveValue("En fin kväll.");
+  await form.getByRole("button", { name: "Spara besök", exact: true }).click();
+  await confirmation.getByRole("button", { name: "Spara i 2 grupper" }).click();
+  await expect.poll(() => creates).toBe(1);
+  await expect(form).toHaveCount(0);
+});

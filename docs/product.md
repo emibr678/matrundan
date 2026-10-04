@@ -121,7 +121,7 @@ huvudsyfte.
 
 ### Hem — gruppens nuläge och nästa steg
 
-**Hem** svarar främst på: *Vad har gruppen på gång just nu?*
+**Hem** svarar främst på: _Vad har gruppen på gång just nu?_
 
 Ytan sammanfattar det som är mest relevant i den aktiva gruppen, framför allt:
 
@@ -151,8 +151,8 @@ erfarenheter, inte ett offentligt eller globalt Matrundan-betyg.
 
 ### Gruppen — människorna bakom rundan
 
-**Gruppen** svarar främst på: *Vilka gör den här resan tillsammans och vad har
-gruppen byggt upp?*
+**Gruppen** svarar främst på: _Vilka gör den här resan tillsammans och vad har
+gruppen byggt upp?_
 
 Här hör bland annat hemma:
 
@@ -172,6 +172,10 @@ annan grupp**. **Redigera besök** korrigerar händelsen och deltagandet. Ett el
 flera mål kan väljas; **Dela min kommentar** och **Dela min bild** är gemensamma
 val för handlingen och förvalda när eget innehåll finns. Tidigare besök som
 erbjuds när ett ställe läggs till börjar däremot ovalda.
+
+Vid nyregistrering med fler grupper valda visas en bekräftelse med aktuella
+gruppnamn och valt eget innehåll innan någon skrivning. **Ändra grupper** återgår
+till det bevarade utkastet. Utan extra grupper sparas besöket direkt.
 
 En befintlig besökslänk kan kompletteras med deltagarens eget innehåll. Den
 skapar ingen ny händelse. Ändrad kommentar eller utbytt/borttagen bild påverkar
