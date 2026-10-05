@@ -65,5 +65,5 @@ SQL
   count="$(psql_race -c "SELECT count(*) FROM public.places WHERE name='$name';")"
   if [[ "$count" != 1 ]]; then echo "Duplicate place after $scenario: $count" >&2; exit 1; fi
   echo "PASS $scenario: two concurrent sessions, one canonical place"
-  psql_race -c "DELETE FROM public.group_places WHERE group_id='$group'; DELETE FROM public.places WHERE added_by='$actor';" >/dev/null
+  psql_race -c "DELETE FROM public.activity WHERE group_id='$group'; DELETE FROM public.group_places WHERE group_id='$group'; DELETE FROM public.places WHERE added_by='$actor';" >/dev/null
 done
