@@ -1118,6 +1118,14 @@ CREATE TRIGGER serialize_source_identity_writes
 
 REVOKE ALL ON ALL FUNCTIONS IN SCHEMA private FROM PUBLIC, anon, authenticated;
 
+-- Restate the legacy ACLs beside every replaced SECURITY DEFINER boundary.
+REVOKE ALL ON FUNCTION public.create_or_link_provider_place_v5f(uuid,text,text,text,text,text[],text[],text,text,text,double precision,double precision,text,text,jsonb) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.create_place_v4b(uuid,text,text,text[],text[],text,text,text,double precision,double precision,text,text) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.link_provider_source_to_existing_place_v1(uuid,uuid,text,text,text,text,text,double precision,double precision,jsonb) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.link_provider_source_for_maintenance_v1(uuid,text,text,text,text,text,double precision,double precision,jsonb) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.create_or_link_provider_places_batch_v1(uuid,jsonb) FROM PUBLIC,anon;
+REVOKE ALL ON FUNCTION public.apply_place_external_location_v1(uuid,uuid,uuid,text,text,text,text,double precision,double precision,text,text,timestamp with time zone) FROM PUBLIC,anon,authenticated;
+
 REVOKE ALL ON FUNCTION public.resolve_verified_provider_place_v1(uuid,uuid,jsonb,text,uuid,jsonb,text[],text,text)
   FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.link_verified_maintenance_source_v1(uuid,uuid,jsonb)

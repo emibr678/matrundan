@@ -2369,11 +2369,7 @@ export type Database = {
         Returns: Json
       }
       create_manual_place_fallback_v2: {
-        Args: {
-          _data: Json
-          _decisions?: Json
-          _group_id: string
-        }
+        Args: { _data: Json; _decisions?: Json; _group_id: string }
         Returns: Json
       }
       create_or_link_provider_place: {
@@ -2785,9 +2781,7 @@ export type Database = {
         Returns: Json
       }
       get_place_discovery_context_v1: {
-        Args: {
-          _group_id: string
-        }
+        Args: { _group_id: string }
         Returns: Json
       }
       get_place_external_info_context_v1: {
@@ -2925,11 +2919,7 @@ export type Database = {
         Returns: Json
       }
       link_verified_maintenance_source_v1: {
-        Args: {
-          _actor_id: string
-          _candidate_id: string
-          _data: Json
-        }
+        Args: { _actor_id: string; _candidate_id: string; _data: Json }
         Returns: string
       }
       list_group_hidden_place_suggestions: {
@@ -3104,10 +3094,7 @@ export type Database = {
         Returns: string
       }
       match_place_discovery_candidates_v1: {
-        Args: {
-          _group_id: string
-          _items: Json
-        }
+        Args: { _group_id: string; _items: Json }
         Returns: Json
       }
       next_stop_v2_assert_revision: {
@@ -3784,3 +3771,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+
