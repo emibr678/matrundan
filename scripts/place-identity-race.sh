@@ -11,7 +11,7 @@ actor="38990000-0000-4000-8000-000000000001"
 group="38991000-0000-4000-8000-000000000001"
 psql_race() { psql "$race_db_url" -X -v ON_ERROR_STOP=1 -At "$@"; }
 cleanup() {
-  psql_race -c "DELETE FROM public.groups WHERE id='$group'; DELETE FROM public.places WHERE added_by='$actor'; DELETE FROM auth.users WHERE id='$actor';" >/dev/null
+  psql_race -c "BEGIN; DELETE FROM public.activity WHERE group_id='$group'; DELETE FROM public.group_places WHERE group_id='$group'; DELETE FROM public.places WHERE added_by='$actor'; SELECT set_config('matrundan.allow_owner_change','on',true); DELETE FROM public.groups WHERE id='$group'; DELETE FROM auth.users WHERE id='$actor'; COMMIT;" >/dev/null
   rm -rf "$race_tmp"
 }
 trap cleanup EXIT
@@ -54,8 +54,14 @@ SQL
     sleep 0.02
   done
   if [[ "$observed" != 1 ]]; then echo "First writer never reached its transaction hold." >&2; exit 1; fi
-  psql_race -f "$race_tmp/second.sql" > "$race_tmp/second.log" 2>&1
-  wait "$first_pid"
+  if ! psql_race -f "$race_tmp/second.sql" > "$race_tmp/second.log" 2>&1; then
+    cat "$race_tmp/first.log" "$race_tmp/second.log" >&2
+    exit 1
+  fi
+  if ! wait "$first_pid"; then
+    cat "$race_tmp/first.log" >&2
+    exit 1
+  fi
   count="$(psql_race -c "SELECT count(*) FROM public.places WHERE name='$name';")"
   if [[ "$count" != 1 ]]; then echo "Duplicate place after $scenario: $count" >&2; exit 1; fi
   echo "PASS $scenario: two concurrent sessions, one canonical place"
