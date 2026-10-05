@@ -1,7 +1,7 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 SET LOCAL search_path=public,extensions;
-SELECT plan(28);
+SELECT plan(31);
 INSERT INTO auth.users(id,email,raw_user_meta_data) VALUES
  ('38900000-0000-4000-8000-000000000001','discovery-owner@example.invalid','{"full_name":"Owner"}'),
  ('38900000-0000-4000-8000-000000000002','discovery-member@example.invalid','{"full_name":"Member"}'),
@@ -47,6 +47,7 @@ SELECT is(public.create_or_link_provider_places_batch_v1('38910000-0000-4000-800
 SELECT is(public.link_canonical_place_to_group_v1('38910000-0000-4000-8000-000000000001','38920000-0000-4000-8000-000000000001')->>'status','linked','member can reuse the canonical place');
 SELECT is(public.link_canonical_place_to_group_v1('38910000-0000-4000-8000-000000000001','38920000-0000-4000-8000-000000000001')->>'status','already_active','canonical reuse is idempotent');
 RESET ROLE;
+UPDATE public.group_places SET notes='Own private note',occasions=ARRAY['middag'] WHERE group_id='38910000-0000-4000-8000-000000000001' AND place_id='38920000-0000-4000-8000-000000000001';
 SELECT is(public.resolve_verified_provider_place_v1('38900000-0000-4000-8000-000000000001','38910000-0000-4000-8000-000000000001',pg_temp.provider_data())->>'status','review_required','manual candidate prevents a new provider row');
 SELECT throws_ok($$SELECT public.resolve_verified_provider_place_v1('38900000-0000-4000-8000-000000000002','38910000-0000-4000-8000-000000000001',pg_temp.provider_data(),'link','38920000-0000-4000-8000-000000000001')$$,'P0001','Gruppens admin behöver bekräfta matchningen','server rechecks role at confirmation');
 SELECT is(public.resolve_verified_provider_place_v1('38900000-0000-4000-8000-000000000001','38910000-0000-4000-8000-000000000001',pg_temp.provider_data(),'separate',NULL,jsonb_build_array(jsonb_build_object('placeId','38920000-0000-4000-8000-000000000001','version','00000000000000000000000000000000')),'{}',NULL,private.provider_place_version_v1(pg_temp.provider_data()))->>'status','review_required','stale candidate decision cannot approve separation');
@@ -61,5 +62,8 @@ SELECT is((SELECT notes FROM public.group_places WHERE group_id='38910000-0000-4
 SELECT is(public.resolve_verified_provider_place_v1('38900000-0000-4000-8000-000000000001','38910000-0000-4000-8000-000000000001',pg_temp.provider_data())->>'status','already_active','repeated verified add reuses same identity');
 SELECT is(public.resolve_verified_provider_place_v1('38900000-0000-4000-8000-000000000001','38910000-0000-4000-8000-000000000001',pg_temp.provider_data()||'{"osmId":"389000999"}'::jsonb)->>'status','identity_conflict','changed OSM identity cannot silently replace an active identity');
 SELECT is((SELECT count(*)::integer FROM public.place_sources WHERE provider_place_id='node:389000999'),0,'conflicting identity causes no source write');
+SELECT is((SELECT notes FROM public.group_places WHERE group_id='38910000-0000-4000-8000-000000000001' AND place_id='38920000-0000-4000-8000-000000000001'),'Own private note','existing own group metadata also survives source attachment');
+SELECT is((SELECT occasions FROM public.group_places WHERE group_id='38910000-0000-4000-8000-000000000001' AND place_id='38920000-0000-4000-8000-000000000001'),ARRAY['middag']::text[],'source attachment does not replace experience classification');
+SELECT is((SELECT status FROM public.place_improvement_candidates WHERE place_id='38920000-0000-4000-8000-000000000001'),'resolved','active source resolves the improvement candidate');
 SELECT * FROM finish();
 ROLLBACK;

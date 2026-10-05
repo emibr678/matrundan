@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
@@ -70,6 +71,9 @@ export function AddPlaceDialogContent({
   const [discoverySnapshot, setDiscoverySnapshot] = React.useState<PlaceDiscoverySnapshot | null>(
     null,
   );
+  const [resolutions, setResolutions] = React.useState<Record<string, PlaceResolution>>({});
+  const currentScopeRef = React.useRef({ groupId: activeGroupId, mode });
+  currentScopeRef.current = { groupId: activeGroupId, mode };
   const [bulkBusy, setBulkBusy] = React.useState(false);
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
@@ -111,6 +115,7 @@ export function AddPlaceDialogContent({
     setSelectedResults([]);
     setAddedResultIds(new Set());
     setDiscoverySnapshot(null);
+    setResolutions({});
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -215,6 +220,7 @@ export function AddPlaceDialogContent({
   async function addSelectedResults() {
     if (bulkBusy || selectedResults.length === 0) return;
     setBulkBusy(true);
+    const operationScope = currentScopeRef.current;
     try {
       if (mode === "live" && !activeGroupId) throw new Error("Ingen aktiv grupp.");
       const result =
@@ -225,6 +231,19 @@ export function AddPlaceDialogContent({
             )
           : await addDemoResults(selectedResults);
 
+      if (
+        operationScope.groupId !== currentScopeRef.current.groupId ||
+        operationScope.mode !== currentScopeRef.current.mode
+      )
+        return;
+      setResolutions((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          result.items
+            .filter((item) => item.resolution)
+            .map((item) => [item.externalId, item.resolution!]),
+        ),
+      }));
       const completedIds = completedBulkExternalIds(result);
       markCompleted(completedIds);
       const reviewItem = result.items.find((item) => item.resolution?.status === "review_required");
@@ -247,7 +266,7 @@ export function AddPlaceDialogContent({
             reviewRequired: true,
             identityConflict: false,
           };
-          setPending({ ...selected, identity });
+          setPending({ ...selected, ...reviewItem.resolution.provider, identity });
         }
       }
 
@@ -354,6 +373,15 @@ export function AddPlaceDialogContent({
       <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent
           ref={searchDialogRef}
+          onEscapeKeyDown={(event) => {
+            // The first Escape dismisses the suggestions; a second closes the dialog.
+            if (
+              event.target instanceof Element &&
+              event.target.closest('[role="combobox"][aria-expanded="true"]')
+            ) {
+              event.preventDefault();
+            }
+          }}
           onOpenAutoFocus={(event) => {
             if (!returningToSearchRef.current) return;
             event.preventDefault();
@@ -375,6 +403,7 @@ export function AddPlaceDialogContent({
           {view === "search" ? (
             <PlaceDiscovery
               initialQuery={initialQuery}
+              resolutions={resolutions}
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
               bulkBusy={bulkBusy || sourceLinkBusy}

@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 import type { PlaceSuggestion } from "./places-provider";
-import { rpcClient } from "./rpc-client";
+import { resolveProviderPlace } from "./place-resolution.functions";
+import { PlaceResolutionError } from "./place-discovery";
 
 export type LocalSourceLinkStorage = "local" | "session";
 
@@ -30,15 +31,6 @@ function storageFor(kind: LocalSourceLinkStorage): Storage | null {
 
 function storageKey(groupId: string): string {
   return `${LOCAL_STORAGE_PREFIX}.${groupId}`;
-}
-
-function parseRawProviderData(raw: string | undefined): unknown {
-  if (!raw) return {};
-  try {
-    return JSON.parse(raw) as unknown;
-  } catch {
-    return {};
-  }
 }
 
 export function listLocalManualSourceLinks(
@@ -105,21 +97,18 @@ export async function linkLiveProviderSourceToManualPlace(
     throw new Error("Sökträffen saknar en verifierad kartposition.");
   }
 
-  return rpcClient.call(
-    "link_provider_source_to_existing_place_v1",
-    {
-      _group_id: groupId,
-      _place_id: placeId,
-      _provider: suggestion.provider ?? "geoapify",
-      _provider_place_id: suggestion.externalId,
-      _name: suggestion.name,
-      _address: suggestion.address ?? "",
-      _city: suggestion.city ?? "",
-      _lat: suggestion.lat,
-      _lng: suggestion.lng,
-      _raw: parseRawProviderData(suggestion.raw),
+  const candidate = suggestion.identity?.candidates.find((item) => item.placeId === placeId);
+  if (!candidate) throw new Error("Sök efter stället igen och granska de aktuella uppgifterna.");
+  const resolved = await resolveProviderPlace({
+    data: {
+      groupId,
+      providerPlaceId: suggestion.externalId,
+      choice: "link",
+      placeId,
+      providerVersion: suggestion.identity?.providerVersion,
+      decisions: [{ placeId, version: candidate.version }],
     },
-    z.string().uuid(),
-    "Servern kunde inte bekräfta källkopplingen.",
-  );
+  });
+  if (!resolved.placeId) throw new PlaceResolutionError(resolved);
+  return resolved.placeId;
 }

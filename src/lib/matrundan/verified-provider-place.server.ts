@@ -1,3 +1,4 @@
+import { GEOAPIFY_DISCOVERY_CATEGORIES } from "./geoapify-place-search";
 import { normalizePlaceFeature } from "./geoapify-normalize";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import type { PlaceCategory } from "./types";
@@ -45,7 +46,24 @@ async function fetchDetails(providerPlaceId: string): Promise<VerifiedProviderPl
   if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
     throw new Error("GEOAPIFY_MALFORMED");
   }
-  const metadata = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+  const metadata = JSON.parse(place.raw) as {
+    osmType?: string;
+    osmId?: string;
+    categories?: unknown[];
+  };
+  if (
+    !metadata.categories?.some(
+      (category) =>
+        typeof category === "string" &&
+        GEOAPIFY_DISCOVERY_CATEGORIES.some(
+          (allowed) => category === allowed || category.startsWith(`${allowed}.`),
+        ),
+    )
+  ) {
+    throw new Error("GEOAPIFY_MALFORMED");
+  }
+  if (place.lat! < -90 || place.lat! > 90 || place.lng! < -180 || place.lng! > 180)
+    throw new Error("GEOAPIFY_MALFORMED");
   return {
     externalId: providerPlaceId,
     name: place.name,

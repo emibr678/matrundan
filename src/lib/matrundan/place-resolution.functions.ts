@@ -17,7 +17,7 @@ export const resolveProviderPlace = createServerFn({ method: "POST" })
       throw new Error("Gruppens admin behöver bekräfta matchningen.");
     }
     const { fetchVerifiedProviderPlace } = await import("./verified-provider-place.server");
-    const provider = await fetchVerifiedProviderPlace(data.providerPlaceId, data.choice === "link");
+    const provider = await fetchVerifiedProviderPlace(data.providerPlaceId, data.choice !== "auto");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await supabaseAdmin.rpc("resolve_verified_provider_place_v1", {
       _actor_id: context.userId,
@@ -101,12 +101,30 @@ export const resolveProviderPlacesBatch = createServerFn({ method: "POST" })
                   : resolved.status === "already_active"
                     ? "existing"
                     : "failed";
+            const resolution: PlaceResolution = {
+              ...resolved,
+              provider:
+                resolved.status === "review_required"
+                  ? {
+                      externalId: provider.externalId,
+                      provider: "geoapify",
+                      name: provider.name,
+                      category: provider.category,
+                      cuisines: provider.cuisines,
+                      address: provider.address,
+                      area: provider.area ?? undefined,
+                      city: provider.city,
+                      lat: provider.lat,
+                      lng: provider.lng,
+                    }
+                  : undefined,
+            };
             items[index] = {
               externalId: item.externalId,
               name: provider.name,
               status,
               placeId: resolved.placeId,
-              resolution: resolved,
+              resolution,
               message: status === "failed" ? "Granska matchningen innan stället läggs till." : null,
             };
           } catch {

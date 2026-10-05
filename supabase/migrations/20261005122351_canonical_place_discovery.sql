@@ -38,6 +38,18 @@ BEGIN
 END;
 $$;
 
+-- Mutations hold membership and lifecycle stable until commit. Read-only discovery
+-- uses assert_place_group_v1 without row locks.
+CREATE OR REPLACE FUNCTION private.lock_place_group_v1(_actor uuid,_group uuid)
+RETURNS void LANGUAGE plpgsql VOLATILE SET search_path='' AS $$
+BEGIN
+  PERFORM g.id FROM public.groups g JOIN public.memberships m ON m.group_id=g.id
+    WHERE g.id=_group AND g.lifecycle_status='active' AND m.user_id=_actor AND m.status='active'
+    FOR SHARE OF g,m;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Gruppen kunde inte verifieras'; END IF;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION private.canonical_place_projection_v1(_place uuid, _group uuid)
 RETURNS jsonb LANGUAGE sql STABLE SET search_path = '' AS $$
   SELECT jsonb_build_object(
@@ -115,7 +127,7 @@ CREATE OR REPLACE FUNCTION private.link_place_group_v1(
 RETURNS jsonb LANGUAGE plpgsql VOLATILE SET search_path = '' AS $$
 DECLARE _status text; _name text; _actor_name text;
 BEGIN
-  PERFORM private.assert_place_group_v1(_actor,_group);
+  PERFORM private.lock_place_group_v1(_actor,_group);
   IF COALESCE(cardinality(_occasions),0)>2
     OR NOT COALESCE(_occasions,'{}') <@ ARRAY['snabbt','avslappnat','middag']::text[] THEN
     RAISE EXCEPTION 'Ogiltig Typ av upplevelse';
@@ -235,7 +247,9 @@ RETURNS jsonb LANGUAGE plpgsql VOLATILE SECURITY DEFINER SET search_path = '' AS
 BEGIN
   PERFORM private.assert_place_group_v1(auth.uid(),_group_id);
   PERFORM private.lock_place_identity_v1();
-  IF NOT private.manual_place_eligible_v1(_place_id) THEN
+  PERFORM private.lock_place_group_v1(auth.uid(),_group_id);
+  IF NOT private.manual_place_eligible_v1(_place_id) AND NOT EXISTS(SELECT 1 FROM public.group_places
+    WHERE group_id=_group_id AND place_id=_place_id) THEN
     RETURN jsonb_build_object('status','verification_required');
   END IF;
   RETURN private.link_place_group_v1(auth.uid(),_group_id,_place_id,_occasions,_notes,'manual');
@@ -609,7 +623,7 @@ BEGIN
   IF _choice NOT IN ('auto','link','separate') OR COALESCE(jsonb_typeof(_decisions),'null')<>'array'
     OR jsonb_array_length(_decisions)>100 THEN RAISE EXCEPTION 'Ogiltigt beslut'; END IF;
   PERFORM private.lock_place_identity_v1();
-  PERFORM private.assert_place_group_v1(_actor_id,_group_id);
+  PERFORM private.lock_place_group_v1(_actor_id,_group_id);
   IF _choice='link' AND NOT public.has_group_role(_group_id,_actor_id,ARRAY['owner','admin']) THEN
     RAISE EXCEPTION 'Gruppens admin behöver bekräfta matchningen';
   END IF;
@@ -689,6 +703,8 @@ BEGIN
     WHERE user_id=_actor_id) THEN RAISE EXCEPTION 'Underhållsärendet kunde inte verifieras'; END IF;
   PERFORM private.validate_provider_data_v1(_data);
   PERFORM private.lock_place_identity_v1();
+  PERFORM user_id FROM public.place_maintainers WHERE user_id=_actor_id FOR SHARE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Underhållsärendet kunde inte verifieras'; END IF;
   SELECT place_id INTO _place FROM public.place_improvement_candidates
     WHERE id=_candidate_id AND status IN ('open','needs_osm') FOR UPDATE;
   SELECT projection INTO _target FROM private.place_identity_candidates_v1(NULL,_data)
@@ -728,7 +744,12 @@ DECLARE _place uuid; _linked jsonb; _occasions text[];
   _lng double precision := (_data->>'lng')::double precision;
 BEGIN
   PERFORM private.assert_place_group_v1(_actor,_group);
-  IF length(trim(COALESCE(_data->>'name',''))) NOT BETWEEN 2 AND 300
+  IF COALESCE(jsonb_typeof(_data),'null')<>'object' OR octet_length(_data::text)>40000
+    OR length(COALESCE(_data->>'address',''))>500 OR length(COALESCE(_data->>'area',''))>200
+    OR length(COALESCE(_data->>'city',''))>200 OR length(COALESCE(_data->>'notes',''))>2000
+    OR jsonb_typeof(COALESCE(_data->'cuisines','[]'))<>'array'
+    OR jsonb_array_length(COALESCE(_data->'cuisines','[]'))>20
+    OR length(trim(COALESCE(_data->>'name',''))) NOT BETWEEN 2 AND 300
     OR COALESCE(_data->>'category','') NOT IN ('restaurang','café','bageri','snabbmat','pub','matvagn')
     OR (_lat IS NULL)<>(_lng IS NULL)
     OR (_lat IS NOT NULL AND (_lat NOT BETWEEN -90 AND 90 OR _lng NOT BETWEEN -180 AND 180))
@@ -736,7 +757,7 @@ BEGIN
     RAISE EXCEPTION 'Ogiltigt matställe';
   END IF;
   PERFORM private.lock_place_identity_v1();
-  PERFORM private.assert_place_group_v1(_actor,_group);
+  PERFORM private.lock_place_group_v1(_actor,_group);
   IF EXISTS(SELECT 1 FROM public.places p WHERE p.lat IS NOT NULL AND p.lng IS NOT NULL
     AND private.normalize_place_identity_v1(p.name)=private.normalize_place_identity_v1(_data->>'name')
     AND private.place_distance_km_v1(_lat,_lng,p.lat,p.lng)<=0.15
@@ -798,6 +819,7 @@ DECLARE _place uuid; _result jsonb;
 BEGIN
   PERFORM private.assert_place_group_v1(auth.uid(),_group_id);
   PERFORM private.lock_place_identity_v1();
+  PERFORM private.lock_place_group_v1(auth.uid(),_group_id);
   SELECT place_id INTO _place FROM public.place_sources WHERE provider='geoapify'
     AND _provider='geoapify' AND provider_place_id=trim(_provider_place_id) AND status='active';
   IF _place IS NULL THEN RAISE EXCEPTION 'verification_required'; END IF;

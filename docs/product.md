@@ -146,6 +146,16 @@ Här hör bland annat hemma:
 - gruppens Topplista;
 - platsdetalj och gruppspecifika uppgifter om stället.
 
+Platssökningen kompletterar kartträffar med befintliga manuella Matrundan-ställen
+vid en konkret namn-, kategori- eller köksökning. Ett valt ställe återanvänds på
+samma plats-ID och kopplas bara till den aktiva gruppen. Andra gruppers besök,
+anteckningar och klassificering följer inte med.
+
+När en senare kartträff verkar motsvara ett manuellt ställe får användaren
+granska matchningen. Gruppens ägare/admin kan bekräfta den externa källan;
+vanliga medlemmar kan använda det befintliga stället direkt. Osäkra eller
+motstridiga identiteter stoppar ändringen. Källkoppling bevarar platsens historik.
+
 Topplistan är ett stöd för återupptäckt och val utifrån gruppens faktiska
 erfarenheter, inte ett offentligt eller globalt Matrundan-betyg.
 

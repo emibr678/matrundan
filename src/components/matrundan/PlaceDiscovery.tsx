@@ -1,4 +1,5 @@
 import * as React from "react";
+import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { canBulkAddSuggestion } from "@/lib/matrundan/place-discovery";
 import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -83,6 +84,7 @@ export interface PlaceDiscoverySnapshot {
 
 export function PlaceDiscovery({
   initialQuery = "",
+  resolutions = {},
   addedResultIds,
   selectedResults,
   bulkBusy,
@@ -97,6 +99,7 @@ export function PlaceDiscovery({
   onClose,
 }: {
   initialQuery?: string;
+  resolutions?: Record<string, PlaceResolution>;
   addedResultIds: Set<string>;
   selectedResults: PlaceSuggestion[];
   bulkBusy: boolean;
@@ -320,8 +323,11 @@ export function PlaceDiscovery({
       if (addedResultIds.has(suggestion.externalId)) return false;
       if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
       if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
-      if (isLive)
-        return (suggestion.canonical ?? suggestion.identity?.knownPlace)?.groupStatus !== "active";
+      if (isLive) {
+        const canonical = suggestion.canonical ?? suggestion.identity?.knownPlace;
+        const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
+        return (own?.collectionStatus ?? canonical?.groupStatus) !== "active";
+      }
       const match = matchingPlace(state.places, suggestion);
       return !(match && match.collectionStatus !== "archived");
     },
@@ -492,8 +498,28 @@ export function PlaceDiscovery({
   }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
-    () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
-    [hiddenKeys, results],
+    () =>
+      results
+        .map((result) => {
+          const resolution = resolutions[result.externalId];
+          return resolution
+            ? {
+                ...result,
+                ...resolution.provider,
+                identity: {
+                  providerPlaceId: result.externalId,
+                  providerVersion:
+                    resolution.providerVersion ?? result.identity?.providerVersion ?? "",
+                  knownPlace: result.identity?.knownPlace ?? null,
+                  candidates: resolution.candidates ?? [],
+                  reviewRequired: resolution.status === "review_required",
+                  identityConflict: resolution.status === "identity_conflict",
+                },
+              }
+            : result;
+        })
+        .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+    [hiddenKeys, resolutions, results],
   );
   const visibleResults = React.useMemo(
     () =>
@@ -583,10 +609,13 @@ export function PlaceDiscovery({
       )
         return "existing";
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
-      if (isLive)
-        return (suggestion.canonical ?? suggestion.identity?.knownPlace)?.groupStatus === "active"
+      if (isLive) {
+        const canonical = suggestion.canonical ?? suggestion.identity?.knownPlace;
+        const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
+        return (own?.collectionStatus ?? canonical?.groupStatus) === "active"
           ? "existing"
           : "available";
+      }
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
     },

@@ -180,6 +180,8 @@ export function AddPlaceResultDialogs({
   const { state, addPlace, addProviderPlace, submitting } = useStore();
   const { mode, activeGroupId, activeGroupRole } = useSession();
   const isLive = mode === "live";
+  const scopeRef = React.useRef({ groupId: activeGroupId, mode });
+  scopeRef.current = { groupId: activeGroupId, mode };
   const canHideSuggestion =
     mode === "demo" || activeGroupRole === "owner" || activeGroupRole === "admin";
   const [review, setReview] = React.useState<PlaceResolution | null>(null);
@@ -206,7 +208,11 @@ export function AddPlaceResultDialogs({
   React.useEffect(() => {
     if (!pending) return;
     setCuisines(pending.cuisines ?? []);
-    setConflictMessage(null);
+    setConflictMessage(
+      pending.identity?.identityConflict
+        ? "Kartkällorna pekar på olika ställen. Ingen ändring kan sparas här."
+        : null,
+    );
     setReview(
       pending.identity?.reviewRequired
         ? {
@@ -265,6 +271,10 @@ export function AddPlaceResultDialogs({
     reuseOnly = false,
   ) {
     if (!pending || isBusy) return;
+    const actionScope = scopeRef.current;
+    const stale = () =>
+      actionScope.groupId !== scopeRef.current.groupId ||
+      actionScope.mode !== scopeRef.current.mode;
     const externalId = pending.externalId;
     const shouldOfferSync =
       isLive &&
@@ -304,6 +314,7 @@ export function AddPlaceResultDialogs({
               providerVersion: review?.providerVersion,
             })
           : await addPlace(place);
+      if (stale()) return;
       onAdded(externalId);
       resetPending();
       toast.success(`${added.name} tillagd i gruppen`);
@@ -311,6 +322,7 @@ export function AddPlaceResultDialogs({
       if (shouldOfferSync && activeGroupId) {
         try {
           const ownVisits = await listOwnVisitsForPlaceOnAdd(added.id, activeGroupId);
+          if (stale()) return;
           const shareableVisits = availableOwnVisits(ownVisits);
           if (shareableVisits.length > 0) {
             setSyncPlaceName(added.name);
@@ -331,6 +343,7 @@ export function AddPlaceResultDialogs({
         }
       }
     } catch (error) {
+      if (stale()) return;
       if (error instanceof PlaceResolutionError) {
         if (error.resolution.status === "review_required") {
           setReview(error.resolution);
@@ -427,9 +440,21 @@ export function AddPlaceResultDialogs({
                   Det befintliga stället används. Andra gruppers besök och anteckningar delas inte.
                 </p>
               </div>
+            ) : review ? (
+              <div className="space-y-1 rounded-xl border bg-secondary/40 p-3">
+                <p className="text-xs text-muted-foreground">Kartträffen</p>
+                <h2 className="break-words font-display text-xl">
+                  {(review.provider ?? pending).name}
+                </h2>
+                <p className="break-words text-sm text-muted-foreground">
+                  {[(review.provider ?? pending).address, (review.provider ?? pending).city]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+              </div>
             ) : (
               <PendingPlaceSummary
-                pending={review?.provider ?? pending}
+                pending={pending}
                 cuisines={cuisines}
                 reportablePending={reportablePending}
               />
@@ -447,6 +472,7 @@ export function AddPlaceResultDialogs({
                 </p>
                 {(review.candidates ?? []).map((candidate) => (
                   <div key={candidate.placeId} className="space-y-2 rounded-xl border p-3">
+                    <p className="text-xs text-muted-foreground">Finns i Matrundan</p>
                     <p className="break-words font-medium">{candidate.name}</p>
                     <p className="break-words text-sm text-muted-foreground">
                       {[candidate.address, candidate.city].filter(Boolean).join(", ")} ·{" "}
@@ -454,7 +480,7 @@ export function AddPlaceResultDialogs({
                     </p>
                     <Button
                       className="min-h-11 w-full whitespace-normal"
-                      disabled={isBusy}
+                      disabled={isBusy || !!conflictMessage}
                       onClick={() =>
                         void confirmAdd(
                           candidate.matchKind === "strong" && canConfirmIdentity ? "link" : "auto",
@@ -486,7 +512,7 @@ export function AddPlaceResultDialogs({
                   <Button
                     variant="outline"
                     className="min-h-11 w-full whitespace-normal"
-                    disabled={isBusy}
+                    disabled={isBusy || !!conflictMessage}
                     onClick={() => void confirmAdd("separate")}
                   >
                     Inget av dessa – lägg till ett separat ställe
@@ -494,39 +520,40 @@ export function AddPlaceResultDialogs({
                 )}
               </div>
             ) : null}
-            <div className="space-y-5 border-t border-border/60 pt-5">
-              {isLive ? (
-                <p className="text-sm text-muted-foreground">
-                  {cuisines.length
-                    ? cuisines.join(" · ")
-                    : "Kök och inriktning kan kompletteras senare."}
-                </p>
-              ) : (
-                <FoodTagMultiSelect
-                  id="pending-food-tags"
-                  label="Kök och inriktning (valfritt)"
-                  value={cuisines}
-                  onChange={setCuisines}
+            {!review ? (
+              <div className="space-y-5 border-t border-border/60 pt-5">
+                {isLive ? (
+                  <p className="text-sm text-muted-foreground">
+                    {cuisines.length
+                      ? cuisines.join(" · ")
+                      : "Kök och inriktning kan kompletteras senare."}
+                  </p>
+                ) : (
+                  <FoodTagMultiSelect
+                    id="pending-food-tags"
+                    label="Kök och inriktning (valfritt)"
+                    value={cuisines}
+                    onChange={setCuisines}
+                  />
+                )}
+                <OccasionPicker
+                  id="pending-occasions"
+                  value={occasions}
+                  onChange={setOccasions}
+                  description="Valfritt – kan fyllas i efter ett besök."
                 />
-              )}
-              <OccasionPicker
-                id="pending-occasions"
-                value={occasions}
-                onChange={setOccasions}
-                description="Valfritt – kan fyllas i efter ett besök."
-              />
-              <div className="space-y-1.5">
-                <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
-                <Textarea
-                  id="pending-notes"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={2}
-                />
+                <div className="space-y-1.5">
+                  <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
+                  <Textarea
+                    id="pending-notes"
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    rows={2}
+                  />
+                </div>
               </div>
-            </div>
-
-            {pending.kind !== "canonical" ? (
+            ) : null}
+            {pending.kind !== "canonical" && !review ? (
               <>
                 <PendingPlaceSignalStatus
                   reportablePending={reportablePending}

@@ -903,6 +903,24 @@ och skapa samma rimliga kandidat samtidigt. Kandidater som användaren redan
 uttryckligen avböjt får passera; nya eller förändrade kandidater måste visas på
 nytt.
 
+### Kanoniska träffar i platssökningen
+
+En explicit namn-, kategori- eller köksökning får också söka i manuella platser
+som har giltig position, saknar aktiv källa och har ett aktuellt
+`unmatched_verified_manual`-ärende (`open`/`needs_osm`). Tom bläddring öppnar ingen
+intern katalog. Legacy- och avfärdade kandidater exponeras inte här, men en sådan
+rimlig identitet kan fortfarande stoppa ett nytt skapande utan att läcka metadata.
+
+RPC:erna projicerar bara neutral platsidentitet och relationens status i den
+aktuella gruppen. Klienten använder den auktoritativa identiteten, inte en lokal
+namn-/adressjämförelse, för redan tillagt och återställning. Manuell återanvändning
+kan behålla sin snäva äldre kandidatpool.
+
+Servern verifierar Polygon/MultiPolygon när interna kandidater söks inom ett
+område; en bounding box är endast för urval före kontroll av hål, öar och den
+faktiska gränsen. Delvis misslyckad intern sökning och providerfel redovisas
+oberoende så att ett tomt eller ofullständigt svar inte tolkas som bevis på frånvaro.
+
 ### Neutralt förbättringsunderlag
 
 Ett verifierat manuellt ställe utan aktiv extern källa kan skapa en intern
@@ -992,22 +1010,32 @@ inte göra provider-, databas- eller OSM-skrivningar.
 
 ### Senare extern källkoppling
 
-I gruppens befintliga detaljflöde får ägare/admin länka en senare providerträff
-till ett manuellt ställe endast om:
+I sökningens tilläggsflöde kan gruppens ägare/admin bekräfta en aktuell stark
+match med en verifierad manuell kandidat. En vanlig medlem kan återanvända
+kandidaten utan att ändra den externa identiteten. Källkoppling är en egen
+bekräftad identitetsåtgärd; liknande namn eller en lokal klientjämförelse räcker
+aldrig som skrivbehörighet.
 
-- målplatsen är aktiv i gruppen;
-- målplatsen saknar aktiv extern källa;
-- exakt en konservativ match finns;
-- den externa identiteten inte redan används av en annan aktiv plats;
-- namn, adress och kartposition uppfyller servervaliderade kontrakt.
+Nya providerplatser, senare källkoppling och global maintainer-länkning hämtar
+provideruppgifter på servern. Service-RPC:er får den autentiserade aktören från
+servermiddleware och revaliderar medlemskap, roll, aktuell kandidat och externa
+identiteter i transaktionen. Browsern kan inte etablera en källa med egna
+koordinater eller `raw`. Äldre RPC:er tillåter bara återanvändning av redan
+etablerade exakta provider-ID:n; nya identiteter kräver verifiering.
 
-Det globala Platsunderhållets maintainer-länkning följer motsvarande kanoniska
-identitetsvakter men är inte beroende av en viss grupprelation.
+Bekräftelse och avstående binds till den kandidat- och providerversion som
+visades. Nya eller förändrade rimliga kandidater kräver ny granskning. Den korta
+kontroll-/skrivfasen delar ett transaktionslås med manuella tillägg, batch,
+källskrivningar och kartuppdatering; inga HTTP-anrop sker med låset hållet.
 
-Tvetydighet innebär alltid ingen åtgärd. Fuzzy auto-merge ingår inte.
+Geoapify och OSM får inte peka på olika kanoniska ställen. Ett nytt Geoapify-ID för
+samma etablerade OSM-identitet kan ersätta den tidigare aktiva Geoapify-kopplingen
+med bevarad källhistorik. En annan aktiv OSM-identitet innebär ingen skrivning.
 
-Källkopplingen bevarar samma `places.id`, `group_places`, besök, omdömen och
-privata gruppuppgifter. Den får inte skriva över eller exponera gruppmetadata.
+Källkopplingen behåller samma `places.id`, befintliga `group_places`, besök,
+omdömen och privata gruppuppgifter. Om två olika plats-ID:n redan finns behövs
+en separat sammanföring med skydd för alla relationer; detta är inte en bieffekt
+av att bekräfta en kartkälla. Ingen automatisk fuzzy merge sker.
 
 ## Delning mellan grupper
 
