@@ -987,7 +987,7 @@ export function VisitDialog({
                 void saveRegistration();
               }}
             >
-              Spara i {shareGroupIds.length + 1} grupper
+              Spara besöket i {shareGroupIds.length + 1} grupper
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

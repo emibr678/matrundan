@@ -28,6 +28,7 @@ export function VisitShareExperience({
     >
       <OccasionPicker
         id={id}
+        label="Typ av upplevelse för matstället"
         value={value}
         onChange={(next) => {
           onChange(next);
@@ -35,11 +36,11 @@ export function VisitShareExperience({
         }}
         disabled={disabled}
         showGuide={false}
-        description={
+        description={`${groups.join(", ")} har inte valt någon typ ännu. ${
           value.length > 0
-            ? `Förslag för ${groups.join(", ")}. Välj upp till två, eller välj senare.`
-            : `Välj upp till två för ${groups.join(", ")}, eller välj senare.`
-        }
+            ? "Här är ett förslag som du kan ändra."
+            : "Du kan välja upp till två typer."
+        }`}
       />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <Checkbox
@@ -47,8 +48,11 @@ export function VisitShareExperience({
           onCheckedChange={(checked) => onConfirmedChange(checked === true)}
           disabled={disabled || value.length === 0}
         />
-        <span>Spara valet i {groups.length === 1 ? "den här gruppen" : "de här grupperna"}</span>
+        <span>Använd dessa typer i {groups.join(", ")}</span>
       </label>
+      <p className="text-xs leading-relaxed text-muted-foreground">
+        Du kan också lämna typen tom och välja senare.
+      </p>
     </div>
   );
 }

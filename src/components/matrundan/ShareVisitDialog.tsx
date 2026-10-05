@@ -404,8 +404,8 @@ export function ShareVisitDialog({
                   : jobs.length === 0
                     ? "Välj grupp"
                     : jobs.length === 1
-                      ? "Spara i vald grupp"
-                      : `Spara i ${jobs.length} grupper`}
+                      ? "Lägg till besöket"
+                      : `Lägg till besöket i ${jobs.length} grupper`}
             </Button>
           </DialogFooter>
         </DialogContent>

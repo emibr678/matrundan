@@ -541,7 +541,7 @@ test("flera målgrupper behåller lyckade resultat och återförsöker bara fela
           : JSON.stringify(body._target_group_id),
     });
   });
-  await dialog.getByRole("button", { name: "Spara i 2 grupper" }).click();
+  await dialog.getByRole("button", { name: "Lägg till besöket i 2 grupper" }).click();
   await expect(dialog.getByText("De här grupperna återstår")).toBeVisible();
   await expect(dialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
     "aria-pressed",
@@ -622,9 +622,9 @@ for (const confirmedExperience of [false, true]) {
       await confirmation
         .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
         .click();
-      await confirmation.getByRole("checkbox", { name: "Spara valet i de här grupperna" }).click();
+      await confirmation.getByRole("checkbox", { name: /Använd dessa typer i/ }).click();
     }
-    await confirmation.getByRole("button", { name: "Spara i 3 grupper" }).click();
+    await confirmation.getByRole("button", { name: "Spara besöket i 3 grupper" }).click();
 
     await expect.poll(() => creates).toBe(1);
     await expect(form).toHaveCount(0);
@@ -649,14 +649,14 @@ for (const confirmedExperience of [false, true]) {
         retryDialog.getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true }),
       ).toHaveAttribute("aria-pressed", "true");
       await expect(
-        retryDialog.getByRole("checkbox", { name: "Spara valet i den här gruppen" }),
+        retryDialog.getByRole("checkbox", { name: /Använd dessa typer i Jobbgänget/ }),
       ).toBeChecked();
     }
     await expectNoHorizontalOverflow(page);
     await stabilize(page);
     await capture(page, testInfo, `issue-396-460-registreringsretry-${confirmedExperience}`);
 
-    await retryDialog.getByRole("button", { name: "Spara i vald grupp" }).click();
+    await retryDialog.getByRole("button", { name: "Lägg till besöket", exact: true }).click();
     await expect(retryDialog).toHaveCount(0);
 
     expect(writes).toEqual([
@@ -730,7 +730,7 @@ for (const fromNextStop of [false, true]) {
     await confirmation.getByRole("button", { name: "Ändra grupper" }).click();
     await expect(form.getByLabel("Kommentar (frivilligt)")).toHaveValue("En fin kväll.");
     await form.getByRole("button", { name: "Spara besök", exact: true }).click();
-    await confirmation.getByRole("button", { name: "Spara i 2 grupper" }).click();
+    await confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" }).click();
     await expect.poll(() => creates).toBe(1);
     await expect(form).toHaveCount(0);
   });
@@ -782,8 +782,8 @@ for (const confirm of [false, true]) {
     const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
     await dialog.getByRole("button", { name: /Familjen/ }).click();
     const field = dialog.getByTestId("share-experience");
-    await expect(field.getByText(/Förslag för Jobbgänget/)).toBeVisible();
-    await expect(field.getByText(/Förslag för.*Familjen/)).toHaveCount(0);
+    await expect(field.getByText(/Jobbgänget.*har inte valt någon typ ännu/)).toBeVisible();
+    await expect(field.getByText(/Familjen.*har inte valt någon typ ännu/)).toHaveCount(0);
     await expect(
       field.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -807,7 +807,7 @@ for (const confirm of [false, true]) {
         body: JSON.stringify(body._target_group_id),
       });
     });
-    await dialog.getByRole("button", { name: "Spara i 2 grupper" }).click();
+    await dialog.getByRole("button", { name: "Lägg till besöket i 2 grupper" }).click();
     await expect(dialog).toHaveCount(0);
     const missing = writes.find((x) => x.body._target_group_id === TARGET_GROUP_ID)!;
     const existing = writes.find((x) => x.body._target_group_id === SECOND_TARGET_GROUP_ID)!;
@@ -838,7 +838,9 @@ test("vidare delning föreslår aktiva gruppens typer och tillåter tomt försla
   const field = dialog.getByTestId("share-experience");
   await expect(field.getByRole("button", { pressed: true })).toHaveCount(0);
   await expect(field.getByRole("checkbox")).toBeDisabled();
-  await expect(dialog.getByRole("button", { name: "Spara i vald grupp" })).toBeEnabled();
+  await expect(
+    dialog.getByRole("button", { name: "Lägg till besöket", exact: true }),
+  ).toBeEnabled();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "issue-396-no-suggestion");
 });
@@ -873,7 +875,7 @@ test("registrering bekräftar samma frivilliga förslag före delning", async ({
   await field.getByRole("checkbox").check();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "issue-396-registration");
-  await confirmation.getByRole("button", { name: "Spara i 2 grupper" }).click();
+  await confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" }).click();
   await expect.poll(() => writes.length).toBe(1);
   expect(writes[0]._confirmed_occasions).toEqual(["avslappnat"]);
 });
