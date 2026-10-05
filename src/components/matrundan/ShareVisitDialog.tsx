@@ -24,6 +24,12 @@ interface Props {
   visitId: string | null;
   currentGroupId: string;
   open: boolean;
+  initialSelection?: {
+    groupIds: string[];
+    shareComment: boolean;
+    sharePhoto: boolean;
+    confirmedExperience?: Occasion[];
+  } | null;
   onOpenChange: (open: boolean) => void;
   onShared: () => Promise<void> | void;
 }
@@ -34,7 +40,14 @@ function canSelect(target: VisitShareTarget) {
     (target.ownHasPhoto && !target.ownPhotoShared)
   );
 }
-export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, onShared }: Props) {
+export function ShareVisitDialog({
+  visitId,
+  currentGroupId,
+  open,
+  initialSelection = null,
+  onOpenChange,
+  onShared,
+}: Props) {
   const { userGroups } = useSession();
   const { state } = useStore();
   const [experience, setExperience] = React.useState<Occasion[] | null>(null);
@@ -60,13 +73,31 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     setSelected([]);
     setQuery("");
     setFailures([]);
-    setShareComment(true);
-    setSharePhoto(true);
-    setExperience(null);
-    setExperienceConfirmed(false);
+    setShareComment(initialSelection?.shareComment ?? true);
+    setSharePhoto(initialSelection?.sharePhoto ?? true);
+    setExperience(initialSelection?.confirmedExperience ?? null);
+    setExperienceConfirmed((initialSelection?.confirmedExperience?.length ?? 0) > 0);
     listVisitShareTargets(visitId)
       .then((rows) => {
-        if (!cancelled) setTargets(rows);
+        if (cancelled) return;
+        setTargets(rows);
+        if (initialSelection) {
+          const requested = new Set(initialSelection.groupIds);
+          setSelected(
+            rows
+              .filter(
+                (target) =>
+                  target.groupId !== currentGroupId &&
+                  requested.has(target.groupId) &&
+                  (!target.alreadyLinked ||
+                    (initialSelection.shareComment &&
+                      target.ownHasComment &&
+                      !target.ownCommentShared) ||
+                    (initialSelection.sharePhoto && target.ownHasPhoto && !target.ownPhotoShared)),
+              )
+              .map((target) => target.groupId),
+          );
+        }
       })
       .catch((e) => {
         if (!cancelled) setError(e instanceof Error ? e.message : "Kunde inte hämta grupper.");
@@ -77,7 +108,7 @@ export function ShareVisitDialog({ visitId, currentGroupId, open, onOpenChange, 
     return () => {
       cancelled = true;
     };
-  }, [open, visitId, currentGroupId]);
+  }, [currentGroupId, initialSelection, open, visitId]);
   const otherGroups = targets.filter((target) => target.groupId !== currentGroupId);
   const chosen = otherGroups.filter((target) => selected.includes(target.groupId));
   const visit = state.visits.find((item) => item.id === visitId);
