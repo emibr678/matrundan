@@ -28,7 +28,8 @@ interface Props {
     groupIds: string[];
     shareComment: boolean;
     sharePhoto: boolean;
-    confirmedExperience?: Occasion[];
+    experience?: Occasion[];
+    experienceConfirmed?: boolean;
   } | null;
   onOpenChange: (open: boolean) => void;
   onShared: () => Promise<void> | void;
@@ -51,7 +52,8 @@ export function ShareVisitDialog({
   const { userGroups } = useSession();
   const { state } = useStore();
   const [experience, setExperience] = React.useState<Occasion[] | null>(null);
-  const [experienceConfirmed, setExperienceConfirmed] = React.useState(false);
+  // null follows the visible suggestion; false is a persistent opt-out.
+  const [experienceSave, setExperienceConfirmed] = React.useState<boolean | null>(null);
   const [targets, setTargets] = React.useState<VisitShareTarget[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -75,8 +77,8 @@ export function ShareVisitDialog({
     setFailures([]);
     setShareComment(initialSelection?.shareComment ?? true);
     setSharePhoto(initialSelection?.sharePhoto ?? true);
-    setExperience(initialSelection?.confirmedExperience ?? null);
-    setExperienceConfirmed((initialSelection?.confirmedExperience?.length ?? 0) > 0);
+    setExperience(initialSelection?.experience ?? null);
+    setExperienceConfirmed(initialSelection?.experienceConfirmed ?? null);
     listVisitShareTargets(visitId)
       .then((rows) => {
         if (cancelled) return;
@@ -117,6 +119,8 @@ export function ShareVisitDialog({
       ? (state.places.find((place) => place.id === visit?.placeId)?.occasions ?? [])
       : [];
   const experienceValue = experience ?? suggestedExperience;
+  const experienceConfirmed =
+    (experienceSave ?? true) && experienceValue.length > 0 && experienceValue.length <= 2;
   const unclassified = chosen.filter((target) => !target.hasExperienceClassification);
   const hasComment = chosen.some(
     (target) => target.ownHasComment && (!target.alreadyLinked || !target.ownCommentShared),
@@ -132,6 +136,9 @@ export function ShareVisitDialog({
     if (!visitId || submitting || jobs.length === 0) return;
     setSubmitting(true);
     setFailures([]);
+    // Keep this submitted draft intact if only some groups succeed.
+    setExperience([...experienceValue]);
+    setExperienceConfirmed(experienceConfirmed);
     try {
       const results = await batch.run(
         jobs.map((target) => ({
@@ -369,10 +376,7 @@ export function ShareVisitDialog({
             value={experienceValue}
             onChange={setExperience}
             confirmed={experienceConfirmed}
-            onConfirmedChange={(confirmed) => {
-              if (confirmed) setExperience([...experienceValue]);
-              setExperienceConfirmed(confirmed);
-            }}
+            onConfirmedChange={setExperienceConfirmed}
             disabled={submitting}
           />
           {failures.length > 0 ? (

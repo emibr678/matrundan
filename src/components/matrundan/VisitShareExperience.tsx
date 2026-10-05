@@ -2,7 +2,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import type { Occasion } from "@/lib/matrundan/types";
 import { OccasionPicker } from "./OccasionPicker";
 
-/** A suggestion remains a draft until the caller explicitly confirms it. */
+/** The visible selection is saved only when the caller submits the dialog. */
 export function VisitShareExperience({
   groups,
   value,
@@ -21,6 +21,9 @@ export function VisitShareExperience({
   id: string;
 }) {
   if (groups.length === 0) return null;
+  const groupNames = new Intl.ListFormat("sv", { style: "long", type: "conjunction" }).format(
+    groups,
+  );
   return (
     <div
       className="min-w-0 space-y-2 rounded-xl border border-border/70 p-3 [overflow-wrap:anywhere]"
@@ -33,10 +36,11 @@ export function VisitShareExperience({
         onChange={(next) => {
           onChange(next);
           if (next.length === 0) onConfirmedChange(false);
+          else if (value.length === 0) onConfirmedChange(true);
         }}
         disabled={disabled}
         showGuide={false}
-        description={`${groups.join(", ")} har inte valt någon typ ännu. ${
+        description={`${groupNames} har inte valt någon typ ännu. ${
           value.length > 0
             ? "Här är ett förslag som du kan ändra."
             : "Du kan välja upp till två typer."
@@ -45,13 +49,16 @@ export function VisitShareExperience({
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <Checkbox
           checked={confirmed && value.length > 0}
-          onCheckedChange={(checked) => onConfirmedChange(checked === true)}
+          onCheckedChange={(checked) => {
+            onChange([...value]);
+            onConfirmedChange(checked === true);
+          }}
           disabled={disabled || value.length === 0}
         />
-        <span>Använd dessa typer i {groups.join(", ")}</span>
+        <span>Spara de här typerna i {groupNames}</span>
       </label>
       <p className="text-xs leading-relaxed text-muted-foreground">
-        Du kan också lämna typen tom och välja senare.
+        Avmarkera om du vill välja senare.
       </p>
     </div>
   );

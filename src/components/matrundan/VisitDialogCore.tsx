@@ -100,7 +100,8 @@ export function VisitDialog({
   const [busy, setBusy] = React.useState(false);
   const [confirmGroups, setConfirmGroups] = React.useState(false);
   const [shareExperience, setShareExperience] = React.useState<Occasion[] | null>(null);
-  const [shareExperienceConfirmed, setShareExperienceConfirmed] = React.useState(false);
+  // null follows the visible suggestion; false is a persistent opt-out.
+  const [shareExperienceSave, setShareExperienceConfirmed] = React.useState<boolean | null>(null);
   const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
@@ -112,7 +113,8 @@ export function VisitDialog({
       groupIds: string[];
       shareComment: boolean;
       sharePhoto: boolean;
-      confirmedExperience?: Occasion[];
+      experience?: Occasion[];
+      experienceConfirmed?: boolean;
     };
   } | null>(null);
   const [guestLinkPayload, setGuestLinkPayload] = React.useState<{
@@ -177,7 +179,7 @@ export function VisitDialog({
       setShareGroupIds([]);
       setConfirmGroups(false);
       setShareExperience(null);
-      setShareExperienceConfirmed(false);
+      setShareExperienceConfirmed(null);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -236,6 +238,10 @@ export function VisitDialog({
     ? reviewOccasions
     : currentPlace.occasions;
   const shareExperienceValue = shareExperience ?? applicableOccasions;
+  const shareExperienceConfirmed =
+    (shareExperienceSave ?? true) &&
+    shareExperienceValue.length > 0 &&
+    shareExperienceValue.length <= 2;
   const unclassifiedTargets = shareableGroups.filter(
     (group) => shareGroupIds.includes(group.groupId) && !group.hasExperienceClassification,
   );
@@ -410,9 +416,8 @@ export function VisitDialog({
                       groupIds: remaining.map((result) => result.job.groupId),
                       shareComment: hasComment && shareComment,
                       sharePhoto: photoFile != null && photoError == null && sharePhoto,
-                      confirmedExperience: shareExperienceConfirmed
-                        ? [...shareExperienceValue]
-                        : undefined,
+                      experience: [...shareExperienceValue],
+                      experienceConfirmed: shareExperienceConfirmed,
                     },
                   }),
               }
@@ -971,10 +976,7 @@ export function VisitDialog({
             value={shareExperienceValue}
             onChange={setShareExperience}
             confirmed={shareExperienceConfirmed}
-            onConfirmedChange={(confirmed) => {
-              if (confirmed) setShareExperience([...shareExperienceValue]);
-              setShareExperienceConfirmed(confirmed);
-            }}
+            onConfirmedChange={setShareExperienceConfirmed}
             disabled={isBusy}
           />
           <AlertDialogFooter>

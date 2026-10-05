@@ -258,8 +258,9 @@ Gruppspecifika saker som favoriter, nästa stopp, reaktioner, anteckningar och
 platsmetadata förblir gruppspecifika. Samma ställe får ha olika Typ av upplevelse
 i olika grupper. När ett besök läggs till i fler grupper kan den aktiva gruppens
 typer föreslås för mål som saknar klassificering. Användaren måste uttryckligen
-bekräfta ett val; befintliga typer i målgruppen lämnas alltid orörda. Att avstå
-hindrar inte delningen och historiska omdömen ändras inte.
+bekräfta dialogens synliga val med sparhandlingen. Ett befintligt förslag är aktivt
+som standard och kan väljas bort; befintliga typer i målgruppen lämnas alltid
+orörda. Att avstå hindrar inte delningen och historiska omdömen ändras inte.
 
 ## Sökning, geografi och platsdata
 
