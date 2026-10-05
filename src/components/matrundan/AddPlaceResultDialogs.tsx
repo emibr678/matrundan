@@ -1,4 +1,9 @@
 import * as React from "react";
+import {
+  PlaceResolutionError,
+  type IdentityCandidate,
+  type PlaceResolution,
+} from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Clock3, Globe2, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { useVisitShareBatch } from "./useVisitShareBatch";
@@ -177,6 +182,9 @@ export function AddPlaceResultDialogs({
   const isLive = mode === "live";
   const canHideSuggestion =
     mode === "demo" || activeGroupRole === "owner" || activeGroupRole === "admin";
+  const [review, setReview] = React.useState<PlaceResolution | null>(null);
+  const [conflictMessage, setConflictMessage] = React.useState<string | null>(null);
+  const canConfirmIdentity = activeGroupRole === "owner" || activeGroupRole === "admin";
   const [cuisines, setCuisines] = React.useState<string[]>([]);
   const [occasions, setOccasions] = React.useState<Occasion[]>([]);
   const [notes, setNotes] = React.useState("");
@@ -198,6 +206,16 @@ export function AddPlaceResultDialogs({
   React.useEffect(() => {
     if (!pending) return;
     setCuisines(pending.cuisines ?? []);
+    setConflictMessage(null);
+    setReview(
+      pending.identity?.reviewRequired
+        ? {
+            status: "review_required",
+            candidates: pending.identity.candidates,
+            providerVersion: pending.identity.providerVersion,
+          }
+        : null,
+    );
     setOccasions([]);
     setNotes("");
   }, [pending]);
@@ -241,11 +259,17 @@ export function AddPlaceResultDialogs({
     }
   }
 
-  async function confirmAdd() {
+  async function confirmAdd(
+    choice: "auto" | "link" | "separate" = "auto",
+    target?: IdentityCandidate,
+    reuseOnly = false,
+  ) {
     if (!pending || isBusy) return;
     const externalId = pending.externalId;
     const shouldOfferSync =
-      isLive && !!activeGroupId && !!pending.provider && pending.provider !== "demo";
+      isLive &&
+      !!activeGroupId &&
+      (pending.kind === "canonical" || (!!pending.provider && pending.provider !== "demo"));
     setBusy(true);
     try {
       const place = {
@@ -263,12 +287,21 @@ export function AddPlaceResultDialogs({
         notes: notes.trim() || undefined,
       };
       const added =
-        isLive && pending.provider && pending.provider !== "demo"
+        isLive &&
+        (pending.kind === "canonical" || (pending.provider && pending.provider !== "demo"))
           ? await addProviderPlace({
-              provider: pending.provider,
+              provider: pending.provider ?? "canonical",
               providerPlaceId: pending.externalId,
               place,
               raw: safeParse(pending.raw),
+              canonicalPlaceId: reuseOnly ? target?.placeId : pending.canonical?.placeId,
+              choice,
+              identityPlaceId: target?.placeId,
+              decisions:
+                choice === "link" && target
+                  ? [{ placeId: target.placeId, version: target.version }]
+                  : review?.candidates?.map((c) => ({ placeId: c.placeId, version: c.version })),
+              providerVersion: review?.providerVersion,
             })
           : await addPlace(place);
       onAdded(externalId);
@@ -298,6 +331,14 @@ export function AddPlaceResultDialogs({
         }
       }
     } catch (error) {
+      if (error instanceof PlaceResolutionError) {
+        if (error.resolution.status === "review_required") {
+          setReview(error.resolution);
+          if (error.resolution.provider) setCuisines(error.resolution.provider.cuisines ?? []);
+          toast.info("Kontrollera de aktuella uppgifterna innan du bekräftar.");
+        } else setConflictMessage(error.message);
+        return;
+      }
       const message = error instanceof Error ? error.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
         onAdded(externalId);
@@ -363,25 +404,111 @@ export function AddPlaceResultDialogs({
         {pending && reportablePending ? (
           <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
+              <DialogTitle className="font-display text-2xl">
+                {review
+                  ? "Är det samma ställe?"
+                  : pending.canonical?.groupStatus === "archived"
+                    ? "Återställ i gruppen"
+                    : "Lägg till i gruppen"}
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 Granska och lägg till {pending.name} i gruppen.
               </DialogDescription>
             </DialogHeader>
 
-            <PendingPlaceSummary
-              pending={pending}
-              cuisines={cuisines}
-              reportablePending={reportablePending}
-            />
-
-            <div className="space-y-5 border-t border-border/60 pt-5">
-              <FoodTagMultiSelect
-                id="pending-food-tags"
-                label="Kök och inriktning (valfritt)"
-                value={cuisines}
-                onChange={setCuisines}
+            {pending.kind === "canonical" ? (
+              <div className="space-y-1 rounded-xl border p-4">
+                <p className="text-xs text-muted-foreground">Matrundan-ställe</p>
+                <h2 className="break-words font-display text-2xl">{pending.name}</h2>
+                <p className="break-words text-sm text-muted-foreground">
+                  {[pending.address, pending.city].filter(Boolean).join(", ")}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Det befintliga stället används. Andra gruppers besök och anteckningar delas inte.
+                </p>
+              </div>
+            ) : (
+              <PendingPlaceSummary
+                pending={review?.provider ?? pending}
+                cuisines={cuisines}
+                reportablePending={reportablePending}
               />
+            )}
+            {conflictMessage ? (
+              <p role="alert" className="rounded-xl border p-3 text-sm">
+                {conflictMessage}
+              </p>
+            ) : null}
+            {review ? (
+              <div className="space-y-3" aria-label="Granska möjlig matchning">
+                <p className="text-sm text-muted-foreground">
+                  Kartträffen kan redan finnas i Matrundan. Välj stället som stämmer. Besök och
+                  gruppuppgifter ligger kvar.
+                </p>
+                {(review.candidates ?? []).map((candidate) => (
+                  <div key={candidate.placeId} className="space-y-2 rounded-xl border p-3">
+                    <p className="break-words font-medium">{candidate.name}</p>
+                    <p className="break-words text-sm text-muted-foreground">
+                      {[candidate.address, candidate.city].filter(Boolean).join(", ")} ·{" "}
+                      {Math.round(candidate.distanceKm * 1000)} m från kartträffen
+                    </p>
+                    <Button
+                      className="min-h-11 w-full whitespace-normal"
+                      disabled={isBusy}
+                      onClick={() =>
+                        void confirmAdd(
+                          candidate.matchKind === "strong" && canConfirmIdentity ? "link" : "auto",
+                          candidate,
+                          !(candidate.matchKind === "strong" && canConfirmIdentity),
+                        )
+                      }
+                    >
+                      {candidate.matchKind === "strong" && canConfirmIdentity
+                        ? "Bekräfta samma ställe"
+                        : "Använd befintligt ställe"}
+                    </Button>
+                    {candidate.matchKind === "strong" && canConfirmIdentity ? (
+                      <p className="text-xs text-muted-foreground">
+                        Kartkällan kopplas till det befintliga stället.
+                      </p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">
+                        Stället används direkt. Gruppens admin kan bekräfta kartkällan senare.
+                      </p>
+                    )}
+                  </div>
+                ))}
+                {!review.candidates?.length ? (
+                  <p className="text-sm">
+                    Matchningen behöver kontrolleras igen. Gå tillbaka och sök på nytt.
+                  </p>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="min-h-11 w-full whitespace-normal"
+                    disabled={isBusy}
+                    onClick={() => void confirmAdd("separate")}
+                  >
+                    Inget av dessa – lägg till ett separat ställe
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            <div className="space-y-5 border-t border-border/60 pt-5">
+              {isLive ? (
+                <p className="text-sm text-muted-foreground">
+                  {cuisines.length
+                    ? cuisines.join(" · ")
+                    : "Kök och inriktning kan kompletteras senare."}
+                </p>
+              ) : (
+                <FoodTagMultiSelect
+                  id="pending-food-tags"
+                  label="Kök och inriktning (valfritt)"
+                  value={cuisines}
+                  onChange={setCuisines}
+                />
+              )}
               <OccasionPicker
                 id="pending-occasions"
                 value={occasions}
@@ -399,29 +526,36 @@ export function AddPlaceResultDialogs({
               </div>
             </div>
 
-            <PendingPlaceSignalStatus
-              reportablePending={reportablePending}
-              disabled={isBusy || state.group.lifecycleStatus === "archived"}
-            />
+            {pending.kind !== "canonical" ? (
+              <>
+                <PendingPlaceSignalStatus
+                  reportablePending={reportablePending}
+                  disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                />
 
-            <div className="border-t border-border/60 pt-1">
-              <PlaceSuggestionReportDialog
-                suggestion={reportablePending}
-                canHide={canHideSuggestion}
-                disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                onHide={() => hideFromReport(pending)}
-                onHidden={resetPending}
-              />
-            </div>
-
+                <div className="border-t border-border/60 pt-1">
+                  <PlaceSuggestionReportDialog
+                    suggestion={reportablePending}
+                    canHide={canHideSuggestion}
+                    disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                    onHide={() => hideFromReport(pending)}
+                    onHidden={resetPending}
+                  />
+                </div>
+              </>
+            ) : null}
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
-              <Button className="min-h-11" disabled={isBusy} onClick={confirmAdd}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Lägg till i gruppen
-              </Button>
+              {!review && !conflictMessage ? (
+                <Button className="min-h-11" disabled={isBusy} onClick={() => void confirmAdd()}>
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {pending.canonical?.groupStatus === "archived"
+                    ? "Återställ i gruppen"
+                    : "Lägg till i gruppen"}
+                </Button>
+              ) : null}
             </DialogFooter>
           </DialogContent>
         ) : null}

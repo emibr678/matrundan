@@ -198,6 +198,8 @@ jobs:
         run: bash scripts/supabase-types.sh check src/integrations/supabase/types.ts
       - name: Run database security tests
         run: npx --yes "supabase@${{ env.SUPABASE_CLI_VERSION }}" test db
+      - name: Race-test canonical place creation in separate sessions
+        run: bash scripts/place-identity-race.sh
       - name: Generate expected types on failure
         if: failure()
         run: bash scripts/supabase-types.sh generate supabase-types.generated.ts

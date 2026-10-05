@@ -1,4 +1,5 @@
 import * as React from "react";
+import { canBulkAddSuggestion } from "@/lib/matrundan/place-discovery";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
 import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
@@ -58,6 +59,7 @@ export function SearchResultSections({
     const seen = new Set<string>();
     return [...sourceMatches.map((match) => match.result), ...available, ...existing].filter(
       (suggestion) => {
+        if (suggestion.kind === "canonical") return false;
         const key = placeSignalKey({
           provider: suggestion.provider,
           providerPlaceId: suggestion.externalId,
@@ -167,7 +169,7 @@ export function SearchResultSections({
                 signal={signal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
-                bulkMode={bulkMode}
+                bulkMode={bulkMode && canBulkAddSuggestion(result)}
                 showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={
                   bulkMode
@@ -176,12 +178,12 @@ export function SearchResultSections({
                 }
                 onSelect={() => {
                   onSelect(result.externalId);
-                  if (bulkMode) onToggleSelected(result);
+                  if (bulkMode && canBulkAddSuggestion(result)) onToggleSelected(result);
                   else onAdd(result);
                 }}
                 footer={statusFooterFor(result, signal)}
                 action={
-                  bulkMode ? (
+                  bulkMode && canBulkAddSuggestion(result) ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox
                         checked={bulkSelected}
@@ -197,7 +199,12 @@ export function SearchResultSections({
                       disabled={disabled}
                       onClick={() => onAdd(result)}
                     >
-                      <Plus className="h-4 w-4" /> Lägg till
+                      <Plus className="h-4 w-4" />{" "}
+                      {result.identity?.reviewRequired || result.identity?.identityConflict
+                        ? "Granska matchning"
+                        : result.canonical?.groupStatus === "archived"
+                          ? "Återställ"
+                          : "Lägg till"}
                     </Button>
                   )
                 }
@@ -226,7 +233,10 @@ export function SearchResultSections({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2">
             {existing.map((result) => {
-              const place = matchingPlace(places, result);
+              const canonicalId = result.canonical?.placeId ?? result.identity?.knownPlace?.placeId;
+              const place = result.kind
+                ? places.find((p) => p.id === canonicalId)
+                : matchingPlace(places, result);
               const signal = signalFor(result);
               return (
                 <SuggestionRow

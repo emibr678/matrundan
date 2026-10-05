@@ -105,6 +105,14 @@ export function AddPlaceDialogContent({
       );
   }, [activeGroupId, mode, state.group.id]);
 
+  React.useEffect(() => {
+    setPending(null);
+    setPendingSourceMatch(null);
+    setSelectedResults([]);
+    setAddedResultIds(new Set());
+    setDiscoverySnapshot(null);
+  }, [activeGroupId, mode]);
+
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && (pending != null || pendingSourceMatch != null)) return;
     if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
@@ -219,7 +227,29 @@ export function AddPlaceDialogContent({
 
       const completedIds = completedBulkExternalIds(result);
       markCompleted(completedIds);
-      setSelectedResults((current) => remainingBulkSelections(current, result));
+      const reviewItem = result.items.find((item) => item.resolution?.status === "review_required");
+      setSelectedResults((current) =>
+        remainingBulkSelections(current, result).filter(
+          (item) =>
+            !result.items.some(
+              (outcome) => outcome.externalId === item.externalId && outcome.resolution,
+            ),
+        ),
+      );
+      if (reviewItem?.resolution) {
+        const selected = selectedResults.find((item) => item.externalId === reviewItem.externalId);
+        if (selected) {
+          const identity = {
+            providerPlaceId: selected.externalId,
+            providerVersion: reviewItem.resolution.providerVersion ?? "",
+            knownPlace: null,
+            candidates: reviewItem.resolution.candidates ?? [],
+            reviewRequired: true,
+            identityConflict: false,
+          };
+          setPending({ ...selected, identity });
+        }
+      }
 
       if (mode === "live" && completedIds.length > 0) {
         window.dispatchEvent(new Event("matrundan:reload"));
@@ -230,7 +260,9 @@ export function AddPlaceDialogContent({
         toast.warning(
           `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}. ${result.failed} kunde inte läggas till.`,
           {
-            description: "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
+            description: reviewItem
+              ? "Granska matchningen som öppnats innan du fortsätter."
+              : "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
           },
         );
       } else if (addedCount > 0) {

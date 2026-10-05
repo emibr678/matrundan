@@ -1,4 +1,5 @@
 import * as React from "react";
+import { canBulkAddSuggestion } from "@/lib/matrundan/place-discovery";
 import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -12,11 +13,10 @@ import {
   configuredSearchAreas,
   matchingPlace,
   providerMessage,
-  toPlaceSuggestion,
 } from "@/lib/matrundan/add-place-utils";
 import {
   geoapifyLoadSearchAreaBoundaries,
-  geoapifySearchPlacesMulti,
+  searchPlaceDiscovery,
 } from "@/lib/matrundan/geoapify.functions";
 import {
   hiddenPlaceRecordKey,
@@ -320,10 +320,12 @@ export function PlaceDiscovery({
       if (addedResultIds.has(suggestion.externalId)) return false;
       if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
       if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
+      if (isLive)
+        return (suggestion.canonical ?? suggestion.identity?.knownPlace)?.groupStatus !== "active";
       const match = matchingPlace(state.places, suggestion);
       return !(match && match.collectionStatus !== "archived");
     },
-    [addedResultIds, hiddenKeys, localSourceLinks, state.places],
+    [addedResultIds, hiddenKeys, isLive, localSourceLinks, state.places],
   );
   const isActionableRef = React.useRef(isActionableSuggestion);
   React.useEffect(() => {
@@ -344,13 +346,15 @@ export function PlaceDiscovery({
     }) => {
       let collected = seed;
       const failedAreaLabels = new Set<string>();
+      let canonicalIncomplete = false;
       let offset = startOffset;
       let moreAvailable = false;
       let pages = 0;
 
       while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
-        const response = await geoapifySearchPlacesMulti({
+        const response = await searchPlaceDiscovery({
           data: {
+            groupId: groupId!,
             text: query.trim() || undefined,
             centers: activeAreas.map((area) => ({
               id: area.id,
@@ -367,7 +371,8 @@ export function PlaceDiscovery({
         });
         if (isStale()) return null;
         pages += 1;
-        collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
+        canonicalIncomplete ||= response.canonicalIncomplete;
+        collected = mergePlaceSearchPages(collected, response.results);
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
@@ -378,12 +383,17 @@ export function PlaceDiscovery({
 
       return {
         results: collected,
-        failedAreaLabels: [...failedAreaLabels],
+        failedAreaLabels: [
+          ...failedAreaLabels,
+          ...(canonicalIncomplete
+            ? ["alla Matrundan-ställen (sök mer precist eller försök igen)"]
+            : []),
+        ],
         hasMore: moreAvailable,
         nextOffset: offset,
       };
     },
-    [activeAreas, query, radiusKm],
+    [activeAreas, groupId, query, radiusKm],
   );
 
   React.useEffect(() => {
@@ -475,7 +485,10 @@ export function PlaceDiscovery({
         if (requestId === requestRef.current) setLoading(false);
       }
     }, 300);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      requestRef.current++;
+    };
   }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
@@ -544,7 +557,7 @@ export function PlaceDiscovery({
   ]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
-    if (!canLinkSources) return [];
+    if (!canLinkSources || isLive) return [];
     return visibleResults.flatMap((result) => {
       if (
         addedResultIds.has(result.externalId) ||
@@ -555,7 +568,7 @@ export function PlaceDiscovery({
       const match = findManualSourceLinkCandidate(state.places, result);
       return match ? [{ result, place: match.place, reason: match.reason }] : [];
     });
-  }, [addedResultIds, canLinkSources, localSourceLinks, state.places, visibleResults]);
+  }, [addedResultIds, canLinkSources, isLive, localSourceLinks, state.places, visibleResults]);
   const sourceMatchIds = React.useMemo(
     () => new Set(sourceMatches.map((match) => match.result.externalId)),
     [sourceMatches],
@@ -570,10 +583,14 @@ export function PlaceDiscovery({
       )
         return "existing";
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
+      if (isLive)
+        return (suggestion.canonical ?? suggestion.identity?.knownPlace)?.groupStatus === "active"
+          ? "existing"
+          : "available";
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
     },
-    [addedResultIds, localSourceLinks, sourceMatchIds, state.places],
+    [addedResultIds, isLive, localSourceLinks, sourceMatchIds, state.places],
   );
   const availableResults = React.useMemo(
     () => visibleResults.filter((result) => statusForResult(result) === "available"),
@@ -606,7 +623,7 @@ export function PlaceDiscovery({
     setSelectedId(id);
     const result = availableResults.find((candidate) => candidate.externalId === id);
     if (!result || interactionsDisabled) return;
-    if (bulkMode) {
+    if (bulkMode && canBulkAddSuggestion(result)) {
       const now = performance.now();
       const previous = lastMapToggleRef.current;
       if (previous?.id === id && now - previous.at < 150) return;

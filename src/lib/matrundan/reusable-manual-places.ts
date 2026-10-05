@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { CandidateDecision } from "./place-discovery";
 import { rpcClient } from "./rpc-client";
 import type { Occasion, Place, PlaceCategory } from "./types";
 
@@ -8,6 +9,7 @@ export type ReusablePlaceGroupStatus = "active" | "archived" | "not_linked";
 
 export interface ReusableManualPlaceCandidate {
   placeId: string;
+  version?: string;
   name: string;
   category: PlaceCategory;
   address: string;
@@ -48,12 +50,14 @@ export interface CreateManualFallbackInput {
   notes?: string;
   photo?: string;
   declinedPlaceIds?: string[];
+  decisions?: CandidateDecision[];
 }
 
 const placeCategorySchema = z.enum(["restaurang", "café", "bageri", "snabbmat", "pub", "matvagn"]);
 
 const candidateSchema = z.object({
   placeId: z.string().uuid(),
+  version: z.string().optional(),
   name: z.string(),
   category: placeCategorySchema,
   address: z.string(),
@@ -81,7 +85,7 @@ export async function listReusableManualPlaceCandidates(
   input: ReusableManualPlaceQuery,
 ): Promise<ReusableManualPlaceCandidate[]> {
   return rpcClient.call(
-    "find_reusable_manual_place_candidates_v1",
+    "find_reusable_manual_place_candidates_v2",
     {
       _group_id: groupId,
       _name: input.name,
@@ -123,22 +127,8 @@ export async function createManualPlaceFromFallback(
   input: CreateManualFallbackInput,
 ): Promise<{ placeId: string; improvementCandidate: boolean }> {
   return rpcClient.call(
-    "create_manual_place_fallback_v1",
-    {
-      _group_id: groupId,
-      _name: input.name,
-      _category: input.category,
-      _cuisines: input.cuisines,
-      _occasions: input.occasions,
-      _address: input.address,
-      _area: input.area ?? null,
-      _city: input.city,
-      _lat: input.lat ?? null,
-      _lng: input.lng ?? null,
-      _notes: input.notes ?? null,
-      _photo_url: input.photo ?? null,
-      _declined_place_ids: input.declinedPlaceIds ?? [],
-    },
+    "create_manual_place_fallback_v2",
+    { _group_id: groupId, _data: { ...input }, _decisions: input.decisions ?? [] },
     fallbackResultSchema,
     "Servern kunde inte bekräfta det nya matstället.",
   );

@@ -101,6 +101,7 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
         : listLocalReusableManualPlaceCandidates(state.places, query);
       if (candidateRequestRef.current !== requestId) return rows;
       setCandidates(rows);
+      setDeclinedCandidateIds([]);
       return rows;
     } catch (error) {
       if (candidateRequestRef.current !== requestId) return [];
@@ -125,7 +126,10 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
     const timer = window.setTimeout(() => {
       void loadCandidates();
     }, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      candidateRequestRef.current++;
+    };
   }, [candidateQuery, loadCandidates]);
 
   function changeLocationText(value: string) {
@@ -301,6 +305,9 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
       const input: ManualAddInput = {
         ...baseAddInput(),
         declinedReusablePlaceIds: declinedCandidateIds,
+        declinedReusableSnapshots: candidates
+          .filter((c) => declinedCandidateIds.includes(c.placeId) && c.version)
+          .map((c) => ({ placeId: c.placeId, version: c.version! })),
       };
       const added = await addPlace(input);
       const websiteSaved = await saveOptionalWebsite(added.id);

@@ -6,6 +6,7 @@
  */
 
 import { normalizeFoodTags } from "./food-tags";
+import type { CanonicalPlaceCandidate, ProviderIdentityReview } from "./place-discovery";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
 import type {
   PlaceCategory,
@@ -15,6 +16,10 @@ import type {
 } from "./types";
 
 export interface PlaceSuggestion {
+  kind?: "provider" | "canonical";
+  resultKey?: string;
+  canonical?: CanonicalPlaceCandidate;
+  identity?: ProviderIdentityReview;
   externalId: string;
   name: string;
   category: PlaceCategory;
