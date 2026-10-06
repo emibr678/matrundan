@@ -201,5 +201,11 @@ BEGIN
 END;
 $$;
 
+-- Repeat the existing boundary explicitly for the migration/RPC contract.
+REVOKE ALL ON FUNCTION public.resolve_verified_provider_place_v1(uuid,uuid,jsonb,text,uuid,jsonb,text[],text,text)
+  FROM PUBLIC,anon,authenticated;
+GRANT EXECUTE ON FUNCTION public.resolve_verified_provider_place_v1(uuid,uuid,jsonb,text,uuid,jsonb,text[],text,text)
+  TO service_role;
+
 NOTIFY pgrst, 'reload schema';
 COMMIT;
