@@ -30,6 +30,7 @@ async function openManualAdd(page: Page) {
 }
 
 test("ett manuellt ställe behåller sin historik när en senare källa länkas", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
   await page.evaluate(() => {
@@ -66,7 +67,18 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await expect(matchRegion.getByText("Är det samma ställe?", { exact: true })).toBeVisible();
   await expect(matchRegion.getByText(/Samma namn och kartposition i närheten/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Möjlig källmatchning på mobil");
-  await matchRegion.getByRole("button", { name: "Granska matchning" }).click();
+  await addDialog.getByRole("button", { name: "Karta", exact: true }).click();
+  const map = addDialog.getByRole("region", {
+    name: "Karta över sökresultat och valda sökområden",
+    exact: true,
+  });
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+  // Autocomplete selects the same result in either view; only the card CTA opens review.
+  await addDialog.getByRole("combobox", { name: "Sök matställen" }).fill("Hagabackens Kafferum");
+  await addDialog.getByRole("option", { name: /Hagabackens Kafferum/ }).click();
+  await expect(map.getByRole("button", { name: "Granska matchning" })).toBeVisible();
+  await expect(page.getByRole("alertdialog", { name: "Är det samma ställe?" })).toBeHidden();
+  await map.getByRole("button", { name: "Granska matchning" }).click();
 
   const confirmation = page.getByRole("alertdialog", {
     name: "Är det samma ställe?",
@@ -81,6 +93,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await expect(confirmation).toBeHidden();
 
   await expect(addDialog.getByText("1 ställe hanterat i den här omgången")).toBeVisible();
+  await addDialog.getByRole("button", { name: "Lista", exact: true }).click();
   const existingSection = addDialog
     .getByRole("button", { name: /Redan i gruppen \(\d+\)/ })
     .first();

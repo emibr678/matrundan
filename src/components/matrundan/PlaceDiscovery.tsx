@@ -489,7 +489,10 @@ export function PlaceDiscovery({
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
         setNextOffset(followingOffset);
-        setSelectedId(null);
+        // Keep an explicit point/autocomplete choice if the refreshed result still exists.
+        setSelectedId((current) =>
+          nextResults.some((result) => result.externalId === current) ? current : null,
+        );
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
@@ -666,7 +669,8 @@ export function PlaceDiscovery({
     setSelectedId(id);
   }
 
-  const mapResults = existingOpen ? [...availableResults, ...existingResults] : availableResults;
+  const mapAvailable = [...sourceMatches.map((match) => match.result), ...availableResults];
+  const mapResults = existingOpen ? [...mapAvailable, ...existingResults] : mapAvailable;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => {
     const nearestArea = activeAreas.find(
       (area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel,
@@ -687,10 +691,11 @@ export function PlaceDiscovery({
       lng: result.lng,
       category: result.category,
       actionable: true,
+      bulkSelectable: statusForResult(result) === "available" && canBulkAddSuggestion(result),
       actionLabel:
         statusForResult(result) === "existing"
           ? "Öppna stället"
-          : needsPlaceComparison(result)
+          : statusForResult(result) === "linkable" || needsPlaceComparison(result)
             ? "Granska matchning"
             : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
               ? "Återställ"
@@ -740,6 +745,11 @@ export function PlaceDiscovery({
       onAction={(item) => {
         const result = mapResults.find((candidate) => candidate.externalId === item.id);
         if (!result) return;
+        const sourceMatch = sourceMatches.find((match) => match.result.externalId === item.id);
+        if (sourceMatch) {
+          onLinkSource(sourceMatch);
+          return;
+        }
         if (statusForResult(result) === "existing") {
           const placeId =
             (result.canonical ?? result.identity?.knownPlace ?? unambiguousPlaceCandidate(result))

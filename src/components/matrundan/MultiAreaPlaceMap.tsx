@@ -36,6 +36,7 @@ export interface MultiAreaMapItem {
   actionable?: boolean;
   actionLabel?: string;
   bulkSelected?: boolean;
+  bulkSelectable?: boolean;
 }
 
 export interface MultiAreaMapCenter {
@@ -593,9 +594,9 @@ export function MultiAreaPlaceMap({
           </div>
           {selected.actionable !== false ? (
             <div
-              className={`mt-3 grid gap-2 ${onToggleBulkSelection && onAction ? "grid-cols-2" : "grid-cols-1"}`}
+              className={`mt-3 grid gap-2 ${onToggleBulkSelection && selected.bulkSelectable !== false && onAction ? "grid-cols-2" : "grid-cols-1"}`}
             >
-              {onToggleBulkSelection ? (
+              {onToggleBulkSelection && selected.bulkSelectable !== false ? (
                 <Button
                   type="button"
                   size="sm"
