@@ -67,3 +67,52 @@ SQL
   echo "PASS $scenario: two concurrent sessions, one canonical place"
   psql_race -c "DELETE FROM public.activity WHERE group_id='$group'; DELETE FROM public.group_places WHERE group_id='$group'; DELETE FROM public.places WHERE added_by='$actor';" >/dev/null
 done
+
+# A candidate commits while confirmation waits for the identity lock. The selected
+# row/version has not changed, so only recomputing the full pool prevents a bad link.
+name='Race ambiguous'
+provider_data="jsonb_build_object('externalId','race:ambiguous','name','$name','category','café','cuisines','[]'::jsonb,'address','Racegatan 1','city','Teststad','lat',59,'lng',18,'osmType','node','osmId','389900001','fetchedAt',now())"
+manual_data="jsonb_build_object('name','$name','category','café','address','Racegatan 1','city','Teststad','lat',59,'lng',18)"
+place="$(psql_race -c "SELECT private.create_manual_place_v2('$actor','$group',$manual_data)->>'placeId';")"
+version="$(psql_race -c "SELECT private.canonical_place_projection_v1('$place','$group')->>'version';")"
+if [[ "$(psql_race -c "SELECT projection->>'canConfirmSource' FROM private.place_identity_candidates_v1('$group',$provider_data);")" != true ]]; then
+  echo 'Initial preview must have exactly one confirmable candidate.' >&2; exit 1
+fi
+cat > "$race_tmp/first.sql" <<SQL
+BEGIN;
+SET LOCAL application_name='matrundan_identity_race_first';
+INSERT INTO public.places(name,category,address,city,lat,lng,added_by)
+  VALUES('$name annex','café','','Teststad',59.0007,18,'$actor');
+SELECT pg_sleep(1);
+COMMIT;
+SQL
+cat > "$race_tmp/second.sql" <<SQL
+SET statement_timeout='10s';
+DO \$\$ DECLARE result jsonb; BEGIN
+  result := public.resolve_verified_provider_place_v1('$actor','$group',$provider_data,'link','$place',
+    jsonb_build_array(jsonb_build_object('placeId','$place','version','$version')),
+    '{}',NULL,private.provider_place_version_v1($provider_data));
+  IF result->>'status' IS DISTINCT FROM 'review_required' THEN
+    RAISE EXCEPTION 'Concurrent competitor was accepted: %',result;
+  END IF;
+END; \$\$;
+SQL
+psql_race -f "$race_tmp/first.sql" > "$race_tmp/first.log" 2>&1 &
+first_pid=$!
+observed=0
+for attempt in {1..100}; do
+  if [[ "$(psql_race -c "SELECT count(*) FROM pg_stat_activity WHERE application_name='matrundan_identity_race_first' AND wait_event='PgSleep';")" == 1 ]]; then observed=1; break; fi
+  sleep 0.02
+done
+if [[ "$observed" != 1 ]]; then echo 'Competitor never reached its transaction hold.' >&2; exit 1; fi
+if ! psql_race -f "$race_tmp/second.sql" > "$race_tmp/second.log" 2>&1; then
+  cat "$race_tmp/first.log" "$race_tmp/second.log" >&2; exit 1
+fi
+if ! wait "$first_pid"; then cat "$race_tmp/first.log" >&2; exit 1; fi
+if [[ "$(psql_race -c "SELECT count(*) FROM public.place_sources WHERE place_id='$place';")" != 0 ]]; then
+  echo 'Ambiguous confirmation wrote an external source.' >&2; exit 1
+fi
+if [[ "$(psql_race -c "SELECT count(*) FROM public.places WHERE name LIKE '$name%';")" != 2 ]]; then
+  echo 'Concurrent competitor or canonical place was lost.' >&2; exit 1
+fi
+echo 'PASS candidate_confirmation: two concurrent sessions, ambiguous source attachment rejected'

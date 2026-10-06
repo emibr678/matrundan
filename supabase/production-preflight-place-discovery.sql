@@ -21,5 +21,11 @@ WITH required(signature, client_callable) AS (VALUES
  SELECT 'place_discovery_lock:places',EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.places'::regclass AND tgname='serialize_place_identity_writes' AND tgenabled='O')
  UNION ALL
  SELECT 'place_discovery_lock:sources',EXISTS(SELECT 1 FROM pg_trigger WHERE tgrelid='public.place_sources'::regclass AND tgname='serialize_source_identity_writes' AND tgenabled='O')
+ UNION ALL
+ SELECT 'place_discovery_identity:unique_confirmation',
+   position('_total<>1' in pg_get_functiondef('public.resolve_verified_provider_place_v1(uuid,uuid,jsonb,text,uuid,jsonb,text[],text,text)'::regprocedure))>0
+ UNION ALL
+ SELECT 'place_discovery_identity:server_confirmation_flag',
+   position('canConfirmSource' in pg_get_functiondef('private.place_identity_candidates_v1(uuid,jsonb)'::regprocedure))>0
 )
 SELECT name,ok FROM checks ORDER BY name;

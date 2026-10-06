@@ -20,6 +20,8 @@ export interface IdentityCandidate extends CanonicalPlaceCandidate {
   lng: number;
   matchKind: "strong" | "possible";
   distanceKm: number;
+  /** Server-computed; absent on older deployments means confirmation is unavailable. */
+  canConfirmSource?: boolean;
 }
 
 export interface ProviderIdentityReview {

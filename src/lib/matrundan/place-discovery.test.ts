@@ -100,3 +100,23 @@ describe("canonical place discovery", () => {
     expect(canBulkAddSuggestion(provider)).toBe(true);
   });
 });
+
+test("äldre DB-projektion får inte ge implicit rätt att bekräfta kartkälla", async () => {
+  const { identityCandidateSchema } = await import("./place-discovery.schemas");
+  const candidate = identityCandidateSchema.parse({
+    placeId: "38920000-0000-4000-8000-000000000001",
+    name: "Café",
+    category: "café",
+    cuisines: [],
+    address: "Gatan 1",
+    area: null,
+    city: "Teststad",
+    lat: 59,
+    lng: 18,
+    groupStatus: "not_linked",
+    version: "a".repeat(32),
+    matchKind: "strong",
+    distanceKm: 0,
+  });
+  expect(candidate.canConfirmSource).toBe(false);
+});

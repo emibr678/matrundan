@@ -22,6 +22,7 @@ export const canonicalPlaceCandidateSchema = z.object({
 export const identityCandidateSchema = canonicalPlaceCandidateSchema.extend({
   matchKind: z.enum(["strong", "possible"]),
   distanceKm: z.number().nonnegative(),
+  canConfirmSource: z.boolean().default(false),
 });
 
 export const providerIdentityReviewSchema = z.object({

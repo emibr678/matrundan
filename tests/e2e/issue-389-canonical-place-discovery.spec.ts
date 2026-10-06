@@ -37,13 +37,23 @@ const provider = {
     providerPlaceId: "389-map",
     providerVersion: "b".repeat(32),
     knownPlace: null,
-    candidates: [{ ...canonical, matchKind: "strong", distanceKm: 0.01 }],
+    candidates: [{ ...canonical, matchKind: "strong", distanceKm: 0.01, canConfirmSource: true }],
     reviewRequired: true,
     identityConflict: false,
   },
 };
 
-async function setup(page: Page, options: { member?: boolean; conflict?: boolean } = {}) {
+async function setup(
+  page: Page,
+  options: {
+    member?: boolean;
+    conflict?: boolean;
+    competitor?: boolean;
+    unconfirmed?: boolean;
+    stale?: boolean;
+    manual?: boolean;
+  } = {},
+) {
   const now = new Date().toISOString(),
     expires = Math.floor(Date.now() / 1000) + 3600;
   await page.addInitScript(
@@ -76,6 +86,19 @@ async function setup(page: Page, options: { member?: boolean; conflict?: boolean
   );
   let saved = false;
   const confirmations: unknown[] = [];
+  const manualRequests: unknown[] = [];
+  const ambiguousCandidates = [
+    { ...provider.identity.candidates[0], canConfirmSource: false },
+    {
+      ...provider.identity.candidates[0],
+      placeId: "38920000-0000-4000-8000-000000000002",
+      name: "Åströms annex",
+      address: "",
+      matchKind: "possible",
+      distanceKm: 0.08,
+      canConfirmSource: false,
+    },
+  ];
   const appState = () => ({
     currentUserId: actor,
     group: {
@@ -104,26 +127,48 @@ async function setup(page: Page, options: { member?: boolean; conflict?: boolean
     members: [
       { id: actor, name: "Testaren", avatar: "🙂", role: options.member ? "medlem" : "ägare" },
     ],
-    places: saved
-      ? [
-          {
-            id: placeId,
-            name: canonical.name,
-            category: "café",
-            cuisines: ["Svenskt"],
-            occasions: [],
-            address: canonical.address,
-            city: canonical.city,
-            lat: 59,
-            lng: 18,
-            addedBy: actor,
-            addedAt: now,
-            collectionStatus: "active",
-            origin: "manual",
-            sources: [],
-          },
-        ]
-      : [],
+    places: [
+      ...(options.manual
+        ? [
+            {
+              id: "38920000-0000-4000-8000-000000000010",
+              name: "Espresso House",
+              category: "café",
+              cuisines: [],
+              occasions: [],
+              address: "Stationsgatan 1",
+              city: "Teststad",
+              lat: 59.01,
+              lng: 18,
+              addedBy: actor,
+              addedAt: now,
+              collectionStatus: "active",
+              origin: "provider",
+              sources: [{ provider: "geoapify", providerPlaceId: "known-chain", status: "active" }],
+            },
+          ]
+        : []),
+      ...(saved
+        ? [
+            {
+              id: placeId,
+              name: options.manual ? "Espresso House" : canonical.name,
+              category: "café",
+              cuisines: ["Svenskt"],
+              occasions: [],
+              address: options.manual ? "Stationsgatan 2" : canonical.address,
+              city: canonical.city,
+              lat: options.manual ? 59.0105 : 59,
+              lng: 18,
+              addedBy: actor,
+              addedAt: now,
+              collectionStatus: "active",
+              origin: "manual",
+              sources: [],
+            },
+          ]
+        : []),
+    ],
     visits: [],
     favorites: [],
     activity: [],
@@ -150,7 +195,11 @@ async function setup(page: Page, options: { member?: boolean; conflict?: boolean
           ? appState()
           : name === "link_canonical_place_to_group_v1"
             ? ((saved = true), { status: "linked", placeId })
-            : [];
+            : name === "create_manual_place_fallback_v2"
+              ? (manualRequests.push(JSON.parse(route.request().postData()!)),
+                (saved = true),
+                { placeId, improvementCandidate: true })
+              : [];
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -177,7 +226,18 @@ async function setup(page: Page, options: { member?: boolean; conflict?: boolean
             resultKey: `canonical:${placeId}`,
             externalId: `canonical:${placeId}`,
           },
-          { ...provider, identity: { ...provider.identity, identityConflict: !!options.conflict } },
+          {
+            ...provider,
+            identity: {
+              ...provider.identity,
+              identityConflict: !!options.conflict,
+              candidates: options.competitor
+                ? ambiguousCandidates
+                : options.unconfirmed
+                  ? [ambiguousCandidates[0]]
+                  : provider.identity.candidates,
+            },
+          },
         ],
         failedAreaLabels: [],
         canonicalIncomplete: false,
@@ -188,16 +248,36 @@ async function setup(page: Page, options: { member?: boolean; conflict?: boolean
     if (name.startsWith("resolveProviderPlace")) {
       const payload = fromJSON(JSON.parse(route.request().postData()!)) as { data: unknown };
       confirmations.push(payload.data);
-      saved = true;
-      reply = { status: "linked", placeId };
+      saved = !options.stale;
+      reply = options.stale
+        ? {
+            status: "review_required",
+            candidates: ambiguousCandidates,
+            providerVersion: "c".repeat(32),
+            provider,
+          }
+        : { status: "linked", placeId };
     }
+    if (name.startsWith("geoapifyAutocompleteLocation"))
+      reply = [
+        {
+          label: "Stationsgatan 2",
+          primaryLabel: "Stationsgatan 2",
+          secondaryLabel: "Teststad",
+          placeId: "verified-address-2",
+          lat: 59.0105,
+          lng: 18,
+          city: "Teststad",
+          resultType: "building",
+        },
+      ];
     await route.fulfill({
       status: 200,
       contentType: "application/json",
       body: JSON.stringify({ result: reply, context: {} }),
     });
   });
-  return { confirmations };
+  return { confirmations, manualRequests };
 }
 
 async function noOverflow(page: Page) {
@@ -324,4 +404,83 @@ test("motstridiga kartidentiteter stoppar både koppling och nytt skapande", asy
     "Astrom",
   );
   expect(mocked.confirmations).toEqual([]);
+});
+
+for (const scenario of ["competing", "hidden", "stale"] as const) {
+  test(`${scenario}: admin återanvänder utan att koppla en osäker kartkälla`, async ({
+    page,
+  }, info) => {
+    const mocked = await setup(page, {
+      competitor: scenario === "competing",
+      unconfirmed: scenario === "hidden",
+      stale: scenario === "stale",
+    });
+    await page.goto("/matstallen");
+    await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+    const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+    await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
+    await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
+    await search
+      .getByRole("button", { name: "Granska matchning", exact: true })
+      .filter({ visible: true })
+      .click();
+    const review = page.getByRole("dialog", { name: "Är det samma ställe?", exact: true });
+    if (scenario === "stale") {
+      await review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }).click();
+      await expect(review.getByText("Åströms annex", { exact: true })).toBeVisible();
+    }
+    await expect(
+      review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      review.getByText("Stället används utan att kartkällan kopplas.", { exact: true }).first(),
+    ).toBeVisible();
+    await expect(review).toHaveCSS("opacity", "1");
+    await noOverflow(page);
+    await page.screenshot({ path: `visual-review/issue-389-${scenario}-${info.project.name}.png` });
+    await review
+      .getByRole("button", { name: "Använd befintligt ställe", exact: true })
+      .first()
+      .click();
+    await expect(review).toBeHidden();
+    expect(mocked.confirmations).toHaveLength(scenario === "stale" ? 1 : 0);
+    await search.getByRole("button", { name: "Klar", exact: true }).click();
+    await expect(page.getByRole("link", { name: new RegExp(canonical.name) })).toHaveAttribute(
+      "href",
+      `/matstallen/${placeId}`,
+    );
+  });
+}
+
+test("manuell kedjefilial behåller annan adress nära ett kartställe", async ({ page }) => {
+  const mocked = await setup(page, { manual: true });
+  await page.goto("/matstallen");
+  await expect(
+    page.locator('a[href="/matstallen/38920000-0000-4000-8000-000000000010"]'),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search
+    .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+    .click();
+  await page.locator("#manual-name").fill("Espresso House");
+  await page.locator("#manual-location").fill("Stationsgatan 2");
+  await page.getByRole("option").filter({ hasText: "Stationsgatan 2" }).getByRole("button").click();
+  await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(search).toBeHidden();
+  expect(mocked.manualRequests).toEqual([
+    expect.objectContaining({
+      _data: expect.objectContaining({
+        name: "Espresso House",
+        address: "Stationsgatan 2",
+        city: "Teststad",
+        lat: 59.0105,
+        lng: 18,
+      }),
+    }),
+  ]);
+  await expect(page.locator(`a[href="/matstallen/${placeId}"]`)).toContainText("Espresso House");
+  await expect(
+    page.locator('a[href="/matstallen/38920000-0000-4000-8000-000000000010"]'),
+  ).toBeVisible();
 });

@@ -483,23 +483,27 @@ export function AddPlaceResultDialogs({
                       disabled={isBusy || !!conflictMessage}
                       onClick={() =>
                         void confirmAdd(
-                          candidate.matchKind === "strong" && canConfirmIdentity ? "link" : "auto",
+                          candidate.canConfirmSource === true && canConfirmIdentity
+                            ? "link"
+                            : "auto",
                           candidate,
-                          !(candidate.matchKind === "strong" && canConfirmIdentity),
+                          !(candidate.canConfirmSource === true && canConfirmIdentity),
                         )
                       }
                     >
-                      {candidate.matchKind === "strong" && canConfirmIdentity
+                      {candidate.canConfirmSource === true && canConfirmIdentity
                         ? "Bekräfta samma ställe"
                         : "Använd befintligt ställe"}
                     </Button>
-                    {candidate.matchKind === "strong" && canConfirmIdentity ? (
+                    {candidate.canConfirmSource === true && canConfirmIdentity ? (
                       <p className="text-xs text-muted-foreground">
                         Kartkällan kopplas till det befintliga stället.
                       </p>
                     ) : (
                       <p className="text-xs text-muted-foreground">
-                        Stället används direkt. Gruppens admin kan bekräfta kartkällan senare.
+                        {candidate.canConfirmSource === true
+                          ? "Stället används direkt. Gruppens admin kan bekräfta kartkällan senare."
+                          : "Stället används utan att kartkällan kopplas."}
                       </p>
                     )}
                   </div>

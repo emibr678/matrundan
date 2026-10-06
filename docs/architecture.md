@@ -1010,8 +1010,11 @@ inte göra provider-, databas- eller OSM-skrivningar.
 
 ### Senare extern källkoppling
 
-I sökningens tilläggsflöde kan gruppens ägare/admin bekräfta en aktuell stark
-match med en verifierad manuell kandidat. En vanlig medlem kan återanvända
+I sökningens tilläggsflöde kan gruppens ägare/admin bekräfta en aktuell entydig
+stark match med en verifierad manuell kandidat. Servern måste under identitetslåset
+bevisa att ingen annan rimlig kandidat finns, även bland icke-exponerade äldre
+eller avfärdade ställen. En stark match är inte i sig en entydig match; osäkra
+kandidater kan återanvändas i gruppen utan global källkoppling. En vanlig medlem kan återanvända
 kandidaten utan att ändra den externa identiteten. Källkoppling är en egen
 bekräftad identitetsåtgärd; liknande namn eller en lokal klientjämförelse räcker
 aldrig som skrivbehörighet.
@@ -1024,7 +1027,9 @@ koordinater eller `raw`. Äldre RPC:er tillåter bara återanvändning av redan
 etablerade exakta provider-ID:n; nya identiteter kräver verifiering.
 
 Bekräftelse och avstående binds till den kandidat- och providerversion som
-visades. Nya eller förändrade rimliga kandidater kräver ny granskning. Den korta
+visades. Nya eller förändrade rimliga kandidater kräver ny granskning. Dubblettvakten för
+manuella tillägg behandlar kända olika adresser eller orter som motbevis även
+vid samma namn inom 150 meter; saknad adress/ort är däremot inget motbevis. Den korta
 kontroll-/skrivfasen delar ett transaktionslås med manuella tillägg, batch,
 källskrivningar och kartuppdatering; inga HTTP-anrop sker med låset hållet.
 
