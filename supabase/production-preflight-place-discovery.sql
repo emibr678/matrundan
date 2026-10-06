@@ -27,5 +27,15 @@ WITH required(signature, client_callable) AS (VALUES
  UNION ALL
  SELECT 'place_discovery_identity:server_confirmation_flag',
    position('canConfirmSource' in pg_get_functiondef('private.place_identity_candidates_v1(uuid,jsonb)'::regprocedure))>0
+ UNION ALL
+ SELECT 'place_discovery_identity:compatible_address',
+   to_regprocedure('private.place_address_relation_v1(text,text)') IS NOT NULL
+ UNION ALL
+ SELECT 'place_discovery_search:specific_point_name',
+   position('specific_place_name_matches_v1' in pg_get_functiondef('public.search_canonical_places_v1(uuid,text,jsonb,text[],text[],integer)'::regprocedure))>0
+ UNION ALL
+ SELECT 'place_discovery_manual:compatible_duplicate_guard',
+   position('place_address_relation_v1' in pg_get_functiondef('private.create_manual_place_v2(uuid,uuid,jsonb,jsonb)'::regprocedure))>0
+
 )
 SELECT name,ok FROM checks ORDER BY name;

@@ -51,14 +51,14 @@ describe("manuell källmatchning", () => {
   test("accepterar samma namn i närheten men inte ett avlägset ställe", () => {
     expect(
       findManualSourceLinkCandidate(
-        [manualPlace({ address: "Okänd adress" })],
+        [manualPlace({ address: "" })],
         suggestion({ address: "Annan gata 2" }),
       )?.reason,
     ).toBe("same_name_and_nearby");
 
     expect(
       findManualSourceLinkCandidate(
-        [manualPlace({ address: "Okänd adress" })],
+        [manualPlace({ address: "" })],
         suggestion({ address: "Annan gata 2", lat: 59.35, lng: 18.1 }),
       ),
     ).toBeNull();

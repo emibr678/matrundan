@@ -1008,6 +1008,26 @@ rapporterat fel, en förbättringskandidat, en providerträff, OSM-åtgärd och 
 avslutat ärende. Den ska vara tydligt märkt som fiktiv utvecklingsdata och får
 inte göra provider-, databas- eller OSM-skrivningar.
 
+Platssökningens presentation förenar en intern sökrad med en kartträff endast när
+serverprojektionen bevisar en entydig stark kandidat (`canConfirmSource`) eller
+redan etablerad identitet. Den förenade raden behåller provider-ID och serverns
+verifierade mutationsväg. Vanlig medlem använder återanvändnings-RPC:n utan
+källskrivning. En ny konkurrent efter sökningen returnerar färsk granskning under
+identitetslåset.
+
+Adressrelationen skiljer saknad information, lika adress, kompatibel gatunivå
+utan husnummer och verklig motsägelse. Samma namn och högst 50 meters avstånd kan
+stödja en gatunivåadress; olika kända husnummer eller gatunamn ger aldrig en stark
+match. Manuella dubblettvakten använder samma adressrelation. Specifik namnsökning
+kan utöka en punktgeografi till högst 50 km; polygoner inklusive hål behåller sin
+geometri. Generiska kategorier och kök får ingen sådan utökning.
+
+Manuell fallback kontrollerar externa träffar inom 150 meter från den verifierade
+positionen genom en autentiserad serverläsning. Ingen klientbeskrivning blir
+skrivauktoritet: en vald träff hämtas åter server-side av det befintliga
+resolverflödet. Providerfel släpper vidare till den låsta interna kandidat- och
+raceguarden.
+
 ### Senare extern källkoppling
 
 I sökningens tilläggsflöde kan gruppens ägare/admin bekräfta en aktuell entydig

@@ -120,3 +120,122 @@ test("äldre DB-projektion får inte ge implicit rätt att bekräfta kartkälla"
   });
   expect(candidate.canConfirmSource).toBe(false);
 });
+
+import {
+  placeAddressRelation,
+  matchesSpecificPlaceName,
+  presentPlaceSearchResults,
+  unambiguousPlaceCandidate,
+} from "./place-discovery";
+
+test("ofullständig adress är kompatibel, motsägande gata eller nummer är motbevis", () => {
+  expect(placeAddressRelation("Ringvägen", "Ringvägen 106")).toBe("compatible");
+  expect(placeAddressRelation("Ringvägen 106", "Ringvägen")).toBe("compatible");
+  expect(placeAddressRelation("Ringvägen 106", "Ringvägen 150")).toBe("conflict");
+  expect(placeAddressRelation("Ringvägen 106", "Götgatan 106")).toBe("conflict");
+  expect(placeAddressRelation("", "Ringvägen 106")).toBe("unknown");
+  expect(placeAddressRelation("Ringvägen 106 A, Stockholm", "Ringvägen 106a")).toBe("equal");
+});
+test("bredare namnsökning är specifik och begränsad till exakt eller kort kvalificerat namn", () => {
+  expect(matchesSpecificPlaceName("Monster Chicken", "Monster Chicken")).toBe(true);
+  expect(matchesSpecificPlaceName("Monster Chicken", "Monster Chicken Söder")).toBe(true);
+  expect(matchesSpecificPlaceName("Monster Chicken", "Monster Chickens")).toBe(false);
+  for (const generic of ["pizza", "café", "hamburgare", "restauranger"])
+    expect(matchesSpecificPlaceName(generic, generic)).toBe(false);
+});
+test("sökrader förenas enbart med serverns entydighetsbevis och behåller verifierad skrivväg", () => {
+  const candidate = {
+    placeId: "x",
+    name: "Monster Chicken",
+    category: "snabbmat" as const,
+    cuisines: [],
+    address: "Ringvägen 106",
+    city: "Stockholm",
+    area: null,
+    lat: 59,
+    lng: 18,
+    version: "v1",
+    groupStatus: "not_linked" as const,
+    matchKind: "strong" as const,
+    distanceKm: 0.007,
+    canConfirmSource: true,
+  };
+  const provider = {
+    externalId: "map",
+    provider: "geoapify",
+    name: candidate.name,
+    category: candidate.category,
+    address: "Ringvägen",
+    city: candidate.city,
+    kind: "provider" as const,
+    identity: {
+      providerPlaceId: "map",
+      providerVersion: "v1",
+      knownPlace: null,
+      candidates: [candidate],
+      reviewRequired: true,
+      identityConflict: false,
+    },
+  };
+  const canonical = {
+    ...provider,
+    externalId: "canonical:x",
+    kind: "canonical" as const,
+    canonical: candidate,
+    identity: undefined,
+  };
+  const merged = presentPlaceSearchResults([canonical, provider]);
+  expect(merged).toHaveLength(1);
+  expect(merged[0].externalId).toBe("map");
+  expect(merged[0].address).toBe("Ringvägen 106");
+  const uncertain = {
+    ...provider,
+    identity: { ...provider.identity, candidates: [{ ...candidate, canConfirmSource: false }] },
+  };
+  expect(unambiguousPlaceCandidate(uncertain)).toBeNull();
+  expect(presentPlaceSearchResults([canonical, uncertain])).toHaveLength(2);
+  expect(
+    presentPlaceSearchResults([
+      canonical,
+      {
+        ...provider,
+        identity: { ...provider.identity, candidates: [candidate, { ...candidate, placeId: "y" }] },
+      },
+    ]),
+  ).toHaveLength(2);
+});
+
+import { manualFallbackProviderCandidates } from "./place-discovery";
+import { FOOD_TAGS } from "./food-tags";
+
+test("sista kartkontrollen är riktad till vald adress och avvisar motsägande filialer", () => {
+  const query = {
+    name: "Monster Chicken",
+    address: "Ringvägen 106",
+    city: "Stockholm",
+    lat: 59,
+    lng: 18,
+  };
+  const place = {
+    ...query,
+    category: "snabbmat" as const,
+    externalId: "map",
+    address: "Ringvägen",
+    lat: 59.00006,
+  };
+  expect(manualFallbackProviderCandidates(query, [place])).toEqual([place]);
+  expect(
+    manualFallbackProviderCandidates(query, [
+      { ...place, address: "Ringvägen 150" },
+      { ...place, lat: 59.002 },
+      { ...place, name: "Monster Hamburgare" },
+      { ...place, city: "Göteborg" },
+    ]),
+  ).toEqual([]);
+  expect(manualFallbackProviderCandidates(query, [])).toEqual([]);
+});
+test("alla etablerade kök och typer hålls geografiska även med långa generiska ord", () => {
+  for (const tag of FOOD_TAGS)
+    for (const query of [tag.id, tag.label, ...tag.aliases])
+      expect(matchesSpecificPlaceName(query, query)).toBe(false);
+});

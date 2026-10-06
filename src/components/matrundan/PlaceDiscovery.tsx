@@ -1,6 +1,12 @@
 import * as React from "react";
+import { useNavigate } from "@tanstack/react-router";
 import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
-import { canBulkAddSuggestion } from "@/lib/matrundan/place-discovery";
+import {
+  canBulkAddSuggestion,
+  needsPlaceComparison,
+  presentPlaceSearchResults,
+  unambiguousPlaceCandidate,
+} from "@/lib/matrundan/place-discovery";
 import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
@@ -113,6 +119,7 @@ export function PlaceDiscovery({
   onMissingPlace: () => void;
   onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const { state, submitting } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
   const isLive = mode === "live";
@@ -162,7 +169,6 @@ export function PlaceDiscovery({
   const requestRef = React.useRef(0);
   const skipInitialSearchRef = React.useRef(Boolean(snapshot));
   const previousBulkBusyRef = React.useRef(false);
-  const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
 
   React.useEffect(() => {
@@ -324,7 +330,10 @@ export function PlaceDiscovery({
       if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
       if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
       if (isLive) {
-        const canonical = suggestion.canonical ?? suggestion.identity?.knownPlace;
+        const canonical =
+          suggestion.canonical ??
+          suggestion.identity?.knownPlace ??
+          unambiguousPlaceCandidate(suggestion);
         const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
         return (own?.collectionStatus ?? canonical?.groupStatus) !== "active";
       }
@@ -480,7 +489,7 @@ export function PlaceDiscovery({
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
         setNextOffset(followingOffset);
-        setSelectedId(nextResults[0]?.externalId ?? null);
+        setSelectedId(null);
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
@@ -499,26 +508,28 @@ export function PlaceDiscovery({
 
   const filteredResults = React.useMemo(
     () =>
-      results
-        .map((result) => {
-          const resolution = resolutions[result.externalId];
-          return resolution
-            ? {
-                ...result,
-                ...resolution.provider,
-                identity: {
-                  providerPlaceId: result.externalId,
-                  providerVersion:
-                    resolution.providerVersion ?? result.identity?.providerVersion ?? "",
-                  knownPlace: result.identity?.knownPlace ?? null,
-                  candidates: resolution.candidates ?? [],
-                  reviewRequired: resolution.status === "review_required",
-                  identityConflict: resolution.status === "identity_conflict",
-                },
-              }
-            : result;
-        })
-        .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+      presentPlaceSearchResults(
+        results
+          .map((result) => {
+            const resolution = resolutions[result.externalId];
+            return resolution
+              ? {
+                  ...result,
+                  ...resolution.provider,
+                  identity: {
+                    providerPlaceId: result.externalId,
+                    providerVersion:
+                      resolution.providerVersion ?? result.identity?.providerVersion ?? "",
+                    knownPlace: result.identity?.knownPlace ?? null,
+                    candidates: resolution.candidates ?? [],
+                    reviewRequired: resolution.status === "review_required",
+                    identityConflict: resolution.status === "identity_conflict",
+                  },
+                }
+              : result;
+          })
+          .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+      ),
     [hiddenKeys, resolutions, results],
   );
   const visibleResults = React.useMemo(
@@ -610,7 +621,10 @@ export function PlaceDiscovery({
         return "existing";
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
       if (isLive) {
-        const canonical = suggestion.canonical ?? suggestion.identity?.knownPlace;
+        const canonical =
+          suggestion.canonical ??
+          suggestion.identity?.knownPlace ??
+          unambiguousPlaceCandidate(suggestion);
         const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
         return (own?.collectionStatus ?? canonical?.groupStatus) === "active"
           ? "existing"
@@ -634,7 +648,7 @@ export function PlaceDiscovery({
     const primaryResults = [...sourceMatches.map((match) => match.result), ...availableResults];
     const visible = existingOpen ? [...primaryResults, ...existingResults] : primaryResults;
     if (!visible.some((result) => result.externalId === selectedId)) {
-      setSelectedId(visible[0]?.externalId ?? null);
+      setSelectedId(null);
     }
   }, [availableResults, existingOpen, existingResults, selectedId, sourceMatches]);
 
@@ -650,17 +664,6 @@ export function PlaceDiscovery({
 
   function handleMapSelect(id: string) {
     setSelectedId(id);
-    const result = availableResults.find((candidate) => candidate.externalId === id);
-    if (!result || interactionsDisabled) return;
-    if (bulkMode && canBulkAddSuggestion(result)) {
-      const now = performance.now();
-      const previous = lastMapToggleRef.current;
-      if (previous?.id === id && now - previous.at < 150) return;
-      lastMapToggleRef.current = { id, at: now };
-      onToggleSelected(result);
-    } else {
-      onBeginAdd(result);
-    }
   }
 
   const mapResults = existingOpen ? [...availableResults, ...existingResults] : availableResults;
@@ -683,7 +686,15 @@ export function PlaceDiscovery({
       lat: result.lat,
       lng: result.lng,
       category: result.category,
-      actionable: statusForResult(result) === "available",
+      actionable: true,
+      actionLabel:
+        statusForResult(result) === "existing"
+          ? "Öppna stället"
+          : needsPlaceComparison(result)
+            ? "Granska matchning"
+            : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
+              ? "Återställ"
+              : "Lägg till",
       bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
       eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}`,
       description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
@@ -726,6 +737,16 @@ export function PlaceDiscovery({
       radiusKm={radiusKm}
       selectedId={selectedId}
       onSelect={handleMapSelect}
+      onAction={(item) => {
+        const result = mapResults.find((candidate) => candidate.externalId === item.id);
+        if (!result) return;
+        if (statusForResult(result) === "existing") {
+          const placeId =
+            (result.canonical ?? result.identity?.knownPlace ?? unambiguousPlaceCandidate(result))
+              ?.placeId ?? matchingPlace(state.places, result)?.id;
+          if (placeId) void navigate({ to: "/matstallen/$placeId", params: { placeId } });
+        } else onBeginAdd(result);
+      }}
       onToggleBulkSelection={
         bulkMode
           ? (item) => {
@@ -1046,7 +1067,14 @@ function PlaceSearchCombobox({
     meta: placeOptionMeta(suggestion),
     suggestion,
   }));
-  const options = [...genericOptions, ...placeOptions];
+  const isInternalOption = (option: PlaceSearchOption) =>
+    option.kind === "place" &&
+    (option.suggestion.kind === "canonical" ||
+      !!unambiguousPlaceCandidate(option.suggestion) ||
+      !!option.suggestion.identity?.knownPlace);
+  const internalOptions = placeOptions.filter(isInternalOption);
+  const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
+  const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = open && hasQuery;
 
@@ -1182,7 +1210,12 @@ function PlaceSearchCombobox({
             ) : (
               <>
                 {renderGroup("Kök och typer", genericOptions, 0)}
-                {renderGroup("Matställen", placeOptions, genericOptions.length)}
+                {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
+                {renderGroup(
+                  "Hittat i kartan",
+                  externalOptions,
+                  genericOptions.length + internalOptions.length,
+                )}
                 {loading ? (
                   <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
                 ) : null}

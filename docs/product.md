@@ -146,17 +146,26 @@ Här hör bland annat hemma:
 - gruppens Topplista;
 - platsdetalj och gruppspecifika uppgifter om stället.
 
-Platssökningen kompletterar kartträffar med befintliga manuella Matrundan-ställen
-vid en konkret namn-, kategori- eller köksökning. Ett valt ställe återanvänds på
-samma plats-ID och kopplas bara till den aktiva gruppen. Andra gruppers besök,
-anteckningar och klassificering följer inte med.
+Vid en konkret sökning söker Matrundan samtidigt i kartan och bland relevanta
+Matrundan-ställen. Befintliga ställen visas under **Finns i Matrundan** med neutral
+platsidentitet. Ett tidigare besök krävs inte. När kartträffen säkert motsvarar
+ett befintligt ställe presenteras en rad; osäkra träffar hålls isär.
 
-När en senare kartträff verkar motsvara ett manuellt ställe får användaren
-granska matchningen. Gruppens ägare/admin kan bekräfta den externa källan när
-matchningen är stark och entydig. Om flera ställen verkar rimliga kan ett befintligt
-ställe användas i gruppen utan att kartkällan kopplas. Vanliga medlemmar kan också
-använda det befintliga stället direkt. Motstridiga kartidentiteter stoppar ändringen.
-Källkoppling bevarar platsens historik.
+Användaren väljer ett verkligt matställe. Jämförelsen **Är det samma ställe?** visas
+först vid osäkerhet. Vanliga medlemmar kan återanvända stället utan att ändra dess
+kartkoppling. Ägare/admin kan samtidigt bekräfta kartträffen om servern verifierar
+en enda stark kandidat utan konkurrent. Plats-ID och historik bevaras; andra
+gruppers privata uppgifter följer inte med.
+
+Ett specifikt exakt eller nära exakt namn kan hitta ett befintligt ställe inom
+50 km från ett punktval även när den valda radien är snävare. Adress och ort visas
+alltid. Generiska sökningar respekterar valda områden och tom sökning öppnar ingen
+global katalog. En verifierad adress i manuell fallback får en sista kartkontroll
+nära den valda positionen. Kartfel eller utebliven träff blockerar inte fallbacken.
+
+På kartan väljer ett punkttryck stället och visar dess bottenkort. Tillägg eller
+granskning öppnas först genom kortets uttryckliga knapp. Ingen punkt är vald innan
+användaren väljer den.
 
 Topplistan är ett stöd för återupptäckt och val utifrån gruppens faktiska
 erfarenheter, inte ett offentligt eller globalt Matrundan-betyg.

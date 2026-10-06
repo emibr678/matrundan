@@ -1,3 +1,6 @@
+import { findNearbyPlacesForManualFallback } from "@/lib/matrundan/geoapify.functions";
+import { isSpecificPlaceName } from "@/lib/matrundan/place-discovery";
+import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import * as React from "react";
 import { CheckCircle2, ChevronDown, Loader2, MapPin, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -42,13 +45,30 @@ import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/
 
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
-export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
+export interface ManualAddPlaceSnapshot {
+  draft: ManualPlaceDraft;
+  website: string;
+  verifiedLocation: VerifiedLocationSelection | null;
+}
+export function ManualAddPlaceForm({
+  onClose,
+  onProviderFound,
+  snapshot,
+  onSnapshotChange,
+}: {
+  onClose: () => void;
+  onProviderFound: (place: PlaceSuggestion) => void;
+  snapshot: ManualAddPlaceSnapshot | null;
+  onSnapshotChange: (snapshot: ManualAddPlaceSnapshot) => void;
+}) {
   const { state, addPlace, submitting } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [draft, setDraft] = React.useState<ManualPlaceDraft>(() => emptyManualPlace(""));
-  const [website, setWebsite] = React.useState("");
+  const [draft, setDraft] = React.useState<ManualPlaceDraft>(
+    () => snapshot?.draft ?? emptyManualPlace(""),
+  );
+  const [website, setWebsite] = React.useState(snapshot?.website ?? "");
   const [verifiedLocation, setVerifiedLocation] = React.useState<VerifiedLocationSelection | null>(
-    null,
+    snapshot?.verifiedLocation ?? null,
   );
   const [candidates, setCandidates] = React.useState<ReusableManualPlaceCandidate[]>([]);
   const [declinedCandidateIds, setDeclinedCandidateIds] = React.useState<string[]>([]);
@@ -56,6 +76,11 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
   const [candidateError, setCandidateError] = React.useState<string | null>(null);
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [externalCandidates, setExternalCandidates] = React.useState<PlaceSuggestion[]>([]);
+  const [declinedExternalIds, setDeclinedExternalIds] = React.useState<string[]>([]);
+  React.useEffect(() => {
+    onSnapshotChange({ draft, website, verifiedLocation });
+  }, [draft, website, verifiedLocation, onSnapshotChange]);
   const candidateRequestRef = React.useRef(0);
   const isBusy = busy || submitting;
   const isLive = mode === "live";
@@ -77,6 +102,11 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
       lng: verifiedLocation.lng,
     };
   }, [draft.address, draft.category, draft.city, draft.name, verifiedLocation]);
+
+  React.useEffect(() => {
+    setExternalCandidates([]);
+    setDeclinedExternalIds([]);
+  }, [candidateQuery]);
 
   const loadCandidates = React.useCallback(async () => {
     const query = candidateQuery;
@@ -292,6 +322,29 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
     }
     if (!validateWebsite()) return;
 
+    // A provider read failure must never remove the safe manual escape hatch.
+    if (isLive && activeGroupId && verifiedLocation && isSpecificPlaceName(draft.name)) {
+      setBusy(true);
+      try {
+        const found = await findNearbyPlacesForManualFallback({
+          data: {
+            groupId: activeGroupId,
+            name: draft.name.trim(),
+            address: draft.address,
+            city: draft.city,
+            lat: verifiedLocation.lat,
+            lng: verifiedLocation.lng,
+          },
+        });
+        setExternalCandidates(found);
+        if (found.some((place) => !declinedExternalIds.includes(place.externalId))) return;
+      } catch {
+        /* Existing identity/race guard still runs for the manual write. */
+      } finally {
+        setBusy(false);
+      }
+    }
+
     const unresolvedCandidates = candidates.filter(
       (candidate) => !declinedCandidateIds.includes(candidate.placeId),
     );
@@ -423,6 +476,32 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
+        {externalCandidates
+          .filter((place) => !declinedExternalIds.includes(place.externalId))
+          .map((place) => (
+            <div key={place.externalId} className="space-y-2 rounded-xl border bg-secondary/30 p-3">
+              <p className="text-xs text-muted-foreground">Hittat nära adressen i kartan</p>
+              <p className="break-words font-medium">{place.name}</p>
+              <p className="break-words text-sm text-muted-foreground">
+                {[place.address, place.city].filter(Boolean).join(" · ")}
+              </p>
+              <Button
+                className="min-h-11 w-full"
+                disabled={isBusy}
+                onClick={() => onProviderFound(place)}
+              >
+                Använd det här stället
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 w-full"
+                disabled={isBusy}
+                onClick={() => setDeclinedExternalIds((ids) => [...ids, place.externalId])}
+              >
+                Det är ett annat ställe
+              </Button>
+            </div>
+          ))}
         {candidateLoading ? (
           <div
             className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground"

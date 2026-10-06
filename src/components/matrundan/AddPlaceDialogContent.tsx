@@ -3,7 +3,7 @@ import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
-import { ManualAddPlaceForm } from "./ManualAddPlaceForm";
+import { ManualAddPlaceForm, type ManualAddPlaceSnapshot } from "./ManualAddPlaceForm";
 import { PlaceDiscovery, type PlaceDiscoverySnapshot } from "./PlaceDiscovery";
 import type { SourceMatchResult } from "./SearchResultSections";
 import {
@@ -61,6 +61,7 @@ export function AddPlaceDialogContent({
 }) {
   const { state, addPlace } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
+  const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
@@ -116,6 +117,7 @@ export function AddPlaceDialogContent({
     setAddedResultIds(new Set());
     setDiscoverySnapshot(null);
     setResolutions({});
+    setManualSnapshot(null);
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -430,7 +432,12 @@ export function AddPlaceDialogContent({
                 <ArrowLeft className="h-4 w-4" />
                 Tillbaka till sök
               </Button>
-              <ManualAddPlaceForm onClose={() => handleOpenChange(false)} />
+              <ManualAddPlaceForm
+                onClose={() => handleOpenChange(false)}
+                onProviderFound={beginAdd}
+                snapshot={manualSnapshot}
+                onSnapshotChange={setManualSnapshot}
+              />
             </>
           )}
         </DialogContent>

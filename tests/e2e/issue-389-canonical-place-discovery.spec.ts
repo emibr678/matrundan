@@ -52,6 +52,10 @@ async function setup(
     unconfirmed?: boolean;
     stale?: boolean;
     manual?: boolean;
+    providerOnly?: boolean;
+    internalOnly?: boolean;
+    finalProvider?: "hit" | "none" | "error";
+    internalManual?: boolean;
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -195,11 +199,22 @@ async function setup(
           ? appState()
           : name === "link_canonical_place_to_group_v1"
             ? ((saved = true), { status: "linked", placeId })
-            : name === "create_manual_place_fallback_v2"
-              ? (manualRequests.push(JSON.parse(route.request().postData()!)),
-                (saved = true),
-                { placeId, improvementCandidate: true })
-              : [];
+            : name === "find_reusable_manual_place_candidates_v2" && options.internalManual
+              ? [
+                  {
+                    ...canonical,
+                    name: "Espresso House",
+                    address: "Stationsgatan 2",
+                    lat: 59.0105,
+                    matchKind: "exact",
+                    distanceKm: 0.007,
+                  },
+                ]
+              : name === "create_manual_place_fallback_v2"
+                ? (manualRequests.push(JSON.parse(route.request().postData()!)),
+                  (saved = true),
+                  { placeId, improvementCandidate: true })
+                : [];
     await route.fulfill({
       status: 200,
       contentType: "application/json",
@@ -238,13 +253,46 @@ async function setup(
                   : provider.identity.candidates,
             },
           },
-        ],
+        ]
+          .filter((row) =>
+            options.providerOnly
+              ? row.kind === "provider"
+              : options.internalOnly
+                ? row.kind === "canonical"
+                : true,
+          )
+          .map((row) =>
+            options.providerOnly && row.kind === "provider"
+              ? {
+                  ...row,
+                  identity: { ...provider.identity, candidates: [], reviewRequired: false },
+                }
+              : row,
+          ),
         failedAreaLabels: [],
         canonicalIncomplete: false,
         canConfirm: !options.member,
         hasMore: false,
         nextOffset: 20,
       };
+    if (name.startsWith("findNearbyPlacesForManualFallback")) {
+      if (options.finalProvider === "error") {
+        await route.abort("failed");
+        return;
+      }
+      reply =
+        options.finalProvider === "hit"
+          ? [
+              {
+                ...provider,
+                name: "Espresso House",
+                address: "Stationsgatan 2",
+                lat: 59.0105,
+                identity: undefined,
+              },
+            ]
+          : [];
+    }
     if (name.startsWith("resolveProviderPlace")) {
       const payload = fromJSON(JSON.parse(route.request().postData()!)) as { data: unknown };
       confirmations.push(payload.data);
@@ -286,7 +334,7 @@ async function noOverflow(page: Page) {
   ).toBeLessThanOrEqual(1);
 }
 
-test("kanoniskt ställe och källgranskning använder samma plats med begriplig återgång", async ({
+test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", async ({
   page,
 }, info) => {
   const mocked = await setup(page);
@@ -294,39 +342,32 @@ test("kanoniskt ställe och källgranskning använder samma plats med begriplig 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
-  await expect(
-    search
-      .getByRole("button", { name: `Visa information om ${canonical.name}`, exact: true })
-      .filter({ visible: true }),
-  ).toBeVisible();
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
-  await search
-    .getByRole("button", { name: `Visa information om ${canonical.name}`, exact: true })
-    .filter({ visible: true })
-    .click();
+  const row = search.getByRole("button", {
+    name: `Visa information om ${canonical.name}`,
+    exact: true,
+  });
+  await expect(row).toHaveCount(1);
+  await expect(
+    search.getByRole("heading", { name: "Finns i Matrundan", exact: true }),
+  ).toBeVisible();
+  await expect(search.getByRole("button", { name: "Granska matchning", exact: true })).toHaveCount(
+    0,
+  );
+  await row.click();
   const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
-  await expect(add.getByText("Matrundan-ställe", { exact: true })).toBeVisible();
-  await expect(add).toHaveCSS("opacity", "1");
+  await expect(add.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
+  await expect(add.getByText(/bekräftas också att kartträffen hör hit/)).toBeVisible();
   await noOverflow(page);
+  await expect(add).toHaveCSS("opacity", "1");
   await page.screenshot({ path: `visual-review/issue-389-canonical-${info.project.name}.png` });
   await add.getByRole("button", { name: "Tillbaka", exact: true }).click();
   await expect(search.getByRole("combobox", { name: "Sök matställen", exact: true })).toHaveValue(
     "Astrom",
   );
-  await search
-    .getByRole("button", { name: "Granska matchning", exact: true })
-    .filter({ visible: true })
-    .click();
-  const review = page.getByRole("dialog", { name: "Är det samma ställe?", exact: true });
-  await expect(review.getByText(/Besök och gruppuppgifter ligger kvar/)).toBeVisible();
-  await expect(
-    review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }),
-  ).toBeVisible();
-  await noOverflow(page);
-  await expect(review).toHaveCSS("opacity", "1");
-  await page.screenshot({ path: `visual-review/issue-389-review-${info.project.name}.png` });
-  await review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }).click();
-  await expect(review).toBeHidden();
+  await row.click();
+  await add.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(add).toBeHidden();
   expect(mocked.confirmations).toEqual([
     expect.objectContaining({
       groupId: group,
@@ -337,15 +378,9 @@ test("kanoniskt ställe och källgranskning använder samma plats med begriplig 
       decisions: [{ placeId, version: "a".repeat(32) }],
     }),
   ]);
-  await expect(search.getByText("1 ställe hanterat i den här omgången")).toBeVisible();
-  await search.getByRole("button", { name: "Klar", exact: true }).click();
-  await expect(page.getByRole("link", { name: new RegExp(canonical.name) })).toHaveAttribute(
-    "href",
-    `/matstallen/${placeId}`,
-  );
 });
 
-test("medlem använder det befintliga stället utan att ändra dess kartidentitet", async ({
+test("medlem återanvänder entydigt ställe i normalflödet utan global koppling", async ({
   page,
 }) => {
   const mocked = await setup(page, { member: true });
@@ -355,24 +390,13 @@ test("medlem använder det befintliga stället utan att ändra dess kartidentite
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
   await search
-    .getByRole("button", { name: "Granska matchning", exact: true })
-    .filter({ visible: true })
+    .getByRole("button", { name: `Visa information om ${canonical.name}`, exact: true })
     .click();
-  const review = page.getByRole("dialog", { name: "Är det samma ställe?", exact: true });
-  await expect(
-    review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }),
-  ).toHaveCount(0);
-  await expect(
-    review.getByText("Stället används direkt. Gruppens admin kan bekräfta kartkällan senare."),
-  ).toBeVisible();
-  await review.getByRole("button", { name: "Använd befintligt ställe", exact: true }).click();
-  await expect(review).toBeHidden();
+  const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
+  await expect(add.getByText(/bekräftas också/)).toHaveCount(0);
+  await add.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(add).toBeHidden();
   expect(mocked.confirmations).toEqual([]);
-  await search.getByRole("button", { name: "Klar", exact: true }).click();
-  await expect(page.getByRole("link", { name: new RegExp(canonical.name) })).toHaveAttribute(
-    "href",
-    `/matstallen/${placeId}`,
-  );
 });
 
 test("motstridiga kartidentiteter stoppar både koppling och nytt skapande", async ({ page }) => {
@@ -391,11 +415,11 @@ test("motstridiga kartidentiteter stoppar både koppling och nytt skapande", asy
     "Kartkällorna pekar på olika ställen. Ingen ändring kan sparas här.",
   );
   await expect(
-    review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }),
+    review.getByRole("button", { name: "Ja, använd stället som redan finns", exact: true }),
   ).toBeDisabled();
   await expect(
     review.getByRole("button", {
-      name: "Inget av dessa – lägg till ett separat ställe",
+      name: "Nej, det är ett annat ställe",
       exact: true,
     }),
   ).toBeDisabled();
@@ -421,17 +445,34 @@ for (const scenario of ["competing", "hidden", "stale"] as const) {
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
     await search
-      .getByRole("button", { name: "Granska matchning", exact: true })
+      .getByRole("button", {
+        name: scenario === "stale" ? "Lägg till" : "Granska matchning",
+        exact: true,
+      })
       .filter({ visible: true })
       .click();
     const review = page.getByRole("dialog", { name: "Är det samma ställe?", exact: true });
     if (scenario === "stale") {
-      await review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }).click();
+      await page
+        .getByRole("dialog", { name: "Lägg till i gruppen", exact: true })
+        .getByRole("button", { name: "Lägg till i gruppen", exact: true })
+        .click();
       await expect(review.getByText("Åströms annex", { exact: true })).toBeVisible();
     }
-    await expect(
-      review.getByRole("button", { name: "Bekräfta samma ställe", exact: true }),
-    ).toHaveCount(0);
+
+    await review.getByRole("radio", { name: `Välj ${canonical.name}`, exact: true }).click();
+    if (scenario === "competing") {
+      await review
+        .getByRole("radio", { name: `Välj ${canonical.name}`, exact: true })
+        .press("ArrowDown");
+      await expect(
+        review.getByRole("radio", { name: "Välj Åströms annex", exact: true }),
+      ).toBeChecked();
+      await review.getByRole("radio", { name: "Välj Åströms annex", exact: true }).press("ArrowUp");
+      await expect(
+        review.getByRole("radio", { name: `Välj ${canonical.name}`, exact: true }),
+      ).toBeChecked();
+    }
     await expect(
       review.getByText("Stället används utan att kartkällan kopplas.", { exact: true }).first(),
     ).toBeVisible();
@@ -439,7 +480,7 @@ for (const scenario of ["competing", "hidden", "stale"] as const) {
     await noOverflow(page);
     await page.screenshot({ path: `visual-review/issue-389-${scenario}-${info.project.name}.png` });
     await review
-      .getByRole("button", { name: "Använd befintligt ställe", exact: true })
+      .getByRole("button", { name: "Ja, använd stället som redan finns", exact: true })
       .first()
       .click();
     await expect(review).toBeHidden();
@@ -486,4 +527,134 @@ test("manuell kedjefilial behåller annan adress nära ett kartställe", async (
   await expect(
     page.locator('a[href="/matstallen/38920000-0000-4000-8000-000000000010"]'),
   ).toBeVisible();
+});
+
+for (const kind of ["provider", "internal"] as const) {
+  test(`${kind}: neutral sökträff utan historiskt besök fungerar ensam`, async ({ page }, info) => {
+    await setup(page, { providerOnly: kind === "provider", internalOnly: kind === "internal" });
+    await page.goto("/matstallen");
+    await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+    const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+    await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
+    if (kind === "internal")
+      await expect(
+        search.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+      ).toBeVisible();
+    await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
+    await expect(search.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(1);
+    await expect(search).not.toContainText(/SECRET|besök i andra|antal grupper|skapad av/);
+    await noOverflow(page);
+    await page.screenshot({
+      path: `visual-review/issue-389-${kind}-search-${info.project.name}.png`,
+    });
+  });
+}
+
+for (const outcome of ["hit", "none", "error", "internal"] as const) {
+  test(`manuell sista kartkontroll: ${outcome} behåller ett säkert alternativ`, async ({
+    page,
+  }, info) => {
+    const mocked = await setup(page, {
+      manual: true,
+      finalProvider: outcome === "internal" ? "hit" : outcome,
+      internalManual: outcome === "internal",
+    });
+    await page.goto("/matstallen");
+    await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })
+      .click();
+    const manual = page.getByRole("dialog", { name: "Stället saknas i sökningen", exact: true });
+    await page.locator("#manual-name").fill("Espresso House");
+    await page.locator("#manual-location").fill("Stationsgatan 2");
+    await page
+      .getByRole("option")
+      .filter({ hasText: "Stationsgatan 2" })
+      .getByRole("button")
+      .click();
+    await manual.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+    if (outcome === "hit" || outcome === "internal") {
+      await expect(
+        manual.getByText("Hittat nära adressen i kartan", { exact: true }),
+      ).toBeVisible();
+      expect(mocked.manualRequests).toHaveLength(0);
+      await noOverflow(page);
+      await page.screenshot({
+        path: `visual-review/issue-389-manual-provider-${info.project.name}.png`,
+      });
+      await manual.getByRole("button", { name: "Använd det här stället", exact: true }).click();
+      const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
+      await add.getByRole("button", { name: "Tillbaka", exact: true }).click();
+      await expect(page.locator("#manual-name")).toHaveValue("Espresso House");
+      await expect(page.locator("#manual-location")).toHaveValue("Stationsgatan 2");
+    } else {
+      await expect(manual).toBeHidden();
+      expect(mocked.manualRequests).toHaveLength(1);
+    }
+  });
+}
+
+test("kartpunkt väljer bottenkort innan explicit tillägg öppnar dialog", async ({ page }, info) => {
+  await setup(page, { providerOnly: true });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
+  await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
+  const toggle = search.getByRole("button", { name: "Karta", exact: true });
+  if ((page.viewportSize()?.width ?? 360) < 1024) await toggle.click();
+  const map = search.getByRole("region", {
+    name: "Karta över sökresultat och valda sökområden",
+    exact: true,
+  });
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+  await expect(map.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
+  const canvas = map.locator("canvas");
+  const bounds = await canvas.boundingBox();
+  if (!bounds) throw new Error("Kartan saknar canvas");
+  await canvas.click({ position: { x: bounds.width / 2, y: bounds.height / 2 - 12 } });
+  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true })).toHaveCount(
+    0,
+  );
+  const action = map.getByRole("button", { name: "Lägg till", exact: true });
+  await expect(action).toBeVisible();
+  await noOverflow(page);
+  await page.screenshot({ path: `visual-review/issue-389-map-selected-${info.project.name}.png` });
+  await action.click();
+  await expect(
+    page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true }),
+  ).toBeVisible();
+});
+
+test("demo använder samma lugna söksemantik utan externa skrivningar", async ({ page }, info) => {
+  const writes: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && /\/rest\/v1\/|\/_serverFn\//.test(request.url()))
+      writes.push(request.url());
+  });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search
+    .getByRole("combobox", { name: "Sök matställen", exact: true })
+    .fill("Månbackens Matrum");
+  await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
+  await expect(
+    search.getByRole("heading", { name: "Finns i Matrundan", exact: true }),
+  ).toBeVisible();
+  await expect(
+    search.getByRole("button", { name: "Visa information om Månbackens Matrum", exact: true }),
+  ).toHaveCount(1);
+  await search
+    .getByRole("button", { name: "Lägg till", exact: true })
+    .filter({ visible: true })
+    .click();
+  const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
+  await expect(add.getByText("Månbacken 106 · Göteborg", { exact: true })).toBeVisible();
+  await expect(add).toHaveCSS("opacity", "1");
+  await noOverflow(page);
+  await page.screenshot({ path: `visual-review/issue-389-demo-${info.project.name}.png` });
+  await add.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(add).toBeHidden();
+  expect(writes).toEqual([]);
 });

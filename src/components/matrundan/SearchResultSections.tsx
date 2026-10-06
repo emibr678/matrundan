@@ -1,5 +1,9 @@
 import * as React from "react";
-import { canBulkAddSuggestion } from "@/lib/matrundan/place-discovery";
+import {
+  canBulkAddSuggestion,
+  needsPlaceComparison,
+  unambiguousPlaceCandidate,
+} from "@/lib/matrundan/place-discovery";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
 import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
@@ -106,6 +110,12 @@ export function SearchResultSections({
     [hasOwnOpenReport],
   );
 
+  const isInternal = (row: PlaceSuggestion) =>
+    row.kind === "canonical" || !!unambiguousPlaceCandidate(row) || !!row.identity?.knownPlace;
+  const orderedAvailable = [
+    ...available.filter(isInternal),
+    ...available.filter((row) => !isInternal(row)),
+  ];
   return (
     <div className="space-y-4">
       {sourceMatches.length > 0 ? (
@@ -159,10 +169,40 @@ export function SearchResultSections({
 
       <section className="space-y-2">
         {available.length > 0 ? (
-          available.map((result) => {
+          orderedAvailable.flatMap((result, index) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
             const signal = signalFor(result);
-            return (
+            const internal =
+              result.kind === "canonical" ||
+              !!unambiguousPlaceCandidate(result) ||
+              !!result.identity?.knownPlace;
+            const firstExternal =
+              !internal && !orderedAvailable.slice(0, index).some((row) => !isInternal(row));
+            const firstInternal =
+              internal &&
+              !orderedAvailable
+                .slice(0, index)
+                .some(
+                  (row) =>
+                    row.kind === "canonical" ||
+                    !!unambiguousPlaceCandidate(row) ||
+                    !!row.identity?.knownPlace,
+                );
+            return [
+              ...(firstInternal
+                ? [
+                    <h4 key="matrundan-heading" className="pt-2 text-sm font-medium">
+                      Finns i Matrundan
+                    </h4>,
+                  ]
+                : []),
+              ...(firstExternal && orderedAvailable.some(isInternal)
+                ? [
+                    <h4 key="map-heading" className="pt-2 text-sm font-medium">
+                      Hittat i kartan
+                    </h4>,
+                  ]
+                : []),
               <SuggestionRow
                 key={result.externalId}
                 result={result}
@@ -200,7 +240,7 @@ export function SearchResultSections({
                       onClick={() => onAdd(result)}
                     >
                       <Plus className="h-4 w-4" />{" "}
-                      {result.identity?.reviewRequired || result.identity?.identityConflict
+                      {needsPlaceComparison(result)
                         ? "Granska matchning"
                         : result.canonical?.groupStatus === "archived"
                           ? "Återställ"
@@ -208,8 +248,8 @@ export function SearchResultSections({
                     </Button>
                   )
                 }
-              />
-            );
+              />,
+            ];
           })
         ) : sourceMatches.length === 0 ? (
           <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
@@ -233,7 +273,10 @@ export function SearchResultSections({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2">
             {existing.map((result) => {
-              const canonicalId = result.canonical?.placeId ?? result.identity?.knownPlace?.placeId;
+              const canonicalId =
+                result.canonical?.placeId ??
+                result.identity?.knownPlace?.placeId ??
+                unambiguousPlaceCandidate(result)?.placeId;
               const place = result.kind
                 ? places.find((p) => p.id === canonicalId)
                 : matchingPlace(places, result);

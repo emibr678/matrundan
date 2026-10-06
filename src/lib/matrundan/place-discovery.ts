@@ -1,3 +1,4 @@
+import { FOOD_TAGS } from "./food-tags";
 import type { PlaceSuggestion } from "./places-provider";
 import type { SearchAreaBoundaryGeometry } from "./types";
 
@@ -78,6 +79,136 @@ export function normalizePlaceIdentity(value: string): string {
     .replace(/\boch\b/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+/** A missing house number is incomplete information, not a different address. */
+export function placeAddressRelation(
+  a: string,
+  b: string,
+): "unknown" | "equal" | "compatible" | "conflict" {
+  const parse = (value: string) => {
+    const line = value.split(",")[0].trim().toLocaleLowerCase("sv-SE");
+    const match = line.match(/^(.+?)\s+(\d+(?:\s?[a-z])?(?:\s?[-/]\s?\d+(?:\s?[a-z])?)?)$/);
+    return {
+      street: normalizePlaceIdentity(match?.[1] ?? line),
+      number: match?.[2].replace(/\s/g, "") ?? "",
+    };
+  };
+  const left = parse(a),
+    right = parse(b);
+  if (!left.street || !right.street) return "unknown";
+  if (left.street !== right.street || (left.number && right.number && left.number !== right.number))
+    return "conflict";
+  return left.number === right.number ? "equal" : "compatible";
+}
+
+const GENERIC_PLACE_NAMES = new Set([
+  "restaurang",
+  "restauranger",
+  "cafe",
+  "cafeer",
+  "pizza",
+  "pizzeria",
+  "bageri",
+  "snabbmat",
+  "pub",
+  "matvagn",
+  "hamburgare",
+  "sushi",
+  "kebab",
+  "falafel",
+  "lunch",
+  "middag",
+  "mat",
+  "kaffe",
+  "asiatiskt",
+  "italienskt",
+  "vegetariskt",
+]);
+
+export function isSpecificPlaceName(query: string): boolean {
+  const name = normalizePlaceIdentity(query);
+  return (
+    name.length >= 6 &&
+    !GENERIC_PLACE_NAMES.has(name) &&
+    !FOOD_TAGS.some((tag) =>
+      [tag.id, tag.label, ...tag.aliases].some((value) => normalizePlaceIdentity(value) === name),
+    )
+  );
+}
+
+/** Deliberately limited to an exact name or a short trailing qualifier. */
+export function matchesSpecificPlaceName(query: string, name: string): boolean {
+  if (!isSpecificPlaceName(query)) return false;
+  const normalized = normalizePlaceIdentity(query),
+    candidate = normalizePlaceIdentity(name);
+  return (
+    candidate === normalized ||
+    (candidate.startsWith(`${normalized} `) && candidate.length - normalized.length <= 15)
+  );
+}
+
+export function manualFallbackProviderCandidates<T extends PlaceSuggestion>(
+  query: { name: string; address: string; city: string; lat: number; lng: number },
+  places: T[],
+): T[] {
+  return places.filter(
+    (place) =>
+      place.lat != null &&
+      place.lng != null &&
+      matchesSpecificPlaceName(query.name, place.name) &&
+      placeDistanceKm(query, { lat: place.lat, lng: place.lng }) <= 0.15 &&
+      placeAddressRelation(query.address, place.address) !== "conflict" &&
+      (!query.city ||
+        !place.city ||
+        normalizePlaceIdentity(query.city) === normalizePlaceIdentity(place.city)),
+  );
+}
+
+/** Only the server's whole-pool uniqueness proof can simplify the presentation. */
+export function unambiguousPlaceCandidate(result: PlaceSuggestion): IdentityCandidate | null {
+  const identity = result.identity;
+  if (!identity || identity.identityConflict || identity.candidates.length !== 1) return null;
+  const candidate = identity.candidates[0];
+  return candidate.matchKind === "strong" && candidate.canConfirmSource === true ? candidate : null;
+}
+
+export function needsPlaceComparison(result: PlaceSuggestion): boolean {
+  return Boolean(
+    result.identity?.identityConflict ||
+    (result.identity?.reviewRequired && !unambiguousPlaceCandidate(result)),
+  );
+}
+
+/** Fold a row only when the server proves uniqueness; the provider write path remains intact. */
+export function presentPlaceSearchResults(results: PlaceSuggestion[]): PlaceSuggestion[] {
+  const represented = new Set(
+    results.flatMap((result) => {
+      const candidate = unambiguousPlaceCandidate(result) ?? result.identity?.knownPlace;
+      return candidate ? [candidate.placeId] : [];
+    }),
+  );
+  return results
+    .filter(
+      (result) =>
+        result.kind !== "canonical" ||
+        !result.canonical ||
+        !represented.has(result.canonical.placeId),
+    )
+    .map((result) => {
+      const candidate = unambiguousPlaceCandidate(result) ?? result.identity?.knownPlace;
+      return candidate
+        ? {
+            ...result,
+            name: candidate.name,
+            address: candidate.address,
+            city: candidate.city,
+            area: candidate.area ?? undefined,
+            lat: candidate.lat ?? undefined,
+            lng: candidate.lng ?? undefined,
+          }
+        : result;
+    });
 }
 
 export function placeDistanceKm(

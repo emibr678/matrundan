@@ -1,6 +1,10 @@
 import { z } from "zod";
 
-import type { CandidateDecision } from "./place-discovery";
+import {
+  placeAddressRelation,
+  normalizePlaceIdentity,
+  type CandidateDecision,
+} from "./place-discovery";
 import { rpcClient } from "./rpc-client";
 import type { Occasion, Place, PlaceCategory } from "./types";
 
@@ -138,16 +142,7 @@ export function isReusablePlaceRace(error: unknown): boolean {
   return error instanceof Error && /REUSABLE_PLACE_FOUND/i.test(error.message);
 }
 
-function normalize(value: string | undefined): string {
-  return (value ?? "")
-    .trim()
-    .toLocaleLowerCase("sv-SE")
-    .replace(/&/g, " och ")
-    .replace(/[^a-z0-9åäö]+/gi, " ")
-    .replace(/\boch\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+const normalize = (value: string | undefined) => normalizePlaceIdentity(value ?? "");
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const radians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -184,6 +179,8 @@ export function listLocalReusableManualPlaceCandidates(
       const candidateAddress = normalize(place.address);
       const candidateCity = normalize(place.city);
       const sameName = candidateName === requestedName;
+      const addressRelation = placeAddressRelation(place.address, input.address);
+
       const sameAddress =
         Boolean(requestedAddress && candidateAddress) &&
         candidateAddress === requestedAddress &&
@@ -194,9 +191,7 @@ export function listLocalReusableManualPlaceCandidates(
         (sameName ||
           candidateName.startsWith(`${requestedName} `) ||
           requestedName.startsWith(`${candidateName} `));
-      const matches =
-        (sameName && (sameAddress || distance <= 0.1)) ||
-        (relatedName && distance <= 0.1 && (sameAddress || distance <= 0.05));
+      const matches = sameName || (relatedName && distance <= 0.1);
       if (!matches) return [];
 
       return [
@@ -210,7 +205,13 @@ export function listLocalReusableManualPlaceCandidates(
           lat: place.lat!,
           lng: place.lng!,
           distanceKm: distance,
-          matchKind: sameName && (sameAddress || distance <= 0.05) ? "exact" : "similar",
+          matchKind:
+            addressRelation !== "conflict" &&
+            sameName &&
+            (!requestedCity || !candidateCity || candidateCity === requestedCity) &&
+            (sameAddress || distance <= 0.05)
+              ? "exact"
+              : "similar",
           groupStatus: place.collectionStatus === "archived" ? "archived" : "active",
         },
       ];

@@ -24,7 +24,12 @@ import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
 } from "./place-discovery.schemas";
-import { placeWithinBoundary, placeDistanceKm } from "./place-discovery";
+import {
+  placeWithinBoundary,
+  placeDistanceKm,
+  matchesSpecificPlaceName,
+  manualFallbackProviderCandidates,
+} from "./place-discovery";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
 const REQUEST_TIMEOUT_MS = 10_000;
@@ -525,7 +530,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         const matching = valid.filter(({ center, boundary }) =>
           boundary
             ? placeWithinBoundary(canonical, boundary)
-            : placeDistanceKm(canonical, center) <= (data.radiusKm ?? 50),
+            : placeDistanceKm(canonical, center) <=
+              (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
+                ? 50
+                : (data.radiusKm ?? 50)),
         );
         if (!matching.length) return [];
         const nearest = matching
@@ -616,4 +624,46 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       canonicalIncomplete: internal.incomplete,
       canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
     };
+  });
+
+/** Final read-only check at the selected address, never a provider write authority. */
+export const findNearbyPlacesForManualFallback = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z
+      .object({
+        groupId: z.string().uuid(),
+        name: z.string().trim().min(2).max(120),
+        address: z.string().max(500),
+        city: z.string().max(200),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
+      _group_id: data.groupId,
+    });
+    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+    const intent = resolvePlaceSearchIntent(data.name);
+    if (intent.kind !== "text" || !matchesSpecificPlaceName(data.name, data.name)) return [];
+    // Isolated from the previous search radius. Every candidate is later fetched
+    // again by resolveProviderPlace before any identity write.
+    try {
+      const page = await searchProviderAreas({
+        text: data.name,
+        radiusKm: 1,
+        centers: [
+          { ...data, id: "manual-selected-location", label: data.address, searchMode: "point" },
+        ],
+        limit: 50,
+        offset: 0,
+      });
+      return manualFallbackProviderCandidates(data, page.results).map(
+        ({ raw: _raw, ...place }) => ({ ...place, provider: "geoapify" as const }),
+      );
+    } catch {
+      return [];
+    }
   });

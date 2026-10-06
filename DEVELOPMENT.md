@@ -254,7 +254,8 @@ framsteg ska aktuellt jobb/steg diagnostiseras i stället för att fortsätta en
 blind sleep/fetch-loop.
 
 Alla normala CI-jobb kör på GitHub-hostad `ubuntu-24.04`. Delad Node/Bun/cache-
-setup ligger i `.github/actions/setup-ci`. 
+setup ligger i `.github/actions/setup-ci`.
+
 ### Agent Operations i connector-läge
 
 När GitHub-connectorn inte kan starta `workflow_dispatch` direkt används den
@@ -363,6 +364,29 @@ Cloudflare Worker `staging` ska ha GitHub-repot anslutet med:
 - build command: `bun run cloudflare:build`;
 - deploy command: `npx wrangler deploy --env staging`;
 - non-production branch deploy command: `npx wrangler versions upload --env staging`.
+
+Kartbakgrunden i PR-previews kräver `VITE_GEOAPIFY_MAPS_KEY` i staging-Workerns
+**Settings → Build → Build variables and secrets** för branchbyggen. Värdet ska
+vara den browser-begränsade Staging-kartnyckeln, samma miljö som GitHub-variabeln
+`STAGING_GEOAPIFY_MAPS_KEY`. En Worker-runtime-binding räcker inte för ett värde
+som Vite kompilerar in i browserbundlen. Servernyckeln `GEOAPIFY_API_KEY` ska
+fortsatt ligga på servern. Kontrollera även att kartnyckelns tillåtna browser-
+origins omfattar staging och de faktiska PR-previewdomänerna.
+
+Cloudflare Builds avbryts om browserkartnyckeln saknas. Vid renderad live-review
+måste sökkartans `data-map-tile-status` bli `ready` och faktisk extern kartbakgrund
+synas; en beige fallback, enbart overlays eller `data-map-ready` räcker inte.
+Lokal/demo får fortsatt använda fallback utan extern nyckel. En exakt preview
+kan kontrolleras utan live-skrivningar med:
+
+```bash
+bun scripts/live-preview-map-smoke.mjs https://EXAKT-staging.matrundan.workers.dev FULL_HEAD_SHA
+```
+
+Kontrollen validerar `/api/health`, 360 px, verkligt renderade externa kartlager
+via tile-status och sparar kartbilden för visuell granskning. Den ersätter inte
+nivå 3-review av de övriga flödena. [Cloudflares byggkonfiguration](https://developers.cloudflare.com/workers/ci-cd/builds/configuration/)
+beskriver skillnaden mellan build variables och runtime variables.
 
 En feature-/PR-branch laddas då upp som en preview-version av staging-Workern utan
 att ersätta dess aktiva deployment. En push till `main` uppdaterar den aktiva
