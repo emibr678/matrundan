@@ -479,7 +479,10 @@ test("manuell kedjefilial behåller annan adress nära ett kartställe", async (
       }),
     }),
   ]);
-  await expect(page.locator(`a[href="/matstallen/${placeId}"]`)).toContainText("Espresso House");
+  await expect(page.locator(`a[href="/matstallen/${placeId}"]`)).toHaveAttribute(
+    "aria-label",
+    "Espresso House",
+  );
   await expect(
     page.locator('a[href="/matstallen/38920000-0000-4000-8000-000000000010"]'),
   ).toBeVisible();
