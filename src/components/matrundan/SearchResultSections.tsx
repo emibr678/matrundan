@@ -121,11 +121,8 @@ export function SearchResultSections({
       {sourceMatches.length > 0 ? (
         <section aria-label="Möjliga matchningar i gruppen" className="space-y-2">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed text-muted-foreground">
-            <p className="font-medium text-foreground">Möjlig match i gruppen</p>
-            <p className="mt-1">
-              Granska innan den externa källan länkas. Befintliga besök, omdömen och gruppuppgifter
-              ligger kvar på samma matställe.
-            </p>
+            <p className="font-medium text-foreground">Är det samma ställe?</p>
+            <p className="mt-1">Jämför kartträffen med stället som redan finns i gruppen.</p>
           </div>
           {sourceMatches.map((match) => {
             const signal = signalFor(match.result);
@@ -158,7 +155,7 @@ export function SearchResultSections({
                     disabled={disabled}
                     onClick={() => onLinkSource(match)}
                   >
-                    <Link2 className="h-4 w-4" /> Granska länk
+                    <Link2 className="h-4 w-4" /> Granska matchning
                   </Button>
                 }
               />

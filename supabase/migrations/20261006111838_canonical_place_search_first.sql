@@ -185,5 +185,8 @@ BEGIN
 END;
 $$;
 
+REVOKE ALL ON FUNCTION public.search_canonical_places_v1(uuid,text,jsonb,text[],text[],integer) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.search_canonical_places_v1(uuid,text,jsonb,text[],text[],integer) TO authenticated,service_role;
+
 NOTIFY pgrst, 'reload schema';
 COMMIT;

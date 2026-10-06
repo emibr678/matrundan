@@ -50,6 +50,14 @@ import { useStore } from "@/lib/matrundan/store";
 
 type AddPlaceView = "search" | "fallback";
 
+function comparisonLocation(place?: { address: string; city: string }): string {
+  if (!place) return "";
+  const addressCity = place.address.split(",").at(-1)?.trim().toLocaleLowerCase("sv-SE");
+  return addressCity === place.city.trim().toLocaleLowerCase("sv-SE")
+    ? place.address
+    : [place.address, place.city].filter(Boolean).join(", ");
+}
+
 export function AddPlaceDialogContent({
   open,
   onOpenChange,
@@ -456,42 +464,40 @@ export function AddPlaceDialogContent({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Länka till befintligt matställe?</AlertDialogTitle>
+            <AlertDialogTitle>Är det samma ställe?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 text-left">
               <span className="block">
-                Sökträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara
-                gruppens manuella ställe <strong>{pendingSourceMatch?.place.name}</strong>.
+                Kartträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara
+                <strong> {pendingSourceMatch?.place.name}</strong> som redan finns i gruppen.
               </span>
               <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
                 <span>
-                  <strong>Sökträff:</strong>{" "}
-                  {[pendingSourceMatch?.result.address, pendingSourceMatch?.result.city]
-                    .filter(Boolean)
-                    .join(", ")}
+                  <strong>Hittat i kartan:</strong> {comparisonLocation(pendingSourceMatch?.result)}
                 </span>
                 <span>
-                  <strong>I gruppen:</strong>{" "}
-                  {[pendingSourceMatch?.place.address, pendingSourceMatch?.place.city]
-                    .filter(Boolean)
-                    .join(", ")}
+                  <strong>Redan i Matrundan:</strong>{" "}
+                  {comparisonLocation(pendingSourceMatch?.place)}
                 </span>
               </span>
               <span className="block">
-                Bara den externa källidentiteten länkas. Det befintliga plats-ID:t, besök, omdömen
-                och privata gruppuppgifter bevaras. Åtgärden slår inte ihop två redan etablerade
-                matställen.
+                Kartinformationen kompletterar stället. Besök, omdömen och gruppuppgifter ligger
+                kvar.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={sourceLinkBusy}>Avbryt</AlertDialogCancel>
-            <Button disabled={sourceLinkBusy} onClick={() => void confirmSourceLink()}>
+            <AlertDialogCancel disabled={sourceLinkBusy}>Tillbaka</AlertDialogCancel>
+            <Button
+              className="h-auto min-h-11 whitespace-normal"
+              disabled={sourceLinkBusy}
+              onClick={() => void confirmSourceLink()}
+            >
               {sourceLinkBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Link2 className="h-4 w-4" />
               )}
-              Länka källa
+              Ja, använd stället som redan finns
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

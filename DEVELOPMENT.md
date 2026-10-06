@@ -373,7 +373,9 @@ som Vite kompilerar in i browserbundlen. Servernyckeln `GEOAPIFY_API_KEY` ska
 fortsatt ligga på servern. Kontrollera även att kartnyckelns tillåtna browser-
 origins omfattar staging och de faktiska PR-previewdomänerna.
 
-Cloudflare Builds avbryts om browserkartnyckeln saknas. Vid renderad live-review
+Kontrollen ligger i båda Vite-konfigurationerna så att Cloudflare Builds avbryts
+om browserkartnyckeln saknas, även om dashboardens build command använder den
+vanliga build-vägen. Vid renderad live-review
 måste sökkartans `data-map-tile-status` bli `ready` och faktisk extern kartbakgrund
 synas; en beige fallback, enbart overlays eller `data-map-ready` räcker inte.
 Lokal/demo får fortsatt använda fallback utan extern nyckel. En exakt preview
