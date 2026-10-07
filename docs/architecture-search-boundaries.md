@@ -40,6 +40,22 @@ När Boundaries API identifierar en separat boundary används boundaryns eget re
 
 Geoapifys proximity-bias får användas för stabil intern rangordning även när `filter=place:<place_id>` avgränsar en boundary. Ett sådant bias-avstånd är däremot avståndet till områdets representativa punkt, inte avståndet till kommunen eller dess gräns, och får därför aldrig presenteras som `km från <boundary>`. Användarsynligt avstånd hör bara till en faktisk `point`-match. Om samma matställe matchar både boundary och punkt ska punktmatchningens riktiga avstånd vinna för avståndspresentationen; en boundary-only-träff får i stället bära neutral områdeskontext.
 
+## Specifik namnsökning
+
+Places är primär sökväg. När första sidan för ett specifikt namn saknar relevanta
+träffar och är uttömd får servern använda Geocoding för högst tio namnfrön och
+prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
+genom Places väljer en enda paginerad sökström. Geocoding används bara som
+bias-ankare; både Geocoding och Places behåller ursprungligt circle-/place-filter.
+Resultat, identitet och matmetadata kommer alltid från Places.
+
+Valet cacheas kortlivat per ursprunglig namn-/områdesrequest utan offset eller
+API-nyckel. En fortsättningssida väljer samma ström från första sidan även om
+cachen saknas. En full primärsida utan relevanta träffar behåller ordinarie
+paginering. Avstånd för ankrade Places-träffar räknas från ursprungligt centrum;
+boundary-only-träffar visar fortsatt inget punktavstånd. Sökområdet flyttas eller
+utökas aldrig av namnankaret.
+
 ## Blandade områden och deduplicering
 
 En och samma sökning får innehålla exempelvis:
