@@ -188,6 +188,22 @@ miljömodellen i `docs/platform-migration-plan.md`:
 Exakta Wrangler-/Cloudflare-kommandon och dashboardinställningar hör hemma i
 `DEVELOPMENT.md`, inte här.
 
+### Stabil previewadress under iteration
+
+Använd Cloudflares stabila **Branch Preview URL** för all interaktiv
+browserverifiering och länka samma adress vid användartest. Återanvänd adressen
+och den inloggade sessionen mellan pushar i samma branch.
+
+Efter varje nytt branchbygge ska `/api/health` på branchpreviewn kontrolleras
+innan testningen börjar. Svarets `release` måste vara exakt aktuell PR-head-SHA.
+Om det fortfarande är en äldre version ska agenten invänta och undersöka det
+nya bygget; tester på den äldre versionen är inte evidens för den nya pushen.
+
+Använd den immutabla **Commit Preview URL** endast för slutlig exact-SHA-
+verifiering. Läs den verifierade commitadressen från bygg-/handoffkvittot och
+behåll den som spårbar evidens i PR/Actions. Interaktiva tester och chattens
+previewlänk använder fortsatt den stabila branchadressen med verifierad health.
+
 ## 6. Verifiering och CI
 
 Kanoniska kommandon och aktuell runnerinformation finns i `package.json` och
@@ -301,7 +317,8 @@ ett leveranskvitto medan inget krävs från användaren och agentägt arbete kan
 fortsätta.
 
 Under draft-/UX-iteration får en användartestpunkt komma tidigare: ange då
-**Preview:** med branch-/commit-previewn och märk den uttryckligen
+**Preview:** med den stabila branchpreviewn efter dess health-kontroll och märk
+den uttryckligen
 **iterationspreview – full CI ej körd**. Det kan användas för feedback men får
 inte beskrivas som verifierad kandidat. Det kanoniska `Mobile PR handoff`-
 kvittot skapas först efter grön **CI / required** för aktuell head-SHA.
@@ -313,8 +330,9 @@ När en verklig handoff nås:
 - börja med läget i användarspråk och om användaren behöver göra något;
 - visa högst den aktuella blockeraren eller beslutspunkten, inte flera interna
   delsteg som likvärdiga problem;
-- visa alltid fältet **Preview:**. För en GUI-kandidat ska det vara en klickbar,
-  verifierad länk för exakt kandidat. För en kandidat utan relevant renderad yta
+- visa alltid fältet **Preview:**. För en GUI-kandidat ska det vara den klickbara,
+  stabila branchpreviewn vars health verifierats mot exakt kandidat. För en
+  kandidat utan relevant renderad yta
   skrivs i stället **Inte relevant** med ett kort skäl;
 - gruppera verifiering på en kort rad, exempelvis **CI + mobil browser: ✅**, och
   skilj väntande från godkänt visuellt i stället för att gömma läget i brödtext;
@@ -350,6 +368,9 @@ head-SHA. Kandidater utan GUI-diff får ett uttryckligt **Preview: Inte relevant
 Agenten ska läsa det aktuella kvittot före handoff i chatten och anpassa
 **Testa främst** och **Nästa från dig** till uppgiften; den automatiska kommentaren
 är verifierat underlag, inte en ersättning för relevant mänsklig sammanfattning.
+Slutlig exact-SHA-verifiering använder kvittots commitpreview; chattens
+**Preview:** länkar den stabila branchpreviewn efter en separat health-kontroll
+mot samma head enligt previewregeln ovan.
 
 PR-mallen är fortsatt GitHubs fullständigare evidenskvitto. Chattens handoff ska
 vara den minsta status användaren behöver för att tryggt granska och fatta nästa

@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,6 +8,7 @@
 >
 > Commits pushed to the branch currently selected in Lovable sync back to the
 > editor. Keep that branch buildable and verify the selected branch before edits.
+
 <!-- LOVABLE:END -->
 
 # Matrundan agent instructions
@@ -130,6 +132,12 @@ iteration. A Cloudflare branch preview may be handed off as **iterationspreview 
 full CI ej körd** after targeted self-review; do not make early user feedback wait
 for candidate CI.
 
+Use the stable Cloudflare Branch Preview URL for all interactive browser
+verification. After every new branch build, check `/api/health` and require its
+`release` to match the current PR head before testing. Use the immutable commit
+preview only for final exact-SHA verification. Keep the branch URL across pushes
+so the signed-in browser session can be reused.
+
 When the PR is ready, follow the current head SHA and the canonical **CI /
 required** gate rather than polling every sub-workflow. On failure, diagnose the
 failed job immediately; when a newer head replaces the run, stop following the
@@ -160,9 +168,10 @@ After a candidate or merge, use the visually structured chat receipt in
 `docs/development-workflow.md` and report the relevant evidence without blending
 merge, Lovable, database or publication status. Always include the `Preview:`
 field. Before handing off a GUI candidate, read the canonical `Mobile PR handoff`
-comment for the current PR head and use its exact verified preview URL; if the
-candidate has no rendered surface, state `Preview: Inte relevant` with a short
-reason instead of omitting the field.
+comment for the current PR head and use its verified commit preview for the final
+exact-SHA check. Link the stable branch preview in chat after checking its health
+against the same head. If the candidate has no rendered surface, state
+`Preview: Inte relevant` with a short reason instead of omitting the field.
 
 ## Documentation lifecycle
 
