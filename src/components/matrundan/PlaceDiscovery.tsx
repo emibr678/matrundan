@@ -43,6 +43,7 @@ import {
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
   mergeAreaSearchResults,
   searchAreaMode,
@@ -626,10 +627,10 @@ export function PlaceDiscovery({
       ? searchAreaMode(nearestArea) === "boundary"
         ? ` · i ${shortSearchAreaLabel(nearestArea.label)}`
         : result.distanceKm != null
-          ? ` · ~${result.distanceKm} km från ${shortSearchAreaLabel(nearestArea.label)}`
+          ? ` · ~${formatSearchDistanceKm(result.distanceKm)} km från ${shortSearchAreaLabel(nearestArea.label)}`
           : ` · nära ${shortSearchAreaLabel(nearestArea.label)}`
       : result.distanceKm != null
-        ? ` · ~${result.distanceKm} km`
+        ? ` · ~${formatSearchDistanceKm(result.distanceKm)} km`
         : "";
     return {
       id: result.externalId,
