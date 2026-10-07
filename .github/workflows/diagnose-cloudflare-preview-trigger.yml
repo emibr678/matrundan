@@ -16,7 +16,7 @@ jobs:
   verify:
     name: Verify repaired preview build
     runs-on: ubuntu-24.04
-    timeout-minutes: 6
+    timeout-minutes: 10
     environment: staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -63,16 +63,11 @@ jobs:
             return payload?.result;
           }
 
-          let build;
-          for (let attempt = 1; attempt <= 45; attempt++) {
-            build = await getBuild();
-            console.log(`Cloudflare build status attempt ${attempt}: ${build?.status ?? "unknown"} / ${build?.build_outcome ?? "pending"}`);
-            if (build?.status === "stopped") break;
-            await new Promise((resolve) => setTimeout(resolve, 4000));
-          }
-
-          if (build?.status !== "stopped") {
-            throw new Error("Cloudflare preview build did not finish within verification window.");
+          const build = await getBuild();
+          if (build?.status !== "stopped" || build?.build_outcome !== "success") {
+            throw new Error(
+              `Expected completed successful Cloudflare build, got ${build?.status ?? "unknown"} / ${build?.build_outcome ?? "unknown"}.`,
+            );
           }
 
           const metadata = build?.build_trigger_metadata ?? {};
@@ -85,9 +80,6 @@ jobs:
             "VITE_SUPABASE_URL",
           ].sort();
 
-          if (build?.build_outcome !== "success") {
-            throw new Error(`Cloudflare preview build failed with outcome ${build?.build_outcome ?? "unknown"}.`);
-          }
           if (metadata?.branch !== targetBranch || metadata?.commit_hash !== targetSha) {
             throw new Error("Cloudflare preview build does not match the exact PR branch/SHA.");
           }
@@ -133,16 +125,23 @@ jobs:
           fs.appendFileSync(process.env.GITHUB_OUTPUT, `url=${previewUrl}\n`);
           NODE
 
+      - name: Check out exact PR head
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium for live map smoke
+        run: bunx playwright install --with-deps chromium
+
       - name: Check exact live map background
         env:
           PREVIEW_URL: ${{ steps.preview.outputs.url }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git clone --filter=blob:none --no-checkout https://github.com/emibr678/matrundan.git repo
-          cd repo
-          git fetch --depth=1 origin "$TARGET_SHA"
-          git checkout --detach "$TARGET_SHA"
-          bun install --frozen-lockfile
-          bunx playwright install --with-deps chromium
-          bun scripts/live-preview-map-smoke.mjs "$PREVIEW_URL" "$TARGET_SHA"
+        run: bun scripts/live-preview-map-smoke.mjs "$PREVIEW_URL" "$TARGET_SHA"
