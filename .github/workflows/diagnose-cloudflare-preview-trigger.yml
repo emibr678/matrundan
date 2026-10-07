@@ -20,7 +20,7 @@ jobs:
     environment: staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BUILDS_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN }}
       CLOUDFLARE_BUILD_UUID: 1c975326-209a-4497-8ee9-4c4db051fdcd
 
     steps:
@@ -30,7 +30,7 @@ jobs:
           set -euo pipefail
           node --input-type=module <<'NODE'
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
-          const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
+          const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
           const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
 
           if (!accountId || !token || !buildUuid) {
