@@ -28,6 +28,7 @@ export function SearchDiagnostics464({
     | "places-post"
     | "geocode-name"
     | "geocode-text"
+    | "geocode-assisted"
   >("fresh");
   const [busy, setBusy] = React.useState(false);
   const [report, setReport] = React.useState("");
@@ -39,7 +40,19 @@ export function SearchDiagnostics464({
     setError("");
     setBusy(false);
   }, [area, radiusKm, query]);
-  if (!["Ox lan", "Ox Lan", "OX LAN", "Ox", "Ox L", "x Lan"].includes(query.trim())) return null;
+  if (
+    ![
+      "Ox lan",
+      "Ox Lan",
+      "OX LAN",
+      "Ox",
+      "Ox L",
+      "x Lan",
+      "Bröd & Salt",
+      "Matrundan464zzIngenTräff",
+    ].includes(query.trim())
+  )
+    return null;
   async function run() {
     const id = ++generation.current;
     setBusy(true);
@@ -48,7 +61,15 @@ export function SearchDiagnostics464({
     try {
       const result = await geoapifyDiagnose464({
         data: {
-          text: query.trim() as "Ox lan" | "Ox Lan" | "OX LAN" | "Ox" | "Ox L" | "x Lan",
+          text: query.trim() as
+            | "Ox lan"
+            | "Ox Lan"
+            | "OX LAN"
+            | "Ox"
+            | "Ox L"
+            | "x Lan"
+            | "Bröd & Salt"
+            | "Matrundan464zzIngenTräff",
           lat: area.lat,
           lng: area.lng,
           radiusKm,
@@ -99,6 +120,7 @@ export function SearchDiagnostics464({
         <option value="places-post">Samma Places-sökning via POST</option>
         <option value="geocode-name">Geocoding, strukturerat verksamhetsnamn</option>
         <option value="geocode-text">Geocoding, verksamhetsnamn som text</option>
+        <option value="geocode-assisted">Verifierad namnträff via befintlig Places-adapter</option>
       </select>
       <Button type="button" className="min-h-11 w-full" disabled={busy} onClick={() => void run()}>
         {busy ? "Hämtar diagnostik…" : "Kör sökdiagnostik"}

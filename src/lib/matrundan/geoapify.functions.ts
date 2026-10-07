@@ -307,7 +307,16 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
   .validator((input) =>
     z
       .object({
-        text: z.enum(["Ox lan", "Ox Lan", "OX LAN", "Ox", "Ox L", "x Lan"]),
+        text: z.enum([
+          "Ox lan",
+          "Ox Lan",
+          "OX LAN",
+          "Ox",
+          "Ox L",
+          "x Lan",
+          "Bröd & Salt",
+          "Matrundan464zzIngenTräff",
+        ]),
         lat: z.number().min(-90).max(90),
         lng: z.number().min(-180).max(180),
         radiusKm: radiusSchema,
@@ -328,6 +337,7 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
           "places-post",
           "geocode-name",
           "geocode-text",
+          "geocode-assisted",
         ]),
       })
       .parse(input),
@@ -336,9 +346,13 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
     if (!diagnostics464Allowed(process.env.MATRUNDAN_PUBLIC_URL, getRequest().url)) {
       throw new Error("Diagnostiken är endast tillgänglig i Staging.");
     }
-    if (data.variant === "geocode-name" || data.variant === "geocode-text") {
+    if (
+      data.variant === "geocode-name" ||
+      data.variant === "geocode-text" ||
+      data.variant === "geocode-assisted"
+    ) {
       const url = new URL("https://api.geoapify.com/v1/geocode/search");
-      url.searchParams.set(data.variant === "geocode-name" ? "name" : "text", data.text);
+      url.searchParams.set(data.variant === "geocode-text" ? "text" : "name", data.text);
       url.searchParams.set("type", "amenity");
       url.searchParams.set(
         "filter",
@@ -353,6 +367,74 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
       url.searchParams.set("apiKey", readKey());
       const json = await fetchGeoapify(url);
       const evidence = summarizeDiagnostics464(json.features ?? [], url, data.text);
+      if (data.variant === "geocode-assisted") {
+        const intent = resolvePlaceSearchIntent(data.text);
+        const categories = geoapifyCategoriesForPlaceSearchIntent(intent);
+        const candidates = (json.features ?? [])
+          .flatMap((feature) => {
+            if (!feature || typeof feature !== "object") return [];
+            const properties = (feature as GeoapifyFeature).properties;
+            const category = properties?.category;
+            if (
+              properties?.result_type !== "amenity" ||
+              typeof category !== "string" ||
+              !categories.some((c) => category === c || category.startsWith(c + "."))
+            )
+              return [];
+            const place = normalizePlaceFeature(
+              feature as Parameters<typeof normalizePlaceFeature>[0],
+            );
+            return place &&
+              typeof place.lat === "number" &&
+              Number.isFinite(place.lat) &&
+              typeof place.lng === "number" &&
+              Number.isFinite(place.lng) &&
+              matchesPlaceSearchIntent(place, intent)
+              ? [place]
+              : [];
+          })
+          .slice(0, 5);
+        const accepted = new Map<string, NormalizedPlaceSuggestion>();
+        const followUps: Array<{
+          evidence?: Diagnostic464Summary;
+          matchesGeocodedIdentity: boolean;
+          acceptedNames: string[];
+        }> = [];
+        for (const candidate of candidates) {
+          let followUpEvidence: Diagnostic464Summary | undefined;
+          const page = await searchPlacesAtArea(
+            { ...data, limit: 20, offset: 0 },
+            {
+              fresh: true,
+              biasOverride: `proximity:${candidate.lng},${candidate.lat}`,
+              capture: (payload, request) => {
+                followUpEvidence = summarizeDiagnostics464(
+                  payload.features ?? [],
+                  request,
+                  data.text,
+                );
+              },
+            },
+          );
+          for (const place of page.results) accepted.set(place.externalId, place);
+          followUps.push({
+            evidence: followUpEvidence,
+            matchesGeocodedIdentity: page.results.some(
+              (place) => place.externalId === candidate.externalId,
+            ),
+            acceptedNames: page.results.map((place) => place.name),
+          });
+        }
+        return {
+          variant: data.variant,
+          capturedAt: new Date().toISOString(),
+          evidence,
+          followUps,
+          acceptedNames: [...accepted.values()].map((place) => place.name),
+          hasMore: false,
+          nextOffset: 20,
+        };
+      }
       return {
         variant: data.variant,
         capturedAt: new Date().toISOString(),
