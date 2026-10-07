@@ -11,6 +11,7 @@ import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-s
 import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
 import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import { useOwnOpenPlaceSuggestionReportKeys } from "@/lib/matrundan/use-own-place-suggestion-reports";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
@@ -283,7 +284,7 @@ export function resultLocationContextFor(
 ): string {
   if (result.distanceKm == null) return searchAreaContextFor(result);
 
-  const distance = ` · ~${result.distanceKm} km`;
+  const distance = ` · ~${formatSearchDistanceKm(result.distanceKm)} km`;
   if (!showNearestAreaLabel) return distance;
 
   const label = result.nearestAreaLabel?.trim();

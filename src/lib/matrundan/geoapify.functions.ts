@@ -18,6 +18,8 @@ import {
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
 import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
+import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
@@ -35,6 +37,11 @@ type GeoapifyFeature = {
 };
 
 const geoapifyResponseCache = createShortLivedRequestCache<GeoapifyPayload>({
+  ttlMs: GEOAPIFY_CACHE_TTL_MS,
+  maxEntries: 250,
+});
+
+const resolveNameSearchAnchor = createGeoapifyNameSearchAnchorResolver(callGeoapify, {
   ttlMs: GEOAPIFY_CACHE_TTL_MS,
   maxEntries: 250,
 });
@@ -225,6 +232,9 @@ async function searchPlacesAtArea(
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
 
+  const anchor = nameQuery ? await resolveNameSearchAnchor(url, intent) : null;
+  if (anchor) url.searchParams.set("bias", `proximity:${anchor.lng},${anchor.lat}`);
+
   const json = await callGeoapify(url);
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
@@ -235,6 +245,16 @@ async function searchPlacesAtArea(
     seen.add(place.externalId);
 
     if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
+    if (anchor) {
+      // Provider distance now refers to the anchor, not the user's search point.
+      place.distanceKm =
+        typeof place.lat === "number" &&
+        Number.isFinite(place.lat) &&
+        typeof place.lng === "number" &&
+        Number.isFinite(place.lng)
+          ? distanceKm(input, { lat: place.lat, lng: place.lng })
+          : undefined;
+    }
     normalized.push(place);
   }
 
