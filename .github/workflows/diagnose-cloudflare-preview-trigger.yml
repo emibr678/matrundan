@@ -1,0 +1,130 @@
+name: Diagnose Cloudflare preview trigger
+
+on:
+  push:
+    branches:
+      - diagnostic/cloudflare-preview-trigger
+
+permissions:
+  contents: read
+
+concurrency:
+  group: diagnose-cloudflare-preview-trigger
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    name: Read-only Cloudflare preview trigger diagnostics
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    environment: staging
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_BUILD_UUID: 1c975326-209a-4497-8ee9-4c4db051fdcd
+
+    steps:
+      - name: Inspect exact failed build and trigger
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+          const token = process.env.CLOUDFLARE_API_TOKEN?.trim();
+          const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
+
+          if (!accountId || !token || !buildUuid) {
+            throw new Error("Missing Cloudflare diagnostic configuration.");
+          }
+
+          async function get(path) {
+            const response = await fetch(
+              `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: "application/json",
+                },
+              },
+            );
+
+            let payload;
+            try {
+              payload = await response.json();
+            } catch {
+              throw new Error(`Cloudflare API returned non-JSON response (HTTP ${response.status}).`);
+            }
+
+            if (!response.ok || payload?.success === false) {
+              const messages = [
+                ...(payload?.errors ?? []),
+                ...(payload?.messages ?? []),
+              ]
+                .map((entry) =>
+                  typeof entry === "string" ? entry : entry?.message ?? entry?.code ?? "unknown error",
+                )
+                .join("; ");
+              throw new Error(
+                `Cloudflare API read failed (HTTP ${response.status})${messages ? `: ${messages}` : ""}`,
+              );
+            }
+
+            return payload?.result;
+          }
+
+          const build = await get(`/builds/builds/${buildUuid}`);
+          const trigger = build?.trigger ?? {};
+          const metadata = build?.build_trigger_metadata ?? {};
+          const triggerUuid = trigger?.trigger_uuid;
+
+          const buildSummary = {
+            build_uuid: build?.build_uuid ?? buildUuid,
+            status: build?.status ?? null,
+            build_outcome: build?.build_outcome ?? null,
+            branch: metadata?.branch ?? null,
+            commit_hash: metadata?.commit_hash ?? null,
+            build_trigger_source: metadata?.build_trigger_source ?? null,
+            build_command: metadata?.build_command ?? null,
+            deploy_command: metadata?.deploy_command ?? null,
+            build_environment_variable_names: Object.keys(metadata?.environment_variables ?? {}).sort(),
+            trigger: {
+              trigger_uuid: triggerUuid ?? null,
+              trigger_name: trigger?.trigger_name ?? null,
+              branch_includes: trigger?.branch_includes ?? [],
+              branch_excludes: trigger?.branch_excludes ?? [],
+              path_includes: trigger?.path_includes ?? [],
+              path_excludes: trigger?.path_excludes ?? [],
+              build_command: trigger?.build_command ?? null,
+              deploy_command: trigger?.deploy_command ?? null,
+              root_directory: trigger?.root_directory ?? null,
+              build_caching_enabled: trigger?.build_caching_enabled ?? null,
+              repo_name: trigger?.repo_name ?? null,
+              provider_type: trigger?.provider_type ?? null,
+            },
+          };
+
+          console.log("Cloudflare failed-build trigger summary (values redacted by design):");
+          console.log(JSON.stringify(buildSummary, null, 2));
+
+          if (!triggerUuid) {
+            throw new Error("Cloudflare build response did not expose a trigger UUID.");
+          }
+
+          const variables = await get(
+            `/builds/triggers/${triggerUuid}/environment_variables`,
+          );
+          const variableSummary = Object.fromEntries(
+            Object.entries(variables ?? {})
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([name, value]) => [
+                name,
+                {
+                  is_secret: Boolean(value?.is_secret),
+                  value_present: value?.value != null && String(value.value).length > 0,
+                },
+              ]),
+          );
+
+          console.log("Cloudflare trigger build-variable summary (names only):");
+          console.log(JSON.stringify(variableSummary, null, 2));
+          NODE
