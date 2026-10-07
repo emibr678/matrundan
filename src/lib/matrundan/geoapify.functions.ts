@@ -202,12 +202,14 @@ async function searchPlacesAtArea(
     fresh: boolean;
     omitName?: boolean;
     omitBias?: boolean;
+    biasOverride?: string;
+    maxLimit?: number;
     capture: (payload: GeoapifyPayload, url: URL) => void;
   },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
   const intent = resolvePlaceSearchIntent(input.text);
-  const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, 50);
+  const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, diagnostic?.maxLimit ?? 50);
   const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
   const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
   const needsLocalFiltering =
@@ -239,6 +241,7 @@ async function searchPlacesAtArea(
 
   if (diagnostic?.omitName) url.searchParams.delete("name");
   if (diagnostic?.omitBias) url.searchParams.delete("bias");
+  if (diagnostic?.biasOverride) url.searchParams.set("bias", diagnostic.biasOverride);
   const json = await (diagnostic?.fresh ? fetchGeoapify(url) : callGeoapify(url));
   diagnostic?.capture(json, url);
   const rawFeatureCount = json.features?.length ?? 0;
@@ -285,6 +288,9 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
           "without-bias",
           "limit-50",
           "offset-20",
+          "circle-bias",
+          "address-bias",
+          "limit-500",
         ]),
       })
       .parse(input),
@@ -297,13 +303,20 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
     const page = await searchPlacesAtArea(
       {
         ...data,
-        limit: data.variant === "limit-50" ? 50 : 20,
+        limit: data.variant === "limit-500" ? 500 : data.variant === "limit-50" ? 50 : 20,
         offset: data.variant === "offset-20" ? 20 : 0,
       },
       {
         fresh: data.variant !== "cached",
         omitName: data.variant === "without-name",
         omitBias: data.variant === "without-bias",
+        maxLimit: data.variant === "limit-500" ? 500 : 50,
+        biasOverride:
+          data.variant === "circle-bias"
+            ? `circle:${data.lng},${data.lat},${Math.round((data.radiusKm ?? WIDE_AREA_RADIUS_KM) * 1000)}`
+            : data.variant === "address-bias"
+              ? "proximity:18.0587463,59.340949" // Verified public Sveavägen 86; diagnostic only.
+              : undefined,
         capture: (payload, url) => {
           evidence = summarizeDiagnostics464(payload.features ?? [], url, data.text);
         },

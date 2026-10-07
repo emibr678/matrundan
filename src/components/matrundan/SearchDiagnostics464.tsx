@@ -14,7 +14,15 @@ export function SearchDiagnostics464({
   query: string;
 }) {
   const [variant, setVariant] = React.useState<
-    "cached" | "fresh" | "without-name" | "without-bias" | "limit-50" | "offset-20"
+    | "cached"
+    | "fresh"
+    | "without-name"
+    | "without-bias"
+    | "limit-50"
+    | "offset-20"
+    | "circle-bias"
+    | "address-bias"
+    | "limit-500"
   >("fresh");
   const [busy, setBusy] = React.useState(false);
   const [report, setReport] = React.useState("");
@@ -78,6 +86,9 @@ export function SearchDiagnostics464({
         <option value="without-bias">Utan proximity-bias</option>
         <option value="limit-50">50 kandidater</option>
         <option value="offset-20">Nästa sida, offset 20</option>
+        <option value="circle-bias">Bias över hela vald radie</option>
+        <option value="address-bias">Bias vid Sveavägen 86, samma områdesfilter</option>
+        <option value="limit-500">500 kandidater, samma namnfilter</option>
       </select>
       <Button type="button" className="min-h-11 w-full" disabled={busy} onClick={() => void run()}>
         {busy ? "Hämtar diagnostik…" : "Kör sökdiagnostik"}
