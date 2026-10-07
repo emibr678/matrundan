@@ -1,4 +1,4 @@
-name: Diagnose Cloudflare termination
+name: Diagnose Cloudflare termination globally
 
 on:
   push:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-cloudflare-termination
+  group: diagnose-cloudflare-termination-global
   cancel-in-progress: true
 
 jobs:
   diagnose:
-    name: Compare nearby Cloudflare builds
+    name: Compare all nearby staging builds
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
@@ -22,10 +22,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_BUILDS_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN }}
       CLOUDFLARE_BUILD_UUID: 53646e86-817e-4c78-8a4c-5b296a5706e0
-      EXPECTED_SHA: 24628db4c325f1f54d83696e59e5e2f407394660
 
     steps:
-      - name: Inspect exact build and nearby builds read-only
+      - name: List all nearby builds read-only
         shell: bash
         run: |
           set -euo pipefail
@@ -33,7 +32,6 @@ jobs:
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
           const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
           const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
-          const expectedSha = process.env.EXPECTED_SHA?.trim();
 
           async function get(path) {
             const response = await fetch(
@@ -42,67 +40,34 @@ jobs:
             );
             const payload = await response.json();
             if (!response.ok || payload?.success === false) {
-              const msg = (payload?.errors ?? []).map((e) => e?.message ?? e?.code).join("; ");
-              throw new Error(`Cloudflare GET failed (HTTP ${response.status})${msg ? `: ${msg}` : ""}`);
+              throw new Error(`Cloudflare GET failed HTTP ${response.status}`);
             }
             return payload?.result;
           }
 
-          const build = await get(`/builds/builds/${buildUuid}`);
-          const metadata = build?.build_trigger_metadata ?? {};
-          const trigger = build?.trigger ?? {};
-          const externalScriptId = trigger?.external_script_id;
+          const target = await get(`/builds/builds/${buildUuid}`);
+          const worker = target?.trigger?.external_script_id;
+          if (!worker) throw new Error("Missing worker id");
+          const targetTime = Date.parse(target?.created_on ?? "");
 
-          console.log("EXACT_BUILD");
-          console.log(JSON.stringify({
-            build_uuid: build?.build_uuid,
-            status: build?.status,
-            build_outcome: build?.build_outcome,
-            created_on: build?.created_on,
-            initializing_on: build?.initializing_on,
-            running_on: build?.running_on,
-            stopped_on: build?.stopped_on,
-            modified_on: build?.modified_on,
-            preview_url: build?.preview_url,
-            branch: metadata?.branch,
-            commit_hash: metadata?.commit_hash,
-            trigger_uuid: trigger?.trigger_uuid,
-            external_script_id: externalScriptId ?? null,
-          }, null, 2));
-
-          if (metadata?.commit_hash !== expectedSha) throw new Error("Unexpected SHA.");
-          if (!externalScriptId) throw new Error("Missing external_script_id.");
-
-          const list = await get(`/builds/workers/${externalScriptId}/builds`);
-          const builds = Array.isArray(list) ? list : [];
-          const nearby = builds
+          const list = await get(`/builds/workers/${worker}/builds`);
+          const builds = (Array.isArray(list) ? list : [])
             .filter((b) => {
-              const branch = b?.build_trigger_metadata?.branch;
-              const created = Date.parse(b?.created_on ?? "");
-              const target = Date.parse(build?.created_on ?? "");
-              return branch === metadata?.branch && Number.isFinite(created) && Math.abs(created - target) <= 15 * 60_000;
+              const t = Date.parse(b?.created_on ?? "");
+              return Number.isFinite(t) && Math.abs(t - targetTime) <= 10 * 60_000;
             })
             .map((b) => ({
               build_uuid: b?.build_uuid,
+              branch: b?.build_trigger_metadata?.branch,
+              commit_hash: b?.build_trigger_metadata?.commit_hash,
+              source: b?.build_trigger_metadata?.build_trigger_source,
               status: b?.status,
-              build_outcome: b?.build_outcome,
+              outcome: b?.build_outcome,
               created_on: b?.created_on,
               stopped_on: b?.stopped_on,
               modified_on: b?.modified_on,
-              commit_hash: b?.build_trigger_metadata?.commit_hash,
-              source: b?.build_trigger_metadata?.build_trigger_source,
             }))
             .sort((a,b) => String(a.created_on).localeCompare(String(b.created_on)));
 
-          console.log("NEARBY_SAME_BRANCH_BUILDS");
-          console.log(JSON.stringify(nearby, null, 2));
-
-          const logs = await get(`/builds/builds/${buildUuid}/logs`);
-          const raw = Array.isArray(logs?.lines) ? logs.lines : [];
-          const tail = raw.slice(-25).map((entry) => ({
-            ts: Array.isArray(entry) ? entry[0] : null,
-            line: Array.isArray(entry) ? String(entry.at(-1) ?? "") : String(entry ?? ""),
-          }));
-          console.log("FINAL_LOG_LINES_WITH_TIMESTAMPS");
-          console.log(JSON.stringify(tail, null, 2));
+          console.log(JSON.stringify(builds, null, 2));
           NODE
