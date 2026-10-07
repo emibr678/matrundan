@@ -109,12 +109,21 @@ function cacheKeyForGeoapify(url: URL): string {
   return safe.toString();
 }
 
-async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
+async function fetchGeoapify(
+  url: URL,
+  diagnosticPostBody?: Record<string, unknown>,
+): Promise<GeoapifyPayload> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    const response = await fetch(url, {
-      headers: { accept: "application/json" },
+    const requestUrl = diagnosticPostBody ? new URL(url.origin + url.pathname) : url;
+    if (diagnosticPostBody) requestUrl.searchParams.set("apiKey", url.searchParams.get("apiKey")!);
+    const response = await fetch(requestUrl, {
+      method: diagnosticPostBody ? "POST" : "GET",
+      headers: diagnosticPostBody
+        ? { accept: "application/json", "content-type": "application/json" }
+        : { accept: "application/json" },
+      ...(diagnosticPostBody ? { body: JSON.stringify(diagnosticPostBody) } : {}),
       signal: controller.signal,
     });
     if (response.status === 429) {
@@ -204,6 +213,8 @@ async function searchPlacesAtArea(
     omitBias?: boolean;
     biasOverride?: string;
     maxLimit?: number;
+    categoriesOverride?: string;
+    post?: boolean;
     capture: (payload: GeoapifyPayload, url: URL) => void;
   },
 ): Promise<PlaceSearchPage> {
@@ -242,7 +253,28 @@ async function searchPlacesAtArea(
   if (diagnostic?.omitName) url.searchParams.delete("name");
   if (diagnostic?.omitBias) url.searchParams.delete("bias");
   if (diagnostic?.biasOverride) url.searchParams.set("bias", diagnostic.biasOverride);
-  const json = await (diagnostic?.fresh ? fetchGeoapify(url) : callGeoapify(url));
+  if (diagnostic?.categoriesOverride)
+    url.searchParams.set("categories", diagnostic.categoriesOverride);
+  const postBody = diagnostic?.post
+    ? {
+        categories: url.searchParams.get("categories")!.split(","),
+        filter:
+          searchMode === "boundary"
+            ? { type: "place", id: input.placeId!.trim() }
+            : {
+                type: "circle",
+                lon: input.lng,
+                lat: input.lat,
+                radius: Math.round(radiusKm * 1000),
+              },
+        bias: { type: "proximity", lon: input.lng, lat: input.lat },
+        lang: "sv",
+        limit: providerLimit,
+        offset,
+        ...(nameQuery ? { name: nameQuery } : {}),
+      }
+    : undefined;
+  const json = await (diagnostic?.fresh ? fetchGeoapify(url, postBody) : callGeoapify(url));
   diagnostic?.capture(json, url);
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
@@ -291,6 +323,11 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
           "circle-bias",
           "address-bias",
           "limit-500",
+          "restaurant-only",
+          "parent-categories",
+          "places-post",
+          "geocode-name",
+          "geocode-text",
         ]),
       })
       .parse(input),
@@ -298,6 +335,34 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     if (!diagnostics464Allowed(process.env.MATRUNDAN_PUBLIC_URL, getRequest().url)) {
       throw new Error("Diagnostiken är endast tillgänglig i Staging.");
+    }
+    if (data.variant === "geocode-name" || data.variant === "geocode-text") {
+      const url = new URL("https://api.geoapify.com/v1/geocode/search");
+      url.searchParams.set(data.variant === "geocode-name" ? "name" : "text", data.text);
+      url.searchParams.set("type", "amenity");
+      url.searchParams.set(
+        "filter",
+        data.searchMode === "boundary"
+          ? `place:${data.placeId}`
+          : `circle:${data.lng},${data.lat},${Math.round((data.radiusKm ?? WIDE_AREA_RADIUS_KM) * 1000)}`,
+      );
+      url.searchParams.set("bias", `proximity:${data.lng},${data.lat}`);
+      url.searchParams.set("lang", "sv");
+      url.searchParams.set("format", "geojson");
+      url.searchParams.set("limit", "10");
+      url.searchParams.set("apiKey", readKey());
+      const json = await fetchGeoapify(url);
+      const evidence = summarizeDiagnostics464(json.features ?? [], url, data.text);
+      return {
+        variant: data.variant,
+        capturedAt: new Date().toISOString(),
+        evidence,
+        acceptedNames: evidence.candidates
+          .filter((c) => c.disposition === "accepted")
+          .map((c) => c.normalizedName),
+        hasMore: (json.features?.length ?? 0) >= 10,
+        nextOffset: 10,
+      };
     }
     let evidence: Diagnostic464Summary | undefined;
     const page = await searchPlacesAtArea(
@@ -311,6 +376,13 @@ export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
         omitName: data.variant === "without-name",
         omitBias: data.variant === "without-bias",
         maxLimit: data.variant === "limit-500" ? 500 : 50,
+        categoriesOverride:
+          data.variant === "restaurant-only"
+            ? "catering.restaurant"
+            : data.variant === "parent-categories"
+              ? "catering,commercial.food_and_drink.bakery"
+              : undefined,
+        post: data.variant === "places-post",
         biasOverride:
           data.variant === "circle-bias"
             ? `circle:${data.lng},${data.lat},${Math.round((data.radiusKm ?? WIDE_AREA_RADIUS_KM) * 1000)}`

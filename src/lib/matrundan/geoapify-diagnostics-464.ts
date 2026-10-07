@@ -25,11 +25,20 @@ export function summarizeDiagnostics464(features: unknown[], url: URL, query: st
   const seen = new Set<string>();
   return {
     intent: intent.kind,
+    endpoint: url.pathname,
     request: Object.fromEntries(
-      ["categories", "filter", "bias", "lang", "limit", "offset", "name"].map((key) => [
-        key,
-        url.searchParams.get(key),
-      ]),
+      [
+        "categories",
+        "filter",
+        "bias",
+        "lang",
+        "limit",
+        "offset",
+        "name",
+        "text",
+        "type",
+        "format",
+      ].map((key) => [key, url.searchParams.get(key)]),
     ),
     rawFeatureCount: features.length,
     candidates: features.slice(0, 50).map((feature, index) => {
@@ -48,6 +57,16 @@ export function summarizeDiagnostics464(features: unknown[], url: URL, query: st
         providerName: publicText(properties?.name),
         providerStreet: publicText(properties?.street),
         providerCity: publicText(properties?.city),
+        providerResultType: publicText(properties?.result_type),
+        providerCategory: publicText(properties?.category),
+        providerLat:
+          typeof properties?.lat === "number" && Number.isFinite(properties.lat)
+            ? properties.lat
+            : null,
+        providerLng:
+          typeof properties?.lon === "number" && Number.isFinite(properties.lon)
+            ? properties.lon
+            : null,
         providerCategories: Array.isArray(properties?.categories)
           ? properties.categories.filter((v): v is string => typeof v === "string").slice(0, 20)
           : [],

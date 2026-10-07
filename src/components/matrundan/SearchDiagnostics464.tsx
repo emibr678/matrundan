@@ -23,6 +23,11 @@ export function SearchDiagnostics464({
     | "circle-bias"
     | "address-bias"
     | "limit-500"
+    | "restaurant-only"
+    | "parent-categories"
+    | "places-post"
+    | "geocode-name"
+    | "geocode-text"
   >("fresh");
   const [busy, setBusy] = React.useState(false);
   const [report, setReport] = React.useState("");
@@ -89,6 +94,11 @@ export function SearchDiagnostics464({
         <option value="circle-bias">Bias över hela vald radie</option>
         <option value="address-bias">Bias vid Sveavägen 86, samma områdesfilter</option>
         <option value="limit-500">500 kandidater, samma namnfilter</option>
+        <option value="restaurant-only">Endast restaurangkategori</option>
+        <option value="parent-categories">Matkategorier via föräldrakategorier</option>
+        <option value="places-post">Samma Places-sökning via POST</option>
+        <option value="geocode-name">Geocoding, strukturerat verksamhetsnamn</option>
+        <option value="geocode-text">Geocoding, verksamhetsnamn som text</option>
       </select>
       <Button type="button" className="min-h-11 w-full" disabled={busy} onClick={() => void run()}>
         {busy ? "Hämtar diagnostik…" : "Kör sökdiagnostik"}
