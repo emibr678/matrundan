@@ -3,6 +3,7 @@
  * GEOAPIFY_API_KEY läses endast på servern och skickas aldrig till klienten.
  */
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -21,6 +22,11 @@ import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-sear
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
+import {
+  diagnostics464Allowed,
+  summarizeDiagnostics464,
+  type Diagnostic464Summary,
+} from "./geoapify-diagnostics-464";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
@@ -192,6 +198,12 @@ async function searchPlacesAtArea(
     limit?: number;
     offset?: number;
   },
+  diagnostic?: {
+    fresh: boolean;
+    omitName?: boolean;
+    omitBias?: boolean;
+    capture: (payload: GeoapifyPayload, url: URL) => void;
+  },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
   const intent = resolvePlaceSearchIntent(input.text);
@@ -225,7 +237,10 @@ async function searchPlacesAtArea(
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
 
-  const json = await callGeoapify(url);
+  if (diagnostic?.omitName) url.searchParams.delete("name");
+  if (diagnostic?.omitBias) url.searchParams.delete("bias");
+  const json = await (diagnostic?.fresh ? fetchGeoapify(url) : callGeoapify(url));
+  diagnostic?.capture(json, url);
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
   const normalized: NormalizedPlaceSuggestion[] = [];
@@ -250,6 +265,59 @@ async function searchPlacesAtArea(
     nextOffset: offset + providerLimit,
   };
 }
+
+/** TEMPORARY #464: authenticated, staging-only, read-only provider experiments. */
+export const geoapifyDiagnose464 = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z
+      .object({
+        text: z.enum(["Ox lan", "Ox Lan", "OX LAN", "Ox", "Ox L", "x Lan"]),
+        lat: z.number().min(-90).max(90),
+        lng: z.number().min(-180).max(180),
+        radiusKm: radiusSchema,
+        searchMode: searchModeSchema.optional(),
+        placeId: z.string().trim().min(1).max(240).optional(),
+        variant: z.enum([
+          "cached",
+          "fresh",
+          "without-name",
+          "without-bias",
+          "limit-50",
+          "offset-20",
+        ]),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data }) => {
+    if (!diagnostics464Allowed(process.env.MATRUNDAN_PUBLIC_URL, getRequest().url)) {
+      throw new Error("Diagnostiken är endast tillgänglig i Staging.");
+    }
+    let evidence: Diagnostic464Summary | undefined;
+    const page = await searchPlacesAtArea(
+      {
+        ...data,
+        limit: data.variant === "limit-50" ? 50 : 20,
+        offset: data.variant === "offset-20" ? 20 : 0,
+      },
+      {
+        fresh: data.variant !== "cached",
+        omitName: data.variant === "without-name",
+        omitBias: data.variant === "without-bias",
+        capture: (payload, url) => {
+          evidence = summarizeDiagnostics464(payload.features ?? [], url, data.text);
+        },
+      },
+    );
+    return {
+      variant: data.variant,
+      capturedAt: new Date().toISOString(),
+      evidence,
+      acceptedNames: page.results.map((place) => place.name),
+      hasMore: page.hasMore,
+      nextOffset: page.nextOffset,
+    };
+  });
 
 export const geoapifyAutocompleteLocation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
