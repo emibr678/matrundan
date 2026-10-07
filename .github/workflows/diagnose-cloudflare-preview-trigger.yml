@@ -1,4 +1,4 @@
-name: Diagnose exact Cloudflare build
+name: Diagnose Cloudflare termination
 
 on:
   push:
@@ -9,12 +9,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-exact-cloudflare-build
+  group: diagnose-cloudflare-termination
   cancel-in-progress: true
 
 jobs:
   diagnose:
-    name: Read Cloudflare build outcome and logs
+    name: Compare nearby Cloudflare builds
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
@@ -25,7 +25,7 @@ jobs:
       EXPECTED_SHA: 24628db4c325f1f54d83696e59e5e2f407394660
 
     steps:
-      - name: Inspect exact build read-only
+      - name: Inspect exact build and nearby builds read-only
         shell: bash
         run: |
           set -euo pipefail
@@ -35,19 +35,10 @@ jobs:
           const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
           const expectedSha = process.env.EXPECTED_SHA?.trim();
 
-          if (!accountId || !token || !buildUuid || !expectedSha) {
-            throw new Error("Missing Cloudflare diagnostic configuration.");
-          }
-
           async function get(path) {
             const response = await fetch(
               `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
-              {
-                headers: {
-                  Authorization: `Bearer ${token}`,
-                  Accept: "application/json",
-                },
-              },
+              { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } },
             );
             const payload = await response.json();
             if (!response.ok || payload?.success === false) {
@@ -60,54 +51,58 @@ jobs:
           const build = await get(`/builds/builds/${buildUuid}`);
           const metadata = build?.build_trigger_metadata ?? {};
           const trigger = build?.trigger ?? {};
+          const externalScriptId = trigger?.external_script_id;
 
-          const summary = {
-            build_uuid: build?.build_uuid ?? buildUuid,
-            status: build?.status ?? null,
-            build_outcome: build?.build_outcome ?? null,
-            created_on: build?.created_on ?? null,
-            initializing_on: build?.initializing_on ?? null,
-            running_on: build?.running_on ?? null,
-            stopped_on: build?.stopped_on ?? null,
-            modified_on: build?.modified_on ?? null,
-            preview_url: build?.preview_url ?? null,
-            branch: metadata?.branch ?? null,
-            commit_hash: metadata?.commit_hash ?? null,
-            build_trigger_source: metadata?.build_trigger_source ?? null,
-            build_command: metadata?.build_command ?? null,
-            deploy_command: metadata?.deploy_command ?? null,
-            environment_variable_names: Object.keys(metadata?.environment_variables ?? {}).sort(),
-            trigger_uuid: trigger?.trigger_uuid ?? null,
-            trigger_name: trigger?.trigger_name ?? null,
-            trigger_build_command: trigger?.build_command ?? null,
-            trigger_deploy_command: trigger?.deploy_command ?? null,
-          };
+          console.log("EXACT_BUILD");
+          console.log(JSON.stringify({
+            build_uuid: build?.build_uuid,
+            status: build?.status,
+            build_outcome: build?.build_outcome,
+            created_on: build?.created_on,
+            initializing_on: build?.initializing_on,
+            running_on: build?.running_on,
+            stopped_on: build?.stopped_on,
+            modified_on: build?.modified_on,
+            preview_url: build?.preview_url,
+            branch: metadata?.branch,
+            commit_hash: metadata?.commit_hash,
+            trigger_uuid: trigger?.trigger_uuid,
+            external_script_id: externalScriptId ?? null,
+          }, null, 2));
 
-          console.log("CLOUDFLARE_BUILD_SUMMARY");
-          console.log(JSON.stringify(summary, null, 2));
+          if (metadata?.commit_hash !== expectedSha) throw new Error("Unexpected SHA.");
+          if (!externalScriptId) throw new Error("Missing external_script_id.");
 
-          if (metadata?.commit_hash !== expectedSha) {
-            throw new Error(`Build SHA mismatch: expected ${expectedSha}, got ${metadata?.commit_hash ?? "missing"}.`);
-          }
+          const list = await get(`/builds/workers/${externalScriptId}/builds`);
+          const builds = Array.isArray(list) ? list : [];
+          const nearby = builds
+            .filter((b) => {
+              const branch = b?.build_trigger_metadata?.branch;
+              const created = Date.parse(b?.created_on ?? "");
+              const target = Date.parse(build?.created_on ?? "");
+              return branch === metadata?.branch && Number.isFinite(created) && Math.abs(created - target) <= 15 * 60_000;
+            })
+            .map((b) => ({
+              build_uuid: b?.build_uuid,
+              status: b?.status,
+              build_outcome: b?.build_outcome,
+              created_on: b?.created_on,
+              stopped_on: b?.stopped_on,
+              modified_on: b?.modified_on,
+              commit_hash: b?.build_trigger_metadata?.commit_hash,
+              source: b?.build_trigger_metadata?.build_trigger_source,
+            }))
+            .sort((a,b) => String(a.created_on).localeCompare(String(b.created_on)));
+
+          console.log("NEARBY_SAME_BRANCH_BUILDS");
+          console.log(JSON.stringify(nearby, null, 2));
 
           const logs = await get(`/builds/builds/${buildUuid}/logs`);
-          const rawLines = Array.isArray(logs?.lines) ? logs.lines : [];
-          const messages = rawLines
-            .map((entry) => Array.isArray(entry) ? String(entry.at(-1) ?? "") : String(entry ?? ""))
-            .filter(Boolean);
-
-          const interesting = messages.filter((line) =>
-            /error|fail|terminat|wrangler|deploy|version|build command|executing|success|upload|preview/i.test(line)
-          );
-
-          const redact = (line) =>
-            line
-              .replace(/(api[_-]?key|token|secret|authorization)\s*[:=]\s*\S+/gi, "$1=[REDACTED]")
-              .replace(/Bearer\s+\S+/gi, "Bearer [REDACTED]");
-
-          console.log("CLOUDFLARE_INTERESTING_LOG_LINES");
-          for (const line of interesting.slice(-120)) console.log(redact(line));
-
-          console.log("CLOUDFLARE_LOG_TAIL");
-          for (const line of messages.slice(-80)) console.log(redact(line));
+          const raw = Array.isArray(logs?.lines) ? logs.lines : [];
+          const tail = raw.slice(-25).map((entry) => ({
+            ts: Array.isArray(entry) ? entry[0] : null,
+            line: Array.isArray(entry) ? String(entry.at(-1) ?? "") : String(entry ?? ""),
+          }));
+          console.log("FINAL_LOG_LINES_WITH_TIMESTAMPS");
+          console.log(JSON.stringify(tail, null, 2));
           NODE
