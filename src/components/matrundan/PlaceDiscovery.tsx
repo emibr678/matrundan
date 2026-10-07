@@ -1,8 +1,6 @@
 import * as React from "react";
 import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
-import { IS_STAGING } from "@/lib/app-environment";
-import { SearchDiagnostics464 } from "./SearchDiagnostics464";
 
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControls } from "./SearchAreaControls";
@@ -904,9 +902,6 @@ export function PlaceDiscovery({
         </div>
       ) : null}
 
-      {IS_STAGING && isLive && activeAreas.length === 1 ? (
-        <SearchDiagnostics464 area={activeAreas[0]} radiusKm={radiusKm} query={query} />
-      ) : null}
       <p className="text-[11px] text-muted-foreground">
         {isLive
           ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
