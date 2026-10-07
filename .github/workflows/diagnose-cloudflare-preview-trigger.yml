@@ -1,4 +1,4 @@
-name: Diagnose Cloudflare preview trigger
+name: Repair Cloudflare preview trigger
 
 on:
   push:
@@ -9,42 +9,56 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-cloudflare-preview-trigger
+  group: repair-cloudflare-preview-trigger
   cancel-in-progress: true
 
 jobs:
-  diagnose:
-    name: Read-only Cloudflare preview trigger diagnostics
+  repair:
+    name: Repair and verify Cloudflare preview trigger
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_BUILDS_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN }}
+      STAGING_GEOAPIFY_MAPS_KEY: ${{ vars.STAGING_GEOAPIFY_MAPS_KEY }}
       CLOUDFLARE_BUILD_UUID: 1c975326-209a-4497-8ee9-4c4db051fdcd
+      EXPECTED_TRIGGER_UUID: 9d42b7f3-f017-48f4-ac3b-4612535d53b6
+      TARGET_BRANCH: feature/389-canonical-place-discovery
+      TARGET_SHA: 5722f6c9f8696a850e10e5f92a7c443fa954c19f
 
     steps:
-      - name: Inspect exact failed build and trigger
+      - name: Guard, repair, verify, and rebuild exact PR head
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
           const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
+          const mapsKey = process.env.STAGING_GEOAPIFY_MAPS_KEY?.trim();
           const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
+          const expectedTriggerUuid = process.env.EXPECTED_TRIGGER_UUID?.trim();
+          const targetBranch = process.env.TARGET_BRANCH?.trim();
+          const targetSha = process.env.TARGET_SHA?.trim();
 
-          if (!accountId || !token || !buildUuid) {
-            throw new Error("Missing Cloudflare diagnostic configuration.");
+          if (!accountId || !token || !mapsKey || !buildUuid || !expectedTriggerUuid || !targetBranch || !targetSha) {
+            throw new Error("Missing Cloudflare repair configuration.");
+          }
+          if (!/^[0-9a-f]{40}$/.test(targetSha)) {
+            throw new Error("TARGET_SHA must be a full Git SHA.");
           }
 
-          async function get(path) {
+          async function request(path, { method = "GET", body } = {}) {
             const response = await fetch(
               `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
               {
+                method,
                 headers: {
                   Authorization: `Bearer ${token}`,
                   Accept: "application/json",
+                  ...(body ? { "Content-Type": "application/json" } : {}),
                 },
+                ...(body ? { body: JSON.stringify(body) } : {}),
               },
             );
 
@@ -65,66 +79,162 @@ jobs:
                 )
                 .join("; ");
               throw new Error(
-                `Cloudflare API read failed (HTTP ${response.status})${messages ? `: ${messages}` : ""}`,
+                `Cloudflare API ${method} failed (HTTP ${response.status})${messages ? `: ${messages}` : ""}`,
               );
             }
 
             return payload?.result;
           }
 
-          const build = await get(`/builds/builds/${buildUuid}`);
-          const trigger = build?.trigger ?? {};
-          const metadata = build?.build_trigger_metadata ?? {};
-          const triggerUuid = trigger?.trigger_uuid;
-
-          const buildSummary = {
-            build_uuid: build?.build_uuid ?? buildUuid,
-            status: build?.status ?? null,
-            build_outcome: build?.build_outcome ?? null,
-            branch: metadata?.branch ?? null,
-            commit_hash: metadata?.commit_hash ?? null,
-            build_trigger_source: metadata?.build_trigger_source ?? null,
-            build_command: metadata?.build_command ?? null,
-            deploy_command: metadata?.deploy_command ?? null,
-            build_environment_variable_names: Object.keys(metadata?.environment_variables ?? {}).sort(),
-            trigger: {
-              trigger_uuid: triggerUuid ?? null,
-              trigger_name: trigger?.trigger_name ?? null,
-              branch_includes: trigger?.branch_includes ?? [],
-              branch_excludes: trigger?.branch_excludes ?? [],
-              path_includes: trigger?.path_includes ?? [],
-              path_excludes: trigger?.path_excludes ?? [],
-              build_command: trigger?.build_command ?? null,
-              deploy_command: trigger?.deploy_command ?? null,
-              root_directory: trigger?.root_directory ?? null,
-              build_caching_enabled: trigger?.build_caching_enabled ?? null,
-              repo_name: trigger?.repo_name ?? null,
-              provider_type: trigger?.provider_type ?? null,
-            },
-          };
-
-          console.log("Cloudflare failed-build trigger summary (values redacted by design):");
-          console.log(JSON.stringify(buildSummary, null, 2));
-
-          if (!triggerUuid) {
-            throw new Error("Cloudflare build response did not expose a trigger UUID.");
+          function sameStrings(actual, expected) {
+            return JSON.stringify([...(actual ?? [])].sort()) === JSON.stringify([...expected].sort());
           }
 
-          const variables = await get(
+          const failedBuild = await request(`/builds/builds/${buildUuid}`);
+          const trigger = failedBuild?.trigger ?? {};
+          const triggerUuid = trigger?.trigger_uuid;
+          const externalScriptId = trigger?.external_script_id;
+
+          if (triggerUuid !== expectedTriggerUuid) {
+            throw new Error(`Refusing repair: failed build points at unexpected trigger ${triggerUuid ?? "missing"}.`);
+          }
+          if (!externalScriptId) {
+            throw new Error("Refusing repair: failed build did not expose external_script_id.");
+          }
+          if (trigger?.trigger_name !== "Deploy non-production branches") {
+            throw new Error("Refusing repair: unexpected trigger name.");
+          }
+          if (trigger?.build_command !== "bun run build") {
+            throw new Error(`Refusing repair: expected legacy build command, got ${trigger?.build_command ?? "missing"}.`);
+          }
+          if (trigger?.deploy_command !== "npx wrangler versions upload --env staging") {
+            throw new Error("Refusing repair: deploy command does not match the verified preview contract.");
+          }
+          if (!sameStrings(trigger?.branch_includes, ["*"]) || !sameStrings(trigger?.branch_excludes, ["main"])) {
+            throw new Error("Refusing repair: branch filters no longer match the verified preview trigger.");
+          }
+          if (!sameStrings(trigger?.path_includes, ["*"]) || !sameStrings(trigger?.path_excludes, [])) {
+            throw new Error("Refusing repair: path filters no longer match the verified preview trigger.");
+          }
+          if (trigger?.root_directory !== "/") {
+            throw new Error("Refusing repair: root directory no longer matches the verified preview trigger.");
+          }
+
+          const beforeVars = await request(
             `/builds/triggers/${triggerUuid}/environment_variables`,
           );
-          const variableSummary = Object.fromEntries(
-            Object.entries(variables ?? {})
-              .sort(([a], [b]) => a.localeCompare(b))
-              .map(([name, value]) => [
-                name,
-                {
-                  is_secret: Boolean(value?.is_secret),
-                  value_present: value?.value != null && String(value.value).length > 0,
+          const beforeNames = Object.keys(beforeVars ?? {}).sort();
+          const expectedBeforeNames = [
+            "VITE_SUPABASE_PROJECT_ID",
+            "VITE_SUPABASE_PUBLISHABLE_KEY",
+            "VITE_SUPABASE_URL",
+          ].sort();
+
+          if (!sameStrings(beforeNames, expectedBeforeNames)) {
+            throw new Error(
+              `Refusing repair: preview build variables changed since diagnosis (${beforeNames.join(", ")}).`,
+            );
+          }
+
+          // Add only the browser-limited staging map key. PATCH preserves unspecified keys.
+          await request(
+            `/builds/triggers/${triggerUuid}/environment_variables`,
+            {
+              method: "PATCH",
+              body: {
+                VITE_GEOAPIFY_MAPS_KEY: {
+                  value: mapsKey,
+                  is_secret: false,
                 },
-              ]),
+              },
+            },
           );
 
-          console.log("Cloudflare trigger build-variable summary (names only):");
-          console.log(JSON.stringify(variableSummary, null, 2));
+          // Change only the build command. All filters, deploy command, token, and cache settings remain untouched.
+          const updatedTrigger = await request(
+            `/builds/triggers/${triggerUuid}`,
+            {
+              method: "PATCH",
+              body: {
+                build_command: "bun run cloudflare:build",
+              },
+            },
+          );
+
+          if (updatedTrigger?.trigger_uuid !== triggerUuid || updatedTrigger?.build_command !== "bun run cloudflare:build") {
+            throw new Error("Cloudflare did not confirm the expected trigger update.");
+          }
+
+          const triggers = await request(
+            `/builds/workers/${externalScriptId}/triggers`,
+          );
+          const readBack = (triggers ?? []).find((candidate) => candidate?.trigger_uuid === triggerUuid);
+          if (!readBack) {
+            throw new Error("Could not read back the updated preview trigger.");
+          }
+
+          if (
+            readBack?.build_command !== "bun run cloudflare:build" ||
+            readBack?.deploy_command !== "npx wrangler versions upload --env staging" ||
+            !sameStrings(readBack?.branch_includes, ["*"]) ||
+            !sameStrings(readBack?.branch_excludes, ["main"]) ||
+            !sameStrings(readBack?.path_includes, ["*"]) ||
+            !sameStrings(readBack?.path_excludes, []) ||
+            readBack?.root_directory !== "/"
+          ) {
+            throw new Error("Updated preview trigger failed read-back verification.");
+          }
+
+          const afterVars = await request(
+            `/builds/triggers/${triggerUuid}/environment_variables`,
+          );
+          const afterNames = Object.keys(afterVars ?? {}).sort();
+          const expectedAfterNames = [
+            "VITE_GEOAPIFY_MAPS_KEY",
+            "VITE_SUPABASE_PROJECT_ID",
+            "VITE_SUPABASE_PUBLISHABLE_KEY",
+            "VITE_SUPABASE_URL",
+          ].sort();
+
+          if (!sameStrings(afterNames, expectedAfterNames)) {
+            throw new Error(
+              `Updated preview variables failed read-back verification (${afterNames.join(", ")}).`,
+            );
+          }
+          if (afterVars?.VITE_GEOAPIFY_MAPS_KEY?.value !== mapsKey) {
+            throw new Error("Updated map build variable did not read back with the expected staging value.");
+          }
+
+          console.log("Verified Cloudflare preview trigger repair:");
+          console.log(JSON.stringify({
+            trigger_uuid: triggerUuid,
+            trigger_name: readBack.trigger_name,
+            build_command: readBack.build_command,
+            deploy_command: readBack.deploy_command,
+            branch_includes: readBack.branch_includes,
+            branch_excludes: readBack.branch_excludes,
+            build_variable_names: afterNames,
+          }, null, 2));
+
+          const rebuild = await request(
+            `/builds/triggers/${triggerUuid}/builds`,
+            {
+              method: "POST",
+              body: {
+                branch: targetBranch,
+                commit_hash: targetSha,
+              },
+            },
+          );
+
+          if (!rebuild?.build_uuid) {
+            throw new Error("Cloudflare accepted the repair but did not return a rebuild UUID.");
+          }
+
+          console.log("Started exact PR preview rebuild:");
+          console.log(JSON.stringify({
+            branch: targetBranch,
+            commit_hash: targetSha,
+            build_uuid: rebuild.build_uuid,
+          }, null, 2));
           NODE
