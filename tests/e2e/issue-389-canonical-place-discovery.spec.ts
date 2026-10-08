@@ -403,7 +403,9 @@ test("arkiverad relation i målgruppen visas som återställning", async ({ page
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
   await search.getByRole("button", { name: "Återställ", exact: true }).click();
   const restore = page.getByRole("dialog", { name: "Återställ i gruppen", exact: true });
-  await expect(restore.getByRole("button", { name: "Återställ i gruppen", exact: true })).toBeVisible();
+  await expect(
+    restore.getByRole("button", { name: "Återställ i gruppen", exact: true }),
+  ).toBeVisible();
   await expect(restore.getByText("Skolvägen 3, Stockholm", { exact: true })).toBeVisible();
 });
 
