@@ -190,19 +190,30 @@ Exakta Wrangler-/Cloudflare-kommandon och dashboardinställningar hör hemma i
 
 ### Stabil previewadress under iteration
 
-Använd Cloudflares stabila **Branch Preview URL** för all interaktiv
-browserverifiering och länka samma adress vid användartest. Återanvänd adressen
-och den inloggade sessionen mellan pushar i samma branch.
+Använd Cloudflares stabila **Branch Preview URL** på rotadressen (`/`)
+för interaktiv browserverifiering och användartest. Återanvänd adressen och den
+inloggade sessionen mellan pushar i samma branch.
 
-Efter varje nytt branchbygge ska `/api/health` på branchpreviewn kontrolleras
-innan testningen börjar. Svarets `release` måste vara exakt aktuell PR-head-SHA.
-Om det fortfarande är en äldre version ska agenten invänta och undersöka det
-nya bygget; tester på den äldre versionen är inte evidens för den nya pushen.
+Efter varje nytt branchbygge kontrolleras `/api/health` **separat** som teknisk
+versions- och beroendekontroll. För verifiering av exakt kandidat krävs att
+svaret är friskt och att `release` matchar aktuell PR-head-SHA. Endpointen testar
+inte gränssnittet och ersätter aldrig ett faktiskt webbläsar-/användartest.
+
+Om health misslyckas eller är oåtkomlig ska agenten undersöka felet **och**
+försöka öppna appens rotadress separat. Ett healthfel bevisar inte att GUI är
+otillgängligt. Fungerar rotadressen får agenten göra en utforskande UX-kontroll:
+navigera i appen, logga in via dess ordinarie säkra flöde vid behov, interagera
+med berörda flöden och redovisa vad som faktiskt fungerade. Märk då uttryckligen
+**versionskontroll ej verifierad** och påstå inte att testet gäller aktuell
+PR-head eller att kandidaten är mergeklar. Om health visar en äldre `release`
+är tester på den äldre versionen inte evidens för den nya pushen. Om även
+rotadressen misslyckas redovisas det som en separat browserblockerare.
 
 Använd den immutabla **Commit Preview URL** endast för slutlig exact-SHA-
 verifiering. Läs den verifierade commitadressen från bygg-/handoffkvittot och
 behåll den som spårbar evidens i PR/Actions. Interaktiva tester och chattens
-previewlänk använder fortsatt den stabila branchadressen med verifierad health.
+previewlänk använder den stabila branchadressen. En formell testhandoff kräver
+fortfarande verifierad health/head-SHA och de ordinarie kandidatgrindarna.
 
 ## 6. Verifiering och CI
 
@@ -317,10 +328,10 @@ ett leveranskvitto medan inget krävs från användaren och agentägt arbete kan
 fortsätta.
 
 Under draft-/UX-iteration får en användartestpunkt komma tidigare: ange då
-**Preview:** med den stabila branchpreviewn efter dess health-kontroll och märk
-den uttryckligen
-**iterationspreview – full CI ej körd**. Det kan användas för feedback men får
-inte beskrivas som verifierad kandidat. Det kanoniska `Mobile PR handoff`-
+**Preview:** med den stabila branchpreviewn och redovisa health-/versionsstatus.
+Märk den **iterationspreview – full CI ej körd** och, om health inte kunnat
+verifieras mot aktuell head, även **versionskontroll ej verifierad**. Det får
+användas för utforskande feedback men inte beskrivas som verifierad kandidat. Det kanoniska `Mobile PR handoff`-
 kvittot skapas först efter grön **CI / required** för aktuell head-SHA.
 
 När en verklig handoff nås:
