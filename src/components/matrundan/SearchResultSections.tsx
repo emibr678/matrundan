@@ -190,7 +190,11 @@ export function SearchResultSections({
             return [
               ...(firstInternal
                 ? [
-                    <h4 key="matrundan-heading" className="pt-2 text-sm font-medium">
+                    <h4
+                      key="matrundan-heading"
+                      className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium"
+                    >
+                      <MatrundanBrand variant="mark" size="xs" />
                       Finns i Matrundan
                     </h4>,
                   ]
@@ -206,7 +210,6 @@ export function SearchResultSections({
                 key={result.externalId}
                 result={result}
                 signal={signal}
-                internal={internal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
                 bulkMode={bulkMode && canBulkAddSuggestion(result)}
@@ -251,7 +254,7 @@ export function SearchResultSections({
               />,
             ];
           })
-        ) : sourceMatches.length === 0 ? (
+        ) : sourceMatches.length === 0 && existing.length === 0 ? (
           <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
             Inga nya ställen i den här sökningen.
           </p>
@@ -351,7 +354,6 @@ export function resultLocationContextFor(
 function SuggestionRow({
   result,
   signal,
-  internal = false,
   selected,
   bulkSelected,
   bulkMode,
@@ -363,7 +365,6 @@ function SuggestionRow({
 }: {
   result: PlaceSuggestion;
   signal?: PlaceDataSignal;
-  internal?: boolean;
   selected: boolean;
   bulkSelected: boolean;
   bulkMode: boolean;
@@ -393,12 +394,6 @@ function SuggestionRow({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block break-words font-medium">{result.name}</span>
-          {internal ? (
-            <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-              <MatrundanBrand variant="mark" size="xs" />
-              Finns i Matrundan
-            </span>
-          ) : null}
           <span className="block break-words text-xs text-muted-foreground">
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
