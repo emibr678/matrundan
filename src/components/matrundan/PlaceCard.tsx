@@ -31,6 +31,8 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
   const { avgRating, isFavorite, toggleFavorite } = useStore();
   const rating = avgRating(place.id);
   const fav = isFavorite(place.id);
+  const unverifiedLocation =
+    place.origin === "manual" && (!Number.isFinite(place.lat) || !Number.isFinite(place.lng));
 
   return (
     <Card className="group relative overflow-hidden rounded-2xl border-border/70 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
@@ -76,11 +78,18 @@ export function PlaceCard({ place, readOnly = false }: { place: Place; readOnly?
         }
         footer={
           <div className="flex min-w-0 items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">
-                {formatCompactPlaceAddress(place.address, place.city)}
-              </span>
+            <div className="min-w-0">
+              <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 shrink-0" />
+                <span className="truncate">
+                  {formatCompactPlaceAddress(place.address, place.city)}
+                </span>
+              </div>
+              {unverifiedLocation ? (
+                <p className="pl-4 text-[11px] leading-tight text-muted-foreground">
+                  Plats ej verifierad
+                </p>
+              ) : null}
             </div>
             <div className="shrink-0">
               <StatusBadge placeId={place.id} />

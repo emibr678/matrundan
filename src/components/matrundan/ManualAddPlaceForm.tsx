@@ -78,6 +78,7 @@ export function ManualAddPlaceForm({
   const [busy, setBusy] = React.useState(false);
   const [externalCandidates, setExternalCandidates] = React.useState<PlaceSuggestion[]>([]);
   const [declinedExternalIds, setDeclinedExternalIds] = React.useState<string[]>([]);
+  const [showUnverifiedConfirmation, setShowUnverifiedConfirmation] = React.useState(false);
   React.useEffect(() => {
     onSnapshotChange({ draft, website, verifiedLocation });
   }, [draft, website, verifiedLocation, onSnapshotChange]);
@@ -163,6 +164,7 @@ export function ManualAddPlaceForm({
   }, [candidateQuery, loadCandidates]);
 
   function changeLocationText(value: string) {
+    setShowUnverifiedConfirmation(false);
     setDraft((current) => ({
       ...current,
       address: value,
@@ -173,6 +175,7 @@ export function ManualAddPlaceForm({
   }
 
   function selectLocation(location: VerifiedLocationSelection) {
+    setShowUnverifiedConfirmation(false);
     setDraft((current) => ({
       ...current,
       address: location.label,
@@ -315,12 +318,18 @@ export function ManualAddPlaceForm({
     }
   }
 
-  async function submit() {
+  async function submit(allowUnverifiedLocation: boolean) {
     if (!draft.name.trim()) {
       toast.error("Ge stället ett namn");
       return;
     }
     if (!validateWebsite()) return;
+
+    if (!verifiedLocation && !allowUnverifiedLocation) {
+      setShowUnverifiedConfirmation(true);
+      return;
+    }
+    setShowUnverifiedConfirmation(false);
 
     // A provider read failure must never remove the safe manual escape hatch.
     if (isLive && activeGroupId && verifiedLocation && isSpecificPlaceName(draft.name)) {
@@ -452,6 +461,7 @@ export function ManualAddPlaceForm({
             onChange={changeLocationText}
             onSelect={selectLocation}
             onClearVerified={() => {
+              setShowUnverifiedConfirmation(false);
               setVerifiedLocation(null);
               setDraft((current) => ({ ...current, city: "", area: "" }));
             }}
@@ -471,7 +481,7 @@ export function ManualAddPlaceForm({
                 ? ["Verifierad plats", verifiedLocation.area, verifiedLocation.city]
                     .filter(Boolean)
                     .join(" · ")
-                : "Välj gärna en träff i listan. Då kan Matrundan säkrare undvika dubbletter och förbättra platsinformationen senare."}
+                : "Välj en träff i listan för att bekräfta platsen. Hittar du ingen kan du fortsätta utan verifierad plats."}
             </p>
           </div>
         </div>
@@ -632,15 +642,55 @@ export function ManualAddPlaceForm({
         </Collapsible>
       </div>
 
-      <DialogFooter className="gap-2">
-        <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
-          Avbryt
-        </Button>
-        <Button className="min-h-11" disabled={isBusy || candidateLoading} onClick={submit}>
-          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Lägg till i gruppen
-        </Button>
-      </DialogFooter>
+      {showUnverifiedConfirmation ? (
+        <div
+          data-testid="unverified-location-confirmation"
+          role="status"
+          className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3"
+        >
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Platsen är inte verifierad</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Du kan använda stället i den här gruppen ändå. Det syns inte på kartan eller när
+              andra grupper söker efter stället förrän platsen verifierats.
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11"
+              disabled={isBusy}
+              onClick={() => setShowUnverifiedConfirmation(false)}
+            >
+              Fortsätt välja plats
+            </Button>
+            <Button
+              type="button"
+              className="min-h-11"
+              disabled={isBusy || candidateLoading}
+              onClick={() => void submit(true)}
+            >
+              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Lägg till utan verifierad plats
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
+            Avbryt
+          </Button>
+          <Button
+            className="min-h-11"
+            disabled={isBusy || candidateLoading}
+            onClick={() => void submit(false)}
+          >
+            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Lägg till i gruppen
+          </Button>
+        </DialogFooter>
+      )}
     </>
   );
 }
