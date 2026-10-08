@@ -146,6 +146,27 @@ Här hör bland annat hemma:
 - gruppens Topplista;
 - platsdetalj och gruppspecifika uppgifter om stället.
 
+Vid en konkret sökning söker Matrundan samtidigt i kartan och bland relevanta
+Matrundan-ställen. Befintliga ställen visas under **Finns i Matrundan** med neutral
+platsidentitet. Ett tidigare besök krävs inte. När kartträffen säkert motsvarar
+ett befintligt ställe presenteras en rad; osäkra träffar hålls isär.
+
+Användaren väljer ett verkligt matställe. Jämförelsen **Är det samma ställe?** visas
+först vid osäkerhet. Vanliga medlemmar kan återanvända stället utan att ändra dess
+kartkoppling. Ägare/admin kan samtidigt bekräfta kartträffen om servern verifierar
+en enda stark kandidat utan konkurrent. Plats-ID och historik bevaras; andra
+gruppers privata uppgifter följer inte med.
+
+Ett specifikt exakt eller nära exakt namn kan hitta ett befintligt ställe inom
+50 km från ett punktval även när den valda radien är snävare. Adress och ort visas
+alltid. Generiska sökningar respekterar valda områden och tom sökning öppnar ingen
+global katalog. En verifierad adress i manuell fallback får en sista kartkontroll
+nära den valda positionen. Kartfel eller utebliven träff blockerar inte fallbacken.
+
+På kartan väljer ett punkttryck stället och visar dess bottenkort. Tillägg eller
+granskning öppnas först genom kortets uttryckliga knapp. Ingen punkt är vald innan
+användaren väljer den.
+
 Topplistan är ett stöd för återupptäckt och val utifrån gruppens faktiska
 erfarenheter, inte ett offentligt eller globalt Matrundan-betyg.
 

@@ -1,3 +1,6 @@
+import { findNearbyPlacesForManualFallback } from "@/lib/matrundan/geoapify.functions";
+import { isSpecificPlaceName } from "@/lib/matrundan/place-discovery";
+import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import * as React from "react";
 import { CheckCircle2, ChevronDown, Loader2, MapPin, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
@@ -42,13 +45,30 @@ import { CATEGORY_LABEL, type Place, type PlaceCategory } from "@/lib/matrundan/
 
 type ManualAddInput = Omit<Place, "id" | "addedAt"> & ManualPlaceMutationHints;
 
-export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
+export interface ManualAddPlaceSnapshot {
+  draft: ManualPlaceDraft;
+  website: string;
+  verifiedLocation: VerifiedLocationSelection | null;
+}
+export function ManualAddPlaceForm({
+  onClose,
+  onProviderFound,
+  snapshot,
+  onSnapshotChange,
+}: {
+  onClose: () => void;
+  onProviderFound: (place: PlaceSuggestion) => void;
+  snapshot: ManualAddPlaceSnapshot | null;
+  onSnapshotChange: (snapshot: ManualAddPlaceSnapshot) => void;
+}) {
   const { state, addPlace, submitting } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
-  const [draft, setDraft] = React.useState<ManualPlaceDraft>(() => emptyManualPlace(""));
-  const [website, setWebsite] = React.useState("");
+  const [draft, setDraft] = React.useState<ManualPlaceDraft>(
+    () => snapshot?.draft ?? emptyManualPlace(""),
+  );
+  const [website, setWebsite] = React.useState(snapshot?.website ?? "");
   const [verifiedLocation, setVerifiedLocation] = React.useState<VerifiedLocationSelection | null>(
-    null,
+    snapshot?.verifiedLocation ?? null,
   );
   const [candidates, setCandidates] = React.useState<ReusableManualPlaceCandidate[]>([]);
   const [declinedCandidateIds, setDeclinedCandidateIds] = React.useState<string[]>([]);
@@ -56,6 +76,12 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
   const [candidateError, setCandidateError] = React.useState<string | null>(null);
   const [moreOpen, setMoreOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
+  const [externalCandidates, setExternalCandidates] = React.useState<PlaceSuggestion[]>([]);
+  const [declinedExternalIds, setDeclinedExternalIds] = React.useState<string[]>([]);
+  const [showUnverifiedConfirmation, setShowUnverifiedConfirmation] = React.useState(false);
+  React.useEffect(() => {
+    onSnapshotChange({ draft, website, verifiedLocation });
+  }, [draft, website, verifiedLocation, onSnapshotChange]);
   const candidateRequestRef = React.useRef(0);
   const isBusy = busy || submitting;
   const isLive = mode === "live";
@@ -77,6 +103,11 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
       lng: verifiedLocation.lng,
     };
   }, [draft.address, draft.category, draft.city, draft.name, verifiedLocation]);
+
+  React.useEffect(() => {
+    setExternalCandidates([]);
+    setDeclinedExternalIds([]);
+  }, [candidateQuery]);
 
   const loadCandidates = React.useCallback(async () => {
     const query = candidateQuery;
@@ -101,6 +132,7 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
         : listLocalReusableManualPlaceCandidates(state.places, query);
       if (candidateRequestRef.current !== requestId) return rows;
       setCandidates(rows);
+      setDeclinedCandidateIds([]);
       return rows;
     } catch (error) {
       if (candidateRequestRef.current !== requestId) return [];
@@ -125,10 +157,14 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
     const timer = window.setTimeout(() => {
       void loadCandidates();
     }, 250);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      candidateRequestRef.current++;
+    };
   }, [candidateQuery, loadCandidates]);
 
   function changeLocationText(value: string) {
+    setShowUnverifiedConfirmation(false);
     setDraft((current) => ({
       ...current,
       address: value,
@@ -139,6 +175,7 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
   }
 
   function selectLocation(location: VerifiedLocationSelection) {
+    setShowUnverifiedConfirmation(false);
     setDraft((current) => ({
       ...current,
       address: location.label,
@@ -281,12 +318,41 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
     }
   }
 
-  async function submit() {
+  async function submit(allowUnverifiedLocation: boolean) {
     if (!draft.name.trim()) {
       toast.error("Ge stället ett namn");
       return;
     }
     if (!validateWebsite()) return;
+
+    if (!verifiedLocation && !allowUnverifiedLocation) {
+      setShowUnverifiedConfirmation(true);
+      return;
+    }
+    setShowUnverifiedConfirmation(false);
+
+    // A provider read failure must never remove the safe manual escape hatch.
+    if (isLive && activeGroupId && verifiedLocation && isSpecificPlaceName(draft.name)) {
+      setBusy(true);
+      try {
+        const found = await findNearbyPlacesForManualFallback({
+          data: {
+            groupId: activeGroupId,
+            name: draft.name.trim(),
+            address: draft.address,
+            city: draft.city,
+            lat: verifiedLocation.lat,
+            lng: verifiedLocation.lng,
+          },
+        });
+        setExternalCandidates(found);
+        if (found.some((place) => !declinedExternalIds.includes(place.externalId))) return;
+      } catch {
+        /* Existing identity/race guard still runs for the manual write. */
+      } finally {
+        setBusy(false);
+      }
+    }
 
     const unresolvedCandidates = candidates.filter(
       (candidate) => !declinedCandidateIds.includes(candidate.placeId),
@@ -301,6 +367,9 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
       const input: ManualAddInput = {
         ...baseAddInput(),
         declinedReusablePlaceIds: declinedCandidateIds,
+        declinedReusableSnapshots: candidates
+          .filter((c) => declinedCandidateIds.includes(c.placeId) && c.version)
+          .map((c) => ({ placeId: c.placeId, version: c.version! })),
       };
       const added = await addPlace(input);
       const websiteSaved = await saveOptionalWebsite(added.id);
@@ -392,6 +461,7 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
             onChange={changeLocationText}
             onSelect={selectLocation}
             onClearVerified={() => {
+              setShowUnverifiedConfirmation(false);
               setVerifiedLocation(null);
               setDraft((current) => ({ ...current, city: "", area: "" }));
             }}
@@ -411,11 +481,37 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
                 ? ["Verifierad plats", verifiedLocation.area, verifiedLocation.city]
                     .filter(Boolean)
                     .join(" · ")
-                : "Välj gärna en träff i listan. Då kan Matrundan säkrare undvika dubbletter och förbättra platsinformationen senare."}
+                : "Välj en träff i listan för att bekräfta platsen. Hittar du ingen kan du fortsätta utan verifierad plats."}
             </p>
           </div>
         </div>
 
+        {externalCandidates
+          .filter((place) => !declinedExternalIds.includes(place.externalId))
+          .map((place) => (
+            <div key={place.externalId} className="space-y-2 rounded-xl border bg-secondary/30 p-3">
+              <p className="text-xs text-muted-foreground">Hittat nära adressen i kartan</p>
+              <p className="break-words font-medium">{place.name}</p>
+              <p className="break-words text-sm text-muted-foreground">
+                {[place.address, place.city].filter(Boolean).join(" · ")}
+              </p>
+              <Button
+                className="min-h-11 w-full"
+                disabled={isBusy}
+                onClick={() => onProviderFound(place)}
+              >
+                Använd det här stället
+              </Button>
+              <Button
+                variant="ghost"
+                className="min-h-11 w-full"
+                disabled={isBusy}
+                onClick={() => setDeclinedExternalIds((ids) => [...ids, place.externalId])}
+              >
+                Det är ett annat ställe
+              </Button>
+            </div>
+          ))}
         {candidateLoading ? (
           <div
             className="flex items-center gap-2 rounded-xl border border-border/70 bg-muted/20 p-3 text-sm text-muted-foreground"
@@ -546,15 +642,55 @@ export function ManualAddPlaceForm({ onClose }: { onClose: () => void }) {
         </Collapsible>
       </div>
 
-      <DialogFooter className="gap-2">
-        <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
-          Avbryt
-        </Button>
-        <Button className="min-h-11" disabled={isBusy || candidateLoading} onClick={submit}>
-          {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          Lägg till i gruppen
-        </Button>
-      </DialogFooter>
+      {showUnverifiedConfirmation ? (
+        <div
+          data-testid="unverified-location-confirmation"
+          role="status"
+          className="space-y-3 rounded-xl border border-border/70 bg-muted/20 p-3"
+        >
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Platsen är inte verifierad</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Du kan använda stället i den här gruppen ändå. Det syns inte på kartan eller när andra
+              grupper söker efter stället förrän platsen verifierats.
+            </p>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              className="min-h-11"
+              disabled={isBusy}
+              onClick={() => setShowUnverifiedConfirmation(false)}
+            >
+              Tillbaka och välj plats
+            </Button>
+            <Button
+              type="button"
+              className="min-h-11"
+              disabled={isBusy || candidateLoading}
+              onClick={() => void submit(true)}
+            >
+              {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Lägg till utan verifierad plats
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={onClose}>
+            Avbryt
+          </Button>
+          <Button
+            className="min-h-11"
+            disabled={isBusy || candidateLoading}
+            onClick={() => void submit(false)}
+          >
+            {isBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+            Lägg till i gruppen
+          </Button>
+        </DialogFooter>
+      )}
     </>
   );
 }

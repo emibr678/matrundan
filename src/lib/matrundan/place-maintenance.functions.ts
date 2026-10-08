@@ -182,27 +182,13 @@ export const linkPlaceMaintenanceProviderMatch = createServerFn({ method: "POST"
       throw new Error("Kartträffen kunde inte verifieras längre. Kontrollera igen.");
     }
 
-    let raw: Record<string, unknown> = {};
-    try {
-      const parsed = JSON.parse(match.raw) as unknown;
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        raw = parsed as Record<string, unknown>;
-      }
-    } catch {
-      raw = {};
-    }
-
-    const linked = await rpc("link_provider_source_for_maintenance_work_item_v1", {
-      _kind: data.kind,
-      _work_item_id: candidate.candidateId,
-      _provider: match.provider,
-      _provider_place_id: match.externalId,
-      _name: match.name,
-      _address: match.address,
-      _city: match.city,
-      _lat: match.lat,
-      _lng: match.lng,
-      _raw: raw,
+    const { fetchVerifiedProviderPlace } = await import("./verified-provider-place.server");
+    const verified = await fetchVerifiedProviderPlace(data.providerPlaceId, true);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const linked = await supabaseAdmin.rpc("link_verified_maintenance_source_v1", {
+      _actor_id: context.userId,
+      _candidate_id: candidate.candidateId,
+      _data: { ...verified },
     });
     if (linked.error) throw rpcError(linked.error, "Kunde inte länka den externa källan.");
     return { placeId: z.string().uuid().parse(linked.data) };

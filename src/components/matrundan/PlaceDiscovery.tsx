@@ -1,7 +1,16 @@
 import * as React from "react";
-import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
+import {
+  canBulkAddSuggestion,
+  needsPlaceComparison,
+  presentPlaceSearchResults,
+  unambiguousPlaceCandidate,
+} from "@/lib/matrundan/place-discovery";
+import { Check, ChevronRight, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { MatrundanBrand } from "./MatrundanBrand";
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControls } from "./SearchAreaControls";
 import { SearchResultSections, type SourceMatchResult } from "./SearchResultSections";
@@ -12,11 +21,10 @@ import {
   configuredSearchAreas,
   matchingPlace,
   providerMessage,
-  toPlaceSuggestion,
 } from "@/lib/matrundan/add-place-utils";
 import {
   geoapifyLoadSearchAreaBoundaries,
-  geoapifySearchPlacesMulti,
+  searchPlaceDiscovery,
 } from "@/lib/matrundan/geoapify.functions";
 import {
   hiddenPlaceRecordKey,
@@ -43,6 +51,7 @@ import {
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
   mergeAreaSearchResults,
@@ -84,6 +93,7 @@ export interface PlaceDiscoverySnapshot {
 
 export function PlaceDiscovery({
   initialQuery = "",
+  resolutions = {},
   addedResultIds,
   selectedResults,
   bulkBusy,
@@ -98,6 +108,7 @@ export function PlaceDiscovery({
   onClose,
 }: {
   initialQuery?: string;
+  resolutions?: Record<string, PlaceResolution>;
   addedResultIds: Set<string>;
   selectedResults: PlaceSuggestion[];
   bulkBusy: boolean;
@@ -111,6 +122,7 @@ export function PlaceDiscovery({
   onMissingPlace: () => void;
   onClose: () => void;
 }) {
+  const navigate = useNavigate();
   const { state, submitting } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
   const isLive = mode === "live";
@@ -160,7 +172,6 @@ export function PlaceDiscovery({
   const requestRef = React.useRef(0);
   const skipInitialSearchRef = React.useRef(Boolean(snapshot));
   const previousBulkBusyRef = React.useRef(false);
-  const lastMapToggleRef = React.useRef<{ id: string; at: number } | null>(null);
   const interactionsDisabled = submitting || bulkBusy;
 
   React.useEffect(() => {
@@ -321,10 +332,18 @@ export function PlaceDiscovery({
       if (addedResultIds.has(suggestion.externalId)) return false;
       if (state.places.some((place) => hasActiveProviderSource(place, suggestion))) return false;
       if (hasLocalManualSourceLink(localSourceLinks, suggestion)) return false;
+      if (isLive) {
+        const canonical =
+          suggestion.canonical ??
+          suggestion.identity?.knownPlace ??
+          unambiguousPlaceCandidate(suggestion);
+        const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
+        return (own?.collectionStatus ?? canonical?.groupStatus) !== "active";
+      }
       const match = matchingPlace(state.places, suggestion);
       return !(match && match.collectionStatus !== "archived");
     },
-    [addedResultIds, hiddenKeys, localSourceLinks, state.places],
+    [addedResultIds, hiddenKeys, isLive, localSourceLinks, state.places],
   );
   const isActionableRef = React.useRef(isActionableSuggestion);
   React.useEffect(() => {
@@ -345,13 +364,15 @@ export function PlaceDiscovery({
     }) => {
       let collected = seed;
       const failedAreaLabels = new Set<string>();
+      let canonicalIncomplete = false;
       let offset = startOffset;
       let moreAvailable = false;
       let pages = 0;
 
       while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
-        const response = await geoapifySearchPlacesMulti({
+        const response = await searchPlaceDiscovery({
           data: {
+            groupId: groupId!,
             text: query.trim() || undefined,
             centers: activeAreas.map((area) => ({
               id: area.id,
@@ -368,7 +389,8 @@ export function PlaceDiscovery({
         });
         if (isStale()) return null;
         pages += 1;
-        collected = mergePlaceSearchPages(collected, response.results.map(toPlaceSuggestion));
+        canonicalIncomplete ||= response.canonicalIncomplete;
+        collected = mergePlaceSearchPages(collected, response.results);
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
@@ -379,12 +401,17 @@ export function PlaceDiscovery({
 
       return {
         results: collected,
-        failedAreaLabels: [...failedAreaLabels],
+        failedAreaLabels: [
+          ...failedAreaLabels,
+          ...(canonicalIncomplete
+            ? ["alla Matrundan-ställen (sök mer precist eller försök igen)"]
+            : []),
+        ],
         hasMore: moreAvailable,
         nextOffset: offset,
       };
     },
-    [activeAreas, query, radiusKm],
+    [activeAreas, groupId, query, radiusKm],
   );
 
   React.useEffect(() => {
@@ -465,7 +492,10 @@ export function PlaceDiscovery({
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
         setNextOffset(followingOffset);
-        setSelectedId(nextResults[0]?.externalId ?? null);
+        // Keep an explicit point/autocomplete choice if the refreshed result still exists.
+        setSelectedId((current) =>
+          nextResults.some((result) => result.externalId === current) ? current : null,
+        );
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
@@ -476,12 +506,37 @@ export function PlaceDiscovery({
         if (requestId === requestRef.current) setLoading(false);
       }
     }, 300);
-    return () => window.clearTimeout(timer);
+    return () => {
+      window.clearTimeout(timer);
+      requestRef.current++;
+    };
   }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
-    () => results.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
-    [hiddenKeys, results],
+    () =>
+      presentPlaceSearchResults(
+        results
+          .map((result) => {
+            const resolution = resolutions[result.externalId];
+            return resolution
+              ? {
+                  ...result,
+                  ...resolution.provider,
+                  identity: {
+                    providerPlaceId: result.externalId,
+                    providerVersion:
+                      resolution.providerVersion ?? result.identity?.providerVersion ?? "",
+                    knownPlace: result.identity?.knownPlace ?? null,
+                    candidates: resolution.candidates ?? [],
+                    reviewRequired: resolution.status === "review_required",
+                    identityConflict: resolution.status === "identity_conflict",
+                  },
+                }
+              : result;
+          })
+          .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
+      ),
+    [hiddenKeys, resolutions, results],
   );
   const visibleResults = React.useMemo(
     () =>
@@ -545,7 +600,7 @@ export function PlaceDiscovery({
   ]);
 
   const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
-    if (!canLinkSources) return [];
+    if (!canLinkSources || isLive) return [];
     return visibleResults.flatMap((result) => {
       if (
         addedResultIds.has(result.externalId) ||
@@ -556,7 +611,7 @@ export function PlaceDiscovery({
       const match = findManualSourceLinkCandidate(state.places, result);
       return match ? [{ result, place: match.place, reason: match.reason }] : [];
     });
-  }, [addedResultIds, canLinkSources, localSourceLinks, state.places, visibleResults]);
+  }, [addedResultIds, canLinkSources, isLive, localSourceLinks, state.places, visibleResults]);
   const sourceMatchIds = React.useMemo(
     () => new Set(sourceMatches.map((match) => match.result.externalId)),
     [sourceMatches],
@@ -571,10 +626,20 @@ export function PlaceDiscovery({
       )
         return "existing";
       if (sourceMatchIds.has(suggestion.externalId)) return "linkable";
+      if (isLive) {
+        const canonical =
+          suggestion.canonical ??
+          suggestion.identity?.knownPlace ??
+          unambiguousPlaceCandidate(suggestion);
+        const own = canonical ? state.places.find((p) => p.id === canonical.placeId) : undefined;
+        return (own?.collectionStatus ?? canonical?.groupStatus) === "active"
+          ? "existing"
+          : "available";
+      }
       const match = matchingPlace(state.places, suggestion);
       return match && match.collectionStatus !== "archived" ? "existing" : "available";
     },
-    [addedResultIds, localSourceLinks, sourceMatchIds, state.places],
+    [addedResultIds, isLive, localSourceLinks, sourceMatchIds, state.places],
   );
   const availableResults = React.useMemo(
     () => visibleResults.filter((result) => statusForResult(result) === "available"),
@@ -589,7 +654,7 @@ export function PlaceDiscovery({
     const primaryResults = [...sourceMatches.map((match) => match.result), ...availableResults];
     const visible = existingOpen ? [...primaryResults, ...existingResults] : primaryResults;
     if (!visible.some((result) => result.externalId === selectedId)) {
-      setSelectedId(visible[0]?.externalId ?? null);
+      setSelectedId(null);
     }
   }, [availableResults, existingOpen, existingResults, selectedId, sourceMatches]);
 
@@ -605,20 +670,10 @@ export function PlaceDiscovery({
 
   function handleMapSelect(id: string) {
     setSelectedId(id);
-    const result = availableResults.find((candidate) => candidate.externalId === id);
-    if (!result || interactionsDisabled) return;
-    if (bulkMode) {
-      const now = performance.now();
-      const previous = lastMapToggleRef.current;
-      if (previous?.id === id && now - previous.at < 150) return;
-      lastMapToggleRef.current = { id, at: now };
-      onToggleSelected(result);
-    } else {
-      onBeginAdd(result);
-    }
   }
 
-  const mapResults = existingOpen ? [...availableResults, ...existingResults] : availableResults;
+  const mapAvailable = [...sourceMatches.map((match) => match.result), ...availableResults];
+  const mapResults = existingOpen ? [...mapAvailable, ...existingResults] : mapAvailable;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => {
     const nearestArea = activeAreas.find(
       (area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel,
@@ -638,7 +693,16 @@ export function PlaceDiscovery({
       lat: result.lat,
       lng: result.lng,
       category: result.category,
-      actionable: statusForResult(result) === "available",
+      actionable: true,
+      bulkSelectable: statusForResult(result) === "available" && canBulkAddSuggestion(result),
+      actionLabel:
+        statusForResult(result) === "existing"
+          ? "Öppna stället"
+          : statusForResult(result) === "linkable" || needsPlaceComparison(result)
+            ? "Granska matchning"
+            : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
+              ? "Återställ"
+              : "Lägg till",
       bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
       eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}`,
       description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
@@ -681,6 +745,21 @@ export function PlaceDiscovery({
       radiusKm={radiusKm}
       selectedId={selectedId}
       onSelect={handleMapSelect}
+      onAction={(item) => {
+        const result = mapResults.find((candidate) => candidate.externalId === item.id);
+        if (!result) return;
+        const sourceMatch = sourceMatches.find((match) => match.result.externalId === item.id);
+        if (sourceMatch) {
+          onLinkSource(sourceMatch);
+          return;
+        }
+        if (statusForResult(result) === "existing") {
+          const placeId =
+            (result.canonical ?? result.identity?.knownPlace ?? unambiguousPlaceCandidate(result))
+              ?.placeId ?? matchingPlace(state.places, result)?.id;
+          if (placeId) void navigate({ to: "/matstallen/$placeId", params: { placeId } });
+        } else onBeginAdd(result);
+      }}
       onToggleBulkSelection={
         bulkMode
           ? (item) => {
@@ -695,9 +774,16 @@ export function PlaceDiscovery({
   );
   const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
   const placeAutocompleteSuggestions = React.useMemo(
-    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 5)),
-    [query, visibleResults],
+    () =>
+      query.trim().length < 2
+        ? []
+        : visibleResults.filter((result) => statusForResult(result) !== "existing").slice(0, 5),
+    [query, statusForResult, visibleResults],
   );
+  const suppressEmptyAutocomplete =
+    query.trim().length >= 2 &&
+    placeAutocompleteSuggestions.length === 0 &&
+    existingResults.length > 0;
 
   return (
     <div className="space-y-4">
@@ -721,6 +807,7 @@ export function PlaceDiscovery({
         loading={loading}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
+        suppressEmptyState={suppressEmptyAutocomplete}
         onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
         onMissingPlace={onMissingPlace}
       />
@@ -780,48 +867,57 @@ export function PlaceDiscovery({
             </div>
           ) : (
             <>
-              <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
-              <div className="lg:hidden">
-                <ResultToggle value={resultView} onChange={setResultView} />
-                <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
-                  <span className="text-xs text-muted-foreground">
-                    Visar {actionableResultCount}{" "}
-                    {actionableResultCount === 1 ? "träff" : "träffar"}
-                  </span>
-                  {availableResults.length > 0 ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-11 shrink-0"
-                      disabled={interactionsDisabled}
-                      onClick={toggleBulkMode}
-                    >
-                      {bulkMode ? "Avbryt" : "Välj flera"}
-                    </Button>
-                  ) : null}
-                </div>
-                <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
-              </div>
-              <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
-                <h3 className="text-sm font-medium">Ställen att lägga till</h3>
-                {availableResults.length > 0 ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="min-h-11 shrink-0"
-                    disabled={interactionsDisabled}
-                    onClick={toggleBulkMode}
-                  >
-                    {bulkMode ? "Avbryt" : "Välj flera"}
-                  </Button>
-                ) : null}
-              </div>
-              <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
-                {map}
-              </div>
+              {actionableResultCount > 0 ? (
+                <>
+                  <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
+                  <div className="lg:hidden">
+                    <ResultToggle value={resultView} onChange={setResultView} />
+                    <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+                      <span className="text-xs text-muted-foreground">
+                        Visar {actionableResultCount}{" "}
+                        {actionableResultCount === 1 ? "träff" : "träffar"}
+                      </span>
+                      {availableResults.length > 0 ? (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-11 shrink-0"
+                          disabled={interactionsDisabled}
+                          onClick={toggleBulkMode}
+                        >
+                          {bulkMode ? "Avbryt" : "Välj flera"}
+                        </Button>
+                      ) : null}
+                    </div>
+                    <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+                  </div>
+                  <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
+                    <h3 className="text-sm font-medium">Ställen att lägga till</h3>
+                    {availableResults.length > 0 ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="min-h-11 shrink-0"
+                        disabled={interactionsDisabled}
+                        onClick={toggleBulkMode}
+                      >
+                        {bulkMode ? "Avbryt" : "Välj flera"}
+                      </Button>
+                    ) : null}
+                  </div>
+                  <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                    <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
+                    {map}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="lg:hidden">{resultSections}</div>
+                  <div className="hidden lg:block">{resultSections}</div>
+                </>
+              )}
               {canShowMore ? (
                 <div className="flex justify-center">
                   <Button
@@ -959,13 +1055,10 @@ type PlaceSearchOption =
   | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
 
 function placeOptionMeta(suggestion: PlaceSuggestion): string {
-  const location =
-    suggestion.address?.trim() ||
-    [suggestion.area, suggestion.city].filter(Boolean).join(" · ") ||
-    suggestion.city ||
-    "";
-  const city = suggestion.address?.trim() && suggestion.city ? suggestion.city : "";
-  return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
+  const location = suggestion.address?.trim()
+    ? formatPlaceAddressWithCity(suggestion.address, suggestion.city)
+    : [suggestion.area, suggestion.city].filter(Boolean).join(" · ");
+  return [CATEGORY_LABEL[suggestion.category], location].filter(Boolean).join(" · ");
 }
 
 function PlaceSearchCombobox({
@@ -974,6 +1067,7 @@ function PlaceSearchCombobox({
   loading,
   genericSuggestions,
   placeSuggestions,
+  suppressEmptyState = false,
   onSelectPlace,
   onMissingPlace,
 }: {
@@ -982,6 +1076,7 @@ function PlaceSearchCombobox({
   loading: boolean;
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
+  suppressEmptyState?: boolean;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
   onMissingPlace: () => void;
 }) {
@@ -1001,9 +1096,16 @@ function PlaceSearchCombobox({
     meta: placeOptionMeta(suggestion),
     suggestion,
   }));
-  const options = [...genericOptions, ...placeOptions];
+  const isInternalOption = (option: PlaceSearchOption) =>
+    option.kind === "place" &&
+    (option.suggestion.kind === "canonical" ||
+      !!unambiguousPlaceCandidate(option.suggestion) ||
+      !!option.suggestion.identity?.knownPlace);
+  const internalOptions = placeOptions.filter(isInternalOption);
+  const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
+  const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList = open && hasQuery;
+  const showList = open && hasQuery && (options.length > 0 || !suppressEmptyState);
 
   React.useEffect(() => {
     setActiveIx(-1);
@@ -1060,7 +1162,8 @@ function PlaceSearchCombobox({
         aria-label={label}
         className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
       >
-        <p className="px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          {label === "Finns i Matrundan" ? <MatrundanBrand variant="mark" size="xs" /> : null}
           {label}
         </p>
         {groupOptions.map((option, index) => {
@@ -1075,7 +1178,7 @@ function PlaceSearchCombobox({
               <button
                 type="button"
                 className={[
-                  "w-full min-w-0 rounded px-2 py-2 text-left hover:bg-accent",
+                  "flex w-full min-w-0 items-center gap-2 rounded px-2 py-2 text-left hover:bg-accent",
                   optionIndex === activeIx ? "bg-accent" : "",
                 ].join(" ")}
                 onMouseDown={(event) => {
@@ -1083,13 +1186,21 @@ function PlaceSearchCombobox({
                   select(option);
                 }}
               >
-                <span className="block min-w-0 break-words font-medium text-foreground">
-                  {option.label}
-                </span>
-                {option.meta ? (
-                  <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
-                    {option.meta}
+                <span className="min-w-0 flex-1">
+                  <span className="block min-w-0 break-words font-medium text-foreground">
+                    {option.label}
                   </span>
+                  {option.meta ? (
+                    <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
+                      {option.meta}
+                    </span>
+                  ) : null}
+                </span>
+                {option.kind === "place" ? (
+                  <ChevronRight
+                    className="h-4 w-4 shrink-0 text-muted-foreground"
+                    aria-hidden="true"
+                  />
                 ) : null}
               </button>
             </div>
@@ -1137,20 +1248,29 @@ function PlaceSearchCombobox({
             ) : (
               <>
                 {renderGroup("Kök och typer", genericOptions, 0)}
-                {renderGroup("Matställen", placeOptions, genericOptions.length)}
+                {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
+                {renderGroup(
+                  "Hittat i kartan",
+                  externalOptions,
+                  genericOptions.length + internalOptions.length,
+                )}
                 {loading ? (
                   <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
                 ) : null}
               </>
             )}
-            <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
-              <p className="px-2 pt-1 text-xs text-muted-foreground">Hittar du inte rätt ställe?</p>
-              <MissingPlaceButton
-                className="mt-1 w-full justify-start"
-                disabled={loading}
-                onActivate={activateMissingPlace}
-              />
-            </div>
+            {options.length === 0 && !loading ? (
+              <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
+                <p className="px-2 pt-1 text-xs text-muted-foreground">
+                  Hittar du inte rätt ställe?
+                </p>
+                <MissingPlaceButton
+                  className="mt-1 w-full justify-start"
+                  disabled={loading}
+                  onActivate={activateMissingPlace}
+                />
+              </div>
+            ) : null}
           </div>
         ) : null}
       </div>

@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  placeAddressRelation,
+  normalizePlaceIdentity,
+  type CandidateDecision,
+} from "./place-discovery";
 import { rpcClient } from "./rpc-client";
 import type { Occasion, Place, PlaceCategory } from "./types";
 
@@ -8,6 +13,7 @@ export type ReusablePlaceGroupStatus = "active" | "archived" | "not_linked";
 
 export interface ReusableManualPlaceCandidate {
   placeId: string;
+  version?: string;
   name: string;
   category: PlaceCategory;
   address: string;
@@ -48,12 +54,14 @@ export interface CreateManualFallbackInput {
   notes?: string;
   photo?: string;
   declinedPlaceIds?: string[];
+  decisions?: CandidateDecision[];
 }
 
 const placeCategorySchema = z.enum(["restaurang", "café", "bageri", "snabbmat", "pub", "matvagn"]);
 
 const candidateSchema = z.object({
   placeId: z.string().uuid(),
+  version: z.string().optional(),
   name: z.string(),
   category: placeCategorySchema,
   address: z.string(),
@@ -81,7 +89,7 @@ export async function listReusableManualPlaceCandidates(
   input: ReusableManualPlaceQuery,
 ): Promise<ReusableManualPlaceCandidate[]> {
   return rpcClient.call(
-    "find_reusable_manual_place_candidates_v1",
+    "find_reusable_manual_place_candidates_v2",
     {
       _group_id: groupId,
       _name: input.name,
@@ -123,22 +131,8 @@ export async function createManualPlaceFromFallback(
   input: CreateManualFallbackInput,
 ): Promise<{ placeId: string; improvementCandidate: boolean }> {
   return rpcClient.call(
-    "create_manual_place_fallback_v1",
-    {
-      _group_id: groupId,
-      _name: input.name,
-      _category: input.category,
-      _cuisines: input.cuisines,
-      _occasions: input.occasions,
-      _address: input.address,
-      _area: input.area ?? null,
-      _city: input.city,
-      _lat: input.lat ?? null,
-      _lng: input.lng ?? null,
-      _notes: input.notes ?? null,
-      _photo_url: input.photo ?? null,
-      _declined_place_ids: input.declinedPlaceIds ?? [],
-    },
+    "create_manual_place_fallback_v2",
+    { _group_id: groupId, _data: { ...input }, _decisions: input.decisions ?? [] },
     fallbackResultSchema,
     "Servern kunde inte bekräfta det nya matstället.",
   );
@@ -148,16 +142,7 @@ export function isReusablePlaceRace(error: unknown): boolean {
   return error instanceof Error && /REUSABLE_PLACE_FOUND/i.test(error.message);
 }
 
-function normalize(value: string | undefined): string {
-  return (value ?? "")
-    .trim()
-    .toLocaleLowerCase("sv-SE")
-    .replace(/&/g, " och ")
-    .replace(/[^a-z0-9åäö]+/gi, " ")
-    .replace(/\boch\b/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+const normalize = (value: string | undefined) => normalizePlaceIdentity(value ?? "");
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const radians = (degrees: number) => (degrees * Math.PI) / 180;
@@ -194,6 +179,8 @@ export function listLocalReusableManualPlaceCandidates(
       const candidateAddress = normalize(place.address);
       const candidateCity = normalize(place.city);
       const sameName = candidateName === requestedName;
+      const addressRelation = placeAddressRelation(place.address, input.address);
+
       const sameAddress =
         Boolean(requestedAddress && candidateAddress) &&
         candidateAddress === requestedAddress &&
@@ -204,9 +191,7 @@ export function listLocalReusableManualPlaceCandidates(
         (sameName ||
           candidateName.startsWith(`${requestedName} `) ||
           requestedName.startsWith(`${candidateName} `));
-      const matches =
-        (sameName && (sameAddress || distance <= 0.1)) ||
-        (relatedName && distance <= 0.1 && (sameAddress || distance <= 0.05));
+      const matches = sameName || (relatedName && distance <= 0.1);
       if (!matches) return [];
 
       return [
@@ -220,7 +205,13 @@ export function listLocalReusableManualPlaceCandidates(
           lat: place.lat!,
           lng: place.lng!,
           distanceKm: distance,
-          matchKind: sameName && (sameAddress || distance <= 0.05) ? "exact" : "similar",
+          matchKind:
+            addressRelation !== "conflict" &&
+            sameName &&
+            (!requestedCity || !candidateCity || candidateCity === requestedCity) &&
+            (sameAddress || distance <= 0.05)
+              ? "exact"
+              : "similar",
           groupStatus: place.collectionStatus === "archived" ? "archived" : "active",
         },
       ];

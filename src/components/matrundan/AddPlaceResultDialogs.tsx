@@ -1,6 +1,13 @@
+import { needsPlaceComparison, unambiguousPlaceCandidate } from "@/lib/matrundan/place-discovery";
 import * as React from "react";
+import {
+  PlaceResolutionError,
+  type IdentityCandidate,
+  type PlaceResolution,
+} from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Clock3, Globe2, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { MatrundanBrand } from "./MatrundanBrand";
 import { useVisitShareBatch } from "./useVisitShareBatch";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
@@ -10,6 +17,7 @@ import { PlaceIdentityMark } from "./PlaceIdentityMark";
 import { PlaceSuggestionReportDialog } from "./PlaceSuggestionReportDialog";
 import { PlaceSuggestionSignalPanel } from "./PlaceSuggestionSignalPanel";
 import { Button } from "@/components/ui/button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -33,6 +41,7 @@ import {
   reportableSuggestionFromPlaceSuggestion,
   type ReportablePlaceSuggestion,
 } from "@/lib/matrundan/place-data-reports";
+import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { googleMapsSearchUrl, normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
@@ -175,8 +184,14 @@ export function AddPlaceResultDialogs({
   const { state, addPlace, addProviderPlace, submitting } = useStore();
   const { mode, activeGroupId, activeGroupRole } = useSession();
   const isLive = mode === "live";
+  const scopeRef = React.useRef({ groupId: activeGroupId, mode });
+  scopeRef.current = { groupId: activeGroupId, mode };
   const canHideSuggestion =
     mode === "demo" || activeGroupRole === "owner" || activeGroupRole === "admin";
+  const [selectedCandidateId, setSelectedCandidateId] = React.useState<string | null>(null);
+  const [review, setReview] = React.useState<PlaceResolution | null>(null);
+  const [conflictMessage, setConflictMessage] = React.useState<string | null>(null);
+  const canConfirmIdentity = activeGroupRole === "owner" || activeGroupRole === "admin";
   const [cuisines, setCuisines] = React.useState<string[]>([]);
   const [occasions, setOccasions] = React.useState<Occasion[]>([]);
   const [notes, setNotes] = React.useState("");
@@ -198,9 +213,27 @@ export function AddPlaceResultDialogs({
   React.useEffect(() => {
     if (!pending) return;
     setCuisines(pending.cuisines ?? []);
+    setConflictMessage(
+      pending.identity?.identityConflict
+        ? "Kartkällorna pekar på olika ställen. Ingen ändring kan sparas här."
+        : null,
+    );
+    setReview(
+      needsPlaceComparison(pending)
+        ? {
+            status: "review_required",
+            candidates: pending.identity?.candidates ?? [],
+            providerVersion: pending.identity?.providerVersion,
+          }
+        : null,
+    );
     setOccasions([]);
     setNotes("");
+    setSelectedCandidateId(null);
   }, [pending]);
+  React.useEffect(() => {
+    setSelectedCandidateId(null);
+  }, [review]);
 
   function resetPending() {
     onPendingChange(null);
@@ -241,11 +274,21 @@ export function AddPlaceResultDialogs({
     }
   }
 
-  async function confirmAdd() {
+  async function confirmAdd(
+    choice: "auto" | "link" | "separate" = "auto",
+    target?: IdentityCandidate,
+    reuseOnly = false,
+  ) {
     if (!pending || isBusy) return;
+    const actionScope = scopeRef.current;
+    const stale = () =>
+      actionScope.groupId !== scopeRef.current.groupId ||
+      actionScope.mode !== scopeRef.current.mode;
     const externalId = pending.externalId;
     const shouldOfferSync =
-      isLive && !!activeGroupId && !!pending.provider && pending.provider !== "demo";
+      isLive &&
+      !!activeGroupId &&
+      (pending.kind === "canonical" || (!!pending.provider && pending.provider !== "demo"));
     setBusy(true);
     try {
       const place = {
@@ -263,14 +306,24 @@ export function AddPlaceResultDialogs({
         notes: notes.trim() || undefined,
       };
       const added =
-        isLive && pending.provider && pending.provider !== "demo"
+        isLive &&
+        (pending.kind === "canonical" || (pending.provider && pending.provider !== "demo"))
           ? await addProviderPlace({
-              provider: pending.provider,
+              provider: pending.provider ?? "canonical",
               providerPlaceId: pending.externalId,
               place,
               raw: safeParse(pending.raw),
+              canonicalPlaceId: reuseOnly ? target?.placeId : pending.canonical?.placeId,
+              choice,
+              identityPlaceId: target?.placeId,
+              decisions:
+                choice === "link" && target
+                  ? [{ placeId: target.placeId, version: target.version }]
+                  : review?.candidates?.map((c) => ({ placeId: c.placeId, version: c.version })),
+              providerVersion: review?.providerVersion ?? pending.identity?.providerVersion,
             })
           : await addPlace(place);
+      if (stale()) return;
       onAdded(externalId);
       resetPending();
       toast.success(`${added.name} tillagd i gruppen`);
@@ -278,6 +331,7 @@ export function AddPlaceResultDialogs({
       if (shouldOfferSync && activeGroupId) {
         try {
           const ownVisits = await listOwnVisitsForPlaceOnAdd(added.id, activeGroupId);
+          if (stale()) return;
           const shareableVisits = availableOwnVisits(ownVisits);
           if (shareableVisits.length > 0) {
             setSyncPlaceName(added.name);
@@ -298,6 +352,15 @@ export function AddPlaceResultDialogs({
         }
       }
     } catch (error) {
+      if (stale()) return;
+      if (error instanceof PlaceResolutionError) {
+        if (error.resolution.status === "review_required") {
+          setReview(error.resolution);
+          if (error.resolution.provider) setCuisines(error.resolution.provider.cuisines ?? []);
+          toast.info("Kontrollera de aktuella uppgifterna innan du bekräftar.");
+        } else setConflictMessage(error.message);
+        return;
+      }
       const message = error instanceof Error ? error.message : "Kunde inte lägga till stället.";
       if (/redan|already|duplicate|unique/i.test(message)) {
         onAdded(externalId);
@@ -348,6 +411,10 @@ export function AddPlaceResultDialogs({
     }
   }
 
+  const chosenCandidate = review?.candidates?.find(
+    (candidate) => candidate.placeId === selectedCandidateId,
+  );
+  const simpleCandidate = pending && !review ? unambiguousPlaceCandidate(pending) : null;
   const reportablePending: ReportablePlaceSuggestion | null = pending
     ? reportableSuggestionFromPlaceSuggestion(pending)
     : null;
@@ -363,65 +430,226 @@ export function AddPlaceResultDialogs({
         {pending && reportablePending ? (
           <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
+              <DialogTitle className="font-display text-2xl">
+                {review
+                  ? "Är det samma ställe?"
+                  : pending.canonical?.groupStatus === "archived"
+                    ? "Återställ i gruppen"
+                    : "Lägg till i gruppen"}
+              </DialogTitle>
               <DialogDescription className="sr-only">
                 Granska och lägg till {pending.name} i gruppen.
               </DialogDescription>
             </DialogHeader>
 
-            <PendingPlaceSummary
-              pending={pending}
-              cuisines={cuisines}
-              reportablePending={reportablePending}
-            />
-
-            <div className="space-y-5 border-t border-border/60 pt-5">
-              <FoodTagMultiSelect
-                id="pending-food-tags"
-                label="Kök och inriktning (valfritt)"
-                value={cuisines}
-                onChange={setCuisines}
-              />
-              <OccasionPicker
-                id="pending-occasions"
-                value={occasions}
-                onChange={setOccasions}
-                description="Valfritt – kan fyllas i efter ett besök."
-              />
-              <div className="space-y-1.5">
-                <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
-                <Textarea
-                  id="pending-notes"
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  rows={2}
-                />
+            {pending.kind === "canonical" || simpleCandidate ? (
+              <div className="space-y-1 rounded-xl border p-4">
+                <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <MatrundanBrand variant="mark" size="xs" />
+                  Finns i Matrundan
+                </p>
+                <h2 className="break-words font-display text-2xl">
+                  {simpleCandidate?.name ?? pending.name}
+                </h2>
+                <p className="break-words text-sm text-muted-foreground">
+                  {formatPlaceAddressWithCity(
+                    simpleCandidate?.address ?? pending.address,
+                    simpleCandidate?.city ?? pending.city,
+                  )}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Stället som redan finns används. Gruppens egna uppgifter läggs till separat.
+                </p>
               </div>
-            </div>
-
-            <PendingPlaceSignalStatus
-              reportablePending={reportablePending}
-              disabled={isBusy || state.group.lifecycleStatus === "archived"}
-            />
-
-            <div className="border-t border-border/60 pt-1">
-              <PlaceSuggestionReportDialog
-                suggestion={reportablePending}
-                canHide={canHideSuggestion}
-                disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                onHide={() => hideFromReport(pending)}
-                onHidden={resetPending}
+            ) : review ? (
+              <div className="space-y-1 rounded-xl border bg-secondary/40 p-3">
+                <p className="text-xs text-muted-foreground">Hittat i kartan</p>
+                <h2 className="break-words font-display text-xl">
+                  {(review.provider ?? pending).name}
+                </h2>
+                <p className="break-words text-sm text-muted-foreground">
+                  {formatPlaceAddressWithCity(
+                    (review.provider ?? pending).address,
+                    (review.provider ?? pending).city,
+                    ", ",
+                  )}
+                </p>
+              </div>
+            ) : (
+              <PendingPlaceSummary
+                pending={pending}
+                cuisines={cuisines}
+                reportablePending={reportablePending}
               />
-            </div>
+            )}
+            {simpleCandidate && canConfirmIdentity ? (
+              <p className="text-xs text-muted-foreground">
+                När du lägger till stället bekräftas också att kartträffen hör hit.
+              </p>
+            ) : null}
+            {conflictMessage ? (
+              <p role="alert" className="rounded-xl border p-3 text-sm">
+                {conflictMessage}
+              </p>
+            ) : null}
+            {review ? (
+              <div className="space-y-3" aria-label="Granska möjlig matchning">
+                <p className="text-sm text-muted-foreground">
+                  Kartträffen kan redan finnas i Matrundan. Välj stället som stämmer. Besök och
+                  gruppuppgifter ligger kvar.
+                </p>
+                <div role="radiogroup" aria-label="Välj stället som stämmer" className="space-y-2">
+                  {(review.candidates ?? []).map((candidate) => (
+                    <label
+                      key={candidate.placeId}
+                      className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left focus-within:ring-2 focus-within:ring-ring ${selectedCandidateId === candidate.placeId ? "border-primary bg-primary/5" : "border-border"}`}
+                    >
+                      <input
+                        type="radio"
+                        name="reuse-place"
+                        value={candidate.placeId}
+                        checked={selectedCandidateId === candidate.placeId}
+                        aria-label={`Välj ${candidate.name}`}
+                        disabled={isBusy || !!conflictMessage}
+                        onChange={() => setSelectedCandidateId(candidate.placeId)}
+                        className="mt-1 h-4 w-4 shrink-0 accent-primary"
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <p className="text-xs text-muted-foreground">Redan i Matrundan</p>
+                        <p className="break-words font-medium">{candidate.name}</p>
+                        <p className="break-words text-sm text-muted-foreground">
+                          {formatPlaceAddressWithCity(candidate.address, candidate.city)} ·{" "}
+                          {Math.round(candidate.distanceKm * 1000)} m bort
+                        </p>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                {review.candidates?.length ? (
+                  <>
+                    <Button
+                      className="min-h-11 w-full whitespace-normal"
+                      disabled={isBusy || !!conflictMessage || !chosenCandidate}
+                      onClick={() =>
+                        chosenCandidate &&
+                        void confirmAdd(
+                          chosenCandidate.canConfirmSource === true && canConfirmIdentity
+                            ? "link"
+                            : "auto",
+                          chosenCandidate,
+                          !(chosenCandidate.canConfirmSource === true && canConfirmIdentity),
+                        )
+                      }
+                    >
+                      Ja, använd stället som redan finns
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      {chosenCandidate?.canConfirmSource === true && canConfirmIdentity
+                        ? "När du fortsätter bekräftas också att kartträffen hör hit."
+                        : "Stället används utan att kartkällan kopplas."}
+                    </p>
+                  </>
+                ) : null}
+                {!review.candidates?.length ? (
+                  <p className="text-sm">
+                    Matchningen behöver kontrolleras igen. Gå tillbaka och sök på nytt.
+                  </p>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="min-h-11 w-full whitespace-normal"
+                    disabled={isBusy || !!conflictMessage}
+                    onClick={() => void confirmAdd("separate")}
+                  >
+                    Nej, det är ett annat ställe
+                  </Button>
+                )}
+              </div>
+            ) : null}
+            {!review ? (
+              <Collapsible
+                key={pending.externalId}
+                defaultOpen={!simpleCandidate && pending.kind !== "canonical"}
+                className="border-t border-border/60 pt-3"
+              >
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" className="min-h-11 w-full justify-between px-0">
+                    Lägg till uppgifter (valfritt)
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="space-y-5 pt-3">
+                  {isLive ? (
+                    <p className="text-sm text-muted-foreground">
+                      {cuisines.length
+                        ? cuisines.join(" · ")
+                        : "Kök och inriktning kan kompletteras senare."}
+                    </p>
+                  ) : (
+                    <FoodTagMultiSelect
+                      id="pending-food-tags"
+                      label="Kök och inriktning (valfritt)"
+                      value={cuisines}
+                      onChange={setCuisines}
+                    />
+                  )}
+                  <OccasionPicker
+                    id="pending-occasions"
+                    value={occasions}
+                    onChange={setOccasions}
+                    description="Valfritt – kan fyllas i efter ett besök."
+                  />
+                  <div className="space-y-1.5">
+                    <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
+                    <Textarea
+                      id="pending-notes"
+                      value={notes}
+                      onChange={(event) => setNotes(event.target.value)}
+                      rows={2}
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            ) : null}
+            {pending.kind !== "canonical" && !review && !simpleCandidate ? (
+              <>
+                <PendingPlaceSignalStatus
+                  reportablePending={reportablePending}
+                  disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                />
 
+                <div className="border-t border-border/60 pt-1">
+                  <PlaceSuggestionReportDialog
+                    suggestion={reportablePending}
+                    canHide={canHideSuggestion}
+                    disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                    onHide={() => hideFromReport(pending)}
+                    onHidden={resetPending}
+                  />
+                </div>
+              </>
+            ) : null}
             <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
-              <Button className="min-h-11" disabled={isBusy} onClick={confirmAdd}>
-                {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-                Lägg till i gruppen
-              </Button>
+              {!review && !conflictMessage ? (
+                <Button
+                  className="min-h-11"
+                  disabled={isBusy}
+                  onClick={() =>
+                    void confirmAdd(
+                      simpleCandidate && canConfirmIdentity ? "link" : "auto",
+                      simpleCandidate ?? undefined,
+                      !!simpleCandidate && !canConfirmIdentity,
+                    )
+                  }
+                >
+                  {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                  {pending.canonical?.groupStatus === "archived"
+                    ? "Återställ i gruppen"
+                    : "Lägg till i gruppen"}
+                </Button>
+              ) : null}
             </DialogFooter>
           </DialogContent>
         ) : null}

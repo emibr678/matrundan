@@ -48,20 +48,17 @@ describe("Platsunderhålls serverkontrakt", () => {
     expect(publicMatch).not.toContain("GEOAPIFY_API_KEY");
   });
 
-  test("länkning gör en färsk serversökning före den gemensamma maintenance-RPC:n", () => {
+  test("länkning gör en färsk serversökning och verifierade detaljer före den skyddade maintenance-RPC:n", () => {
     const link = between("export const linkPlaceMaintenanceProviderMatch");
     const loadIndex = link.indexOf("await loadCandidate");
     const searchIndex = link.indexOf("await fetchProviderMatches", loadIndex);
-    const rpcIndex = link.indexOf(
-      'rpc("link_provider_source_for_maintenance_work_item_v1"',
-      searchIndex,
-    );
+    const rpcIndex = link.indexOf('rpc("link_verified_maintenance_source_v1"', searchIndex);
     expect(loadIndex).toBeGreaterThan(-1);
     expect(searchIndex).toBeGreaterThan(loadIndex);
     expect(rpcIndex).toBeGreaterThan(searchIndex);
-    expect(link).toContain("_kind: data.kind");
-    expect(link).toContain("_work_item_id: candidate.candidateId");
-    expect(link).toContain("_provider_place_id: match.externalId");
-    expect(link).toContain("_raw: raw");
+    expect(link).toContain("fetchVerifiedProviderPlace(data.providerPlaceId, true)");
+    expect(link).toContain("_actor_id: context.userId");
+    expect(link).toContain("_candidate_id: candidate.candidateId");
+    expect(link).toContain("_data: { ...verified }");
   });
 });

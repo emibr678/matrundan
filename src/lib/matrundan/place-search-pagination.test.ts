@@ -18,6 +18,23 @@ function suggestion(overrides: Partial<PlaceSuggestion> & { externalId: string }
 }
 
 describe("mergePlaceSearchPages", () => {
+  test("uppdaterar identitetsversion även när avståndet är oförändrat", () => {
+    const identity = {
+      providerPlaceId: "a",
+      providerVersion: "a".repeat(32),
+      knownPlace: null,
+      candidates: [],
+      reviewRequired: false,
+      identityConflict: false,
+    };
+    const refreshed = { ...identity, providerVersion: "b".repeat(32), reviewRequired: true };
+    const merged = mergePlaceSearchPages(
+      [suggestion({ externalId: "a", distanceKm: 1, identity })],
+      [suggestion({ externalId: "a", distanceKm: 1, identity: refreshed })],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].identity).toEqual(refreshed);
+  });
   test("bevarar ordningen på redan visade träffar exakt", () => {
     const merged = mergePlaceSearchPages(
       [
