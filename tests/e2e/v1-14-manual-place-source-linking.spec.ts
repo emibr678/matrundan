@@ -93,7 +93,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await expect(confirmation).toBeHidden();
 
   await expect(addDialog.getByText("1 ställe hanterat i den här omgången")).toBeVisible();
-  await addDialog.getByRole("button", { name: "Lista", exact: true }).click();
+  await expect(addDialog.getByText("Visar 0 träffar", { exact: true })).toHaveCount(0);
   const existingSection = addDialog
     .getByRole("button", { name: /Redan i gruppen \(\d+\)/ })
     .first();
