@@ -129,6 +129,9 @@ test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", a
     confirmation.getByText(/syns inte på kartan eller när andra grupper söker/i),
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toBeVisible();
+  await expect(
+    page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
+  ).resolves.toBe(false);
 
   await confirmation
     .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
@@ -136,8 +139,15 @@ test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", a
 
   await expect(page.getByText(`${placeName} tillagd i gruppen`)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: placeName, exact: true })).toBeVisible();
+  const placeLink = page.getByRole("link", { name: placeName, exact: true });
+  await expect(placeLink).toBeVisible();
   await expect(page.getByText("Plats ej verifierad", { exact: true })).toBeVisible();
+
+  await placeLink.click();
+  const addressRow = page.getByTestId("place-address-row");
+  await expect(addressRow).toContainText("Skolvägen 3");
+  await expect(addressRow).toContainText("Plats ej verifierad");
+  await expect(addressRow.getByRole("link", { name: /Google Maps/i })).toHaveCount(0);
 });
 
 test("ändrad fri text efter ett verifierat val rensar verifieringsstatus", async ({ page }) => {
