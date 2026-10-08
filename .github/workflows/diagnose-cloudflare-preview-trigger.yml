@@ -1,4 +1,4 @@
-name: Diagnose Cloudflare termination globally
+name: Diagnose current Cloudflare branch build
 
 on:
   push:
@@ -9,29 +9,33 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-cloudflare-termination-global
+  group: diagnose-current-cloudflare-branch
   cancel-in-progress: true
 
 jobs:
   diagnose:
-    name: Compare all nearby staging builds
+    name: Find current PR preview build
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     environment: staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_BUILDS_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN }}
-      CLOUDFLARE_BUILD_UUID: 53646e86-817e-4c78-8a4c-5b296a5706e0
+      TARGET_BRANCH: feature/389-canonical-place-discovery
+      TARGET_SHA: 44358741918d2b432a2aebde88b54e0ee4d50120
+      WORKER_ID: 7c8c82bbf93444ba9a46836c34dbae84
 
     steps:
-      - name: List all nearby builds read-only
+      - name: List matching builds read-only
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
           const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
-          const buildUuid = process.env.CLOUDFLARE_BUILD_UUID?.trim();
+          const branch = process.env.TARGET_BRANCH?.trim();
+          const targetSha = process.env.TARGET_SHA?.trim();
+          const worker = process.env.WORKER_ID?.trim();
 
           async function get(path) {
             const response = await fetch(
@@ -45,29 +49,26 @@ jobs:
             return payload?.result;
           }
 
-          const target = await get(`/builds/builds/${buildUuid}`);
-          const worker = target?.trigger?.external_script_id;
-          if (!worker) throw new Error("Missing worker id");
-          const targetTime = Date.parse(target?.created_on ?? "");
-
           const list = await get(`/builds/workers/${worker}/builds`);
           const builds = (Array.isArray(list) ? list : [])
-            .filter((b) => {
-              const t = Date.parse(b?.created_on ?? "");
-              return Number.isFinite(t) && Math.abs(t - targetTime) <= 10 * 60_000;
-            })
+            .filter((b) => b?.build_trigger_metadata?.branch === branch)
+            .slice(0, 15)
             .map((b) => ({
               build_uuid: b?.build_uuid,
-              branch: b?.build_trigger_metadata?.branch,
-              commit_hash: b?.build_trigger_metadata?.commit_hash,
-              source: b?.build_trigger_metadata?.build_trigger_source,
               status: b?.status,
               outcome: b?.build_outcome,
+              commit_hash: b?.build_trigger_metadata?.commit_hash,
+              source: b?.build_trigger_metadata?.build_trigger_source,
               created_on: b?.created_on,
               stopped_on: b?.stopped_on,
               modified_on: b?.modified_on,
-            }))
-            .sort((a,b) => String(a.created_on).localeCompare(String(b.created_on)));
+              preview_url: b?.preview_url ?? null,
+            }));
 
+          console.log("MATCHING_BRANCH_BUILDS");
           console.log(JSON.stringify(builds, null, 2));
+
+          const exact = builds.find((b) => b.commit_hash === targetSha);
+          console.log("EXACT_TARGET");
+          console.log(JSON.stringify(exact ?? null, null, 2));
           NODE
