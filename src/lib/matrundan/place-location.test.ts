@@ -9,9 +9,7 @@ describe("formatPlaceAddressWithCity", () => {
   });
 
   test("jämför orten utan hänsyn till skiftläge", () => {
-    expect(formatPlaceAddressWithCity("Avenyn 1, GÖTEBORG", "göteborg")).toBe(
-      "Avenyn 1, GÖTEBORG",
-    );
+    expect(formatPlaceAddressWithCity("Avenyn 1, GÖTEBORG", "göteborg")).toBe("Avenyn 1, GÖTEBORG");
   });
 
   test("lägger till orten när den inte redan finns i adressen", () => {
