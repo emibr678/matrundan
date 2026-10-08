@@ -432,9 +432,9 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await query.fill("Astrom");
 
-  await expect(
-    search.getByRole("group", { name: "Finns i Matrundan", exact: true }),
-  ).toHaveCount(0);
+  await expect(search.getByRole("group", { name: "Finns i Matrundan", exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     search.getByRole("listbox", { name: "Förslag på kök, typer och matställen", exact: true }),
   ).toHaveCount(0);
