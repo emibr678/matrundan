@@ -13,8 +13,8 @@ const canonical = {
   name: "Åströms mycket långa namn på ett litet kvarterscafé",
   category: "café",
   cuisines: ["Svenskt"],
-  address: "Testgatan 1",
-  city: "Teststad",
+  address: "Skolvägen 3, Stockholm",
+  city: "Stockholm",
   area: null,
   lat: 59,
   lng: 18,
@@ -54,6 +54,7 @@ async function setup(
     manual?: boolean;
     providerOnly?: boolean;
     internalOnly?: boolean;
+    archived?: boolean;
     finalProvider?: "hit" | "none" | "error";
     internalManual?: boolean;
   } = {},
@@ -231,13 +232,17 @@ async function setup(
       return;
     }
     let reply: unknown = [];
+    const projectedCanonical = {
+      ...canonical,
+      groupStatus: options.archived ? "archived" : canonical.groupStatus,
+    };
     if (name.startsWith("searchPlaceDiscovery"))
       reply = {
         results: [
           {
-            ...canonical,
+            ...projectedCanonical,
             kind: "canonical",
-            canonical,
+            canonical: projectedCanonical,
             resultKey: `canonical:${placeId}`,
             externalId: `canonical:${placeId}`,
           },
@@ -342,12 +347,17 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
+  const internalOption = search.getByRole("option").filter({ hasText: canonical.name });
+  await expect(internalOption.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
+  await expect(internalOption).toContainText("Skolvägen 3, Stockholm");
+  await expect(internalOption).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
   const row = search.getByRole("button", {
     name: `Visa information om ${canonical.name}`,
     exact: true,
   });
   await expect(row).toHaveCount(1);
+  await expect(row.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
   await expect(
     search.getByRole("heading", { name: "Finns i Matrundan", exact: true }),
   ).toBeVisible();
@@ -356,7 +366,11 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   );
   await row.click();
   const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
+  await expect(search.getByRole("button", { name: "Återställ", exact: true })).toHaveCount(0);
   await expect(add.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
+  await expect(add.locator('[data-matrundan-brand="mark"]')).toBeVisible();
+  await expect(add.getByText("Skolvägen 3, Stockholm", { exact: true })).toBeVisible();
+  await expect(add).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
   await expect(add.getByText(/bekräftas också att kartträffen hör hit/)).toBeVisible();
   await noOverflow(page);
   await expect(add).toHaveCSS("opacity", "1");
@@ -378,6 +392,19 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
       decisions: [{ placeId, version: "a".repeat(32) }],
     }),
   ]);
+});
+
+test("arkiverad relation i målgruppen visas som återställning", async ({ page }) => {
+  await setup(page, { archived: true, internalOnly: true });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
+  await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
+  await search.getByRole("button", { name: "Återställ", exact: true }).click();
+  const restore = page.getByRole("dialog", { name: "Återställ i gruppen", exact: true });
+  await expect(restore.getByRole("button", { name: "Återställ i gruppen", exact: true })).toBeVisible();
+  await expect(restore.getByText("Skolvägen 3, Stockholm", { exact: true })).toBeVisible();
 });
 
 test("medlem återanvänder entydigt ställe i normalflödet utan global koppling", async ({

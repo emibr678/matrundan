@@ -10,6 +10,7 @@ import {
 import { Check, List, Loader2, Map, Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 
+import { MatrundanBrand } from "./MatrundanBrand";
 import { MultiAreaPlaceMap, type MultiAreaMapItem } from "./MultiAreaPlaceMap";
 import { SearchAreaControls } from "./SearchAreaControls";
 import { SearchResultSections, type SourceMatchResult } from "./SearchResultSections";
@@ -50,6 +51,7 @@ import {
   mergePlaceSearchPages,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
   mergeAreaSearchResults,
@@ -1036,13 +1038,10 @@ type PlaceSearchOption =
   | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
 
 function placeOptionMeta(suggestion: PlaceSuggestion): string {
-  const location =
-    suggestion.address?.trim() ||
-    [suggestion.area, suggestion.city].filter(Boolean).join(" · ") ||
-    suggestion.city ||
-    "";
-  const city = suggestion.address?.trim() && suggestion.city ? suggestion.city : "";
-  return [CATEGORY_LABEL[suggestion.category], location, city].filter(Boolean).join(" · ");
+  const location = suggestion.address?.trim()
+    ? formatPlaceAddressWithCity(suggestion.address, suggestion.city)
+    : [suggestion.area, suggestion.city].filter(Boolean).join(" · ");
+  return [CATEGORY_LABEL[suggestion.category], location].filter(Boolean).join(" · ");
 }
 
 function PlaceSearchCombobox({
@@ -1170,6 +1169,12 @@ function PlaceSearchCombobox({
                 <span className="block min-w-0 break-words font-medium text-foreground">
                   {option.label}
                 </span>
+                {isInternalOption(option) ? (
+                  <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <MatrundanBrand variant="mark" size="xs" />
+                    Finns i Matrundan
+                  </span>
+                ) : null}
                 {option.meta ? (
                   <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
                     {option.meta}

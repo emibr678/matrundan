@@ -134,6 +134,15 @@ test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", a
     ),
   ).resolves.toBe(false);
 
+  const backToLocation = confirmation.getByRole("button", {
+    name: "Tillbaka och välj plats",
+    exact: true,
+  });
+  await expect(backToLocation).toBeVisible();
+  await backToLocation.click();
+  await expect(confirmation).toBeHidden();
+  await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+
   await confirmation
     .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
     .click();

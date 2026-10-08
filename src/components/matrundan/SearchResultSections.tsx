@@ -6,6 +6,7 @@ import {
 } from "@/lib/matrundan/place-discovery";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
+import { MatrundanBrand } from "./MatrundanBrand";
 import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -205,6 +206,7 @@ export function SearchResultSections({
                 key={result.externalId}
                 result={result}
                 signal={signal}
+                internal={internal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
                 bulkMode={bulkMode && canBulkAddSuggestion(result)}
@@ -349,6 +351,7 @@ export function resultLocationContextFor(
 function SuggestionRow({
   result,
   signal,
+  internal = false,
   selected,
   bulkSelected,
   bulkMode,
@@ -360,6 +363,7 @@ function SuggestionRow({
 }: {
   result: PlaceSuggestion;
   signal?: PlaceDataSignal;
+  internal?: boolean;
   selected: boolean;
   bulkSelected: boolean;
   bulkMode: boolean;
@@ -389,6 +393,12 @@ function SuggestionRow({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block break-words font-medium">{result.name}</span>
+          {internal ? (
+            <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+              <MatrundanBrand variant="mark" size="xs" />
+              Finns i Matrundan
+            </span>
+          ) : null}
           <span className="block break-words text-xs text-muted-foreground">
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}

@@ -663,7 +663,7 @@ export function ManualAddPlaceForm({
               disabled={isBusy}
               onClick={() => setShowUnverifiedConfirmation(false)}
             >
-              Fortsätt välja plats
+              Tillbaka och välj plats
             </Button>
             <Button
               type="button"

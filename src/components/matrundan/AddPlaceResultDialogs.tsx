@@ -7,6 +7,7 @@ import {
 } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Clock3, Globe2, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
+import { MatrundanBrand } from "./MatrundanBrand";
 import { useVisitShareBatch } from "./useVisitShareBatch";
 import { FoodTagMultiSelect } from "./FoodTagMultiSelect";
 import { OccasionPicker } from "./OccasionPicker";
@@ -40,6 +41,7 @@ import {
   reportableSuggestionFromPlaceSuggestion,
   type ReportablePlaceSuggestion,
 } from "@/lib/matrundan/place-data-reports";
+import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { googleMapsSearchUrl, normalizeWebsiteUrl } from "@/lib/matrundan/place-links";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { useSession } from "@/lib/matrundan/session";
@@ -442,17 +444,18 @@ export function AddPlaceResultDialogs({
 
             {pending.kind === "canonical" || simpleCandidate ? (
               <div className="space-y-1 rounded-xl border p-4">
-                <p className="text-xs text-muted-foreground">Finns i Matrundan</p>
+                <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                  <MatrundanBrand variant="mark" size="xs" />
+                  Finns i Matrundan
+                </p>
                 <h2 className="break-words font-display text-2xl">
                   {simpleCandidate?.name ?? pending.name}
                 </h2>
                 <p className="break-words text-sm text-muted-foreground">
-                  {[
+                  {formatPlaceAddressWithCity(
                     simpleCandidate?.address ?? pending.address,
                     simpleCandidate?.city ?? pending.city,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+                  )}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Stället som redan finns används. Gruppens egna uppgifter läggs till separat.
@@ -465,9 +468,11 @@ export function AddPlaceResultDialogs({
                   {(review.provider ?? pending).name}
                 </h2>
                 <p className="break-words text-sm text-muted-foreground">
-                  {[(review.provider ?? pending).address, (review.provider ?? pending).city]
-                    .filter(Boolean)
-                    .join(", ")}
+                  {formatPlaceAddressWithCity(
+                    (review.provider ?? pending).address,
+                    (review.provider ?? pending).city,
+                    ", ",
+                  )}
                 </p>
               </div>
             ) : (
@@ -513,7 +518,7 @@ export function AddPlaceResultDialogs({
                         <p className="text-xs text-muted-foreground">Redan i Matrundan</p>
                         <p className="break-words font-medium">{candidate.name}</p>
                         <p className="break-words text-sm text-muted-foreground">
-                          {[candidate.address, candidate.city].filter(Boolean).join(" · ")} ·{" "}
+                          {formatPlaceAddressWithCity(candidate.address, candidate.city)} ·{" "}
                           {Math.round(candidate.distanceKm * 1000)} m bort
                         </p>
                       </div>
