@@ -774,9 +774,16 @@ export function PlaceDiscovery({
   );
   const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
   const placeAutocompleteSuggestions = React.useMemo(
-    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 5)),
-    [query, visibleResults],
+    () =>
+      query.trim().length < 2
+        ? []
+        : visibleResults.filter((result) => statusForResult(result) !== "existing").slice(0, 5),
+    [query, statusForResult, visibleResults],
   );
+  const suppressEmptyAutocomplete =
+    query.trim().length >= 2 &&
+    placeAutocompleteSuggestions.length === 0 &&
+    existingResults.length > 0;
 
   return (
     <div className="space-y-4">
@@ -800,6 +807,7 @@ export function PlaceDiscovery({
         loading={loading}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
+        suppressEmptyState={suppressEmptyAutocomplete}
         onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
         onMissingPlace={onMissingPlace}
       />
@@ -1059,6 +1067,7 @@ function PlaceSearchCombobox({
   loading,
   genericSuggestions,
   placeSuggestions,
+  suppressEmptyState = false,
   onSelectPlace,
   onMissingPlace,
 }: {
@@ -1067,6 +1076,7 @@ function PlaceSearchCombobox({
   loading: boolean;
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
+  suppressEmptyState?: boolean;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
   onMissingPlace: () => void;
 }) {
@@ -1095,7 +1105,7 @@ function PlaceSearchCombobox({
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList = open && hasQuery;
+  const showList = open && hasQuery && (options.length > 0 || !suppressEmptyState);
 
   React.useEffect(() => {
     setActiveIx(-1);
