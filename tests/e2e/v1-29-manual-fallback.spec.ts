@@ -142,7 +142,7 @@ test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", a
   await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toHaveCount(0);
   const placeLink = page.getByRole("link", { name: placeName, exact: true });
   await expect(placeLink).toBeVisible();
-  await expect(page.getByText("Plats ej verifierad", { exact: true })).toBeVisible();
+  await expect(page.getByText("Plats ej verifierad", { exact: true }).first()).toBeVisible();
 
   await placeLink.click();
   const addressRow = page.getByTestId("place-address-row");
