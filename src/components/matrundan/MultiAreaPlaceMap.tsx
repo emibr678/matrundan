@@ -34,7 +34,9 @@ export interface MultiAreaMapItem {
   eyebrow?: string;
   description?: string;
   actionable?: boolean;
+  actionLabel?: string;
   bulkSelected?: boolean;
+  bulkSelectable?: boolean;
 }
 
 export interface MultiAreaMapCenter {
@@ -186,11 +188,13 @@ export function MultiAreaPlaceMap({
     () => items.filter((item) => item.lat != null && item.lng != null),
     [items],
   );
-  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
+  const selected = mappedItems.find((item) => item.id === selectedId) ?? null;
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
   const selectRef = React.useRef(onSelect);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [renderedItemCount, setRenderedItemCount] = React.useState(0);
+  const [externalTilesReady, setExternalTilesReady] = React.useState(false);
   const [layersReady, setLayersReady] = React.useState(false);
   const mapsKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }).env
     ?.VITE_GEOAPIFY_MAPS_KEY;
@@ -205,6 +209,8 @@ export function MultiAreaPlaceMap({
     let cancelled = false;
     setLayersReady(false);
     setStatus("loading");
+    setExternalTilesReady(false);
+    setRenderedItemCount(0);
 
     void waitForMapLibre()
       .then((mapLibre) => {
@@ -228,11 +234,33 @@ export function MultiAreaPlaceMap({
         map.on("load", () => {
           if (!cancelled) setStatus("ready");
         });
+        map.on("idle", () => {
+          if (!cancelled && map.getLayer(POINTS) && map.getLayer(CLUSTERS)) {
+            setRenderedItemCount(
+              map.queryRenderedFeatures(undefined, { layers: [POINTS, CLUSTERS] }).length,
+            );
+          }
+          // A loaded overlay or empty style is not evidence of a base map.
+          if (mapsKey && !cancelled && map.isStyleLoaded() && map.areTilesLoaded()) {
+            const baseLayers = map
+              .getStyle()
+              .layers.filter(
+                (layer) => !layer.id.startsWith("multi-area-") && layer.type !== "background",
+              );
+            setExternalTilesReady(
+              baseLayers.length > 0 &&
+                map.queryRenderedFeatures(undefined, {
+                  layers: baseLayers.map((layer) => layer.id),
+                }).length > 0,
+            );
+          }
+        });
         map.on("error", (event) => {
           console.error("[Matrundan] Flerområdeskartan kunde inte laddas:", event.error ?? event);
           if (!cancelled) {
             setLayersReady(false);
             setStatus("error");
+            setExternalTilesReady(false);
           }
         });
         mapRef.current = map;
@@ -478,8 +506,15 @@ export function MultiAreaPlaceMap({
     );
   }
 
-  const ready = status === "ready" && layersReady;
-  const tileStatus = mapsKey ? (status === "ready" ? "ready" : status) : "missing";
+  const ready =
+    status === "ready" && layersReady && (mappedItems.length === 0 || renderedItemCount > 0);
+  const tileStatus = !mapsKey
+    ? "missing"
+    : status === "error"
+      ? "error"
+      : externalTilesReady
+        ? "ready"
+        : "loading";
   const bulkSelectedCount = mappedItems.filter((item) => item.bulkSelected).length;
   const boundaryCount = centers.filter(
     (center) => center.searchMode === "boundary" && center.boundary,
@@ -492,6 +527,7 @@ export function MultiAreaPlaceMap({
       role="region"
       aria-label="Karta över sökresultat och valda sökområden"
       data-map-ready={ready}
+      data-map-rendered-items={renderedItemCount}
       data-map-renderer="maplibre-vector"
       data-map-tile-status={tileStatus}
       data-map-error-code={status === "error" ? "runtime" : ""}
@@ -549,14 +585,18 @@ export function MultiAreaPlaceMap({
                 {selected.eyebrow}
               </div>
             ) : null}
-            <div className="truncate font-medium">{selected.name}</div>
+            <div className="break-words font-medium">{selected.name}</div>
             {selected.description ? (
-              <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
+              <div className="break-words text-xs text-muted-foreground">
+                {selected.description}
+              </div>
             ) : null}
           </div>
           {selected.actionable !== false ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {onToggleBulkSelection ? (
+            <div
+              className={`mt-3 grid gap-2 ${onToggleBulkSelection && selected.bulkSelectable !== false && onAction ? "grid-cols-2" : "grid-cols-1"}`}
+            >
+              {onToggleBulkSelection && selected.bulkSelectable !== false ? (
                 <Button
                   type="button"
                   size="sm"
@@ -577,7 +617,7 @@ export function MultiAreaPlaceMap({
                   disabled={actionsDisabled}
                   onClick={() => onAction(selected)}
                 >
-                  Granska <ArrowRight className="h-4 w-4" />
+                  {selected.actionLabel ?? "Granska"} <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : null}
             </div>

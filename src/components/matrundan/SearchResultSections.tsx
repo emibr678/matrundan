@@ -1,6 +1,12 @@
 import * as React from "react";
+import {
+  canBulkAddSuggestion,
+  needsPlaceComparison,
+  unambiguousPlaceCandidate,
+} from "@/lib/matrundan/place-discovery";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
+import { MatrundanBrand } from "./MatrundanBrand";
 import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -11,6 +17,7 @@ import { MANUAL_SOURCE_MATCH_REASON_LABEL } from "@/lib/matrundan/manual-place-s
 import { placeSignalKey, type PlaceDataSignal } from "@/lib/matrundan/place-data-signals";
 import { resolvePlaceSymbol } from "@/lib/matrundan/place-symbol";
 import type { PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import { useOwnOpenPlaceSuggestionReportKeys } from "@/lib/matrundan/use-own-place-suggestion-reports";
 import { usePlaceDataSignalsForSuggestions } from "@/lib/matrundan/use-place-data-signals";
 import { CATEGORY_LABEL, type Place } from "@/lib/matrundan/types";
@@ -58,6 +65,7 @@ export function SearchResultSections({
     const seen = new Set<string>();
     return [...sourceMatches.map((match) => match.result), ...available, ...existing].filter(
       (suggestion) => {
+        if (suggestion.kind === "canonical") return false;
         const key = placeSignalKey({
           provider: suggestion.provider,
           providerPlaceId: suggestion.externalId,
@@ -104,16 +112,19 @@ export function SearchResultSections({
     [hasOwnOpenReport],
   );
 
+  const isInternal = (row: PlaceSuggestion) =>
+    row.kind === "canonical" || !!unambiguousPlaceCandidate(row) || !!row.identity?.knownPlace;
+  const orderedAvailable = [
+    ...available.filter(isInternal),
+    ...available.filter((row) => !isInternal(row)),
+  ];
   return (
     <div className="space-y-4">
       {sourceMatches.length > 0 ? (
         <section aria-label="Möjliga matchningar i gruppen" className="space-y-2">
           <div className="rounded-xl border border-primary/30 bg-primary/5 p-3 text-xs leading-relaxed text-muted-foreground">
-            <p className="font-medium text-foreground">Möjlig match i gruppen</p>
-            <p className="mt-1">
-              Granska innan den externa källan länkas. Befintliga besök, omdömen och gruppuppgifter
-              ligger kvar på samma matställe.
-            </p>
+            <p className="font-medium text-foreground">Är det samma ställe?</p>
+            <p className="mt-1">Jämför kartträffen med stället som redan finns i gruppen.</p>
           </div>
           {sourceMatches.map((match) => {
             const signal = signalFor(match.result);
@@ -146,7 +157,7 @@ export function SearchResultSections({
                     disabled={disabled}
                     onClick={() => onLinkSource(match)}
                   >
-                    <Link2 className="h-4 w-4" /> Granska länk
+                    <Link2 className="h-4 w-4" /> Granska matchning
                   </Button>
                 }
               />
@@ -157,17 +168,51 @@ export function SearchResultSections({
 
       <section className="space-y-2">
         {available.length > 0 ? (
-          available.map((result) => {
+          orderedAvailable.flatMap((result, index) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
             const signal = signalFor(result);
-            return (
+            const internal =
+              result.kind === "canonical" ||
+              !!unambiguousPlaceCandidate(result) ||
+              !!result.identity?.knownPlace;
+            const firstExternal =
+              !internal && !orderedAvailable.slice(0, index).some((row) => !isInternal(row));
+            const firstInternal =
+              internal &&
+              !orderedAvailable
+                .slice(0, index)
+                .some(
+                  (row) =>
+                    row.kind === "canonical" ||
+                    !!unambiguousPlaceCandidate(row) ||
+                    !!row.identity?.knownPlace,
+                );
+            return [
+              ...(firstInternal
+                ? [
+                    <h4
+                      key="matrundan-heading"
+                      className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium"
+                    >
+                      <MatrundanBrand variant="mark" size="xs" />
+                      Finns i Matrundan
+                    </h4>,
+                  ]
+                : []),
+              ...(firstExternal && orderedAvailable.some(isInternal)
+                ? [
+                    <h4 key="map-heading" className="pt-2 text-sm font-medium">
+                      Hittat i kartan
+                    </h4>,
+                  ]
+                : []),
               <SuggestionRow
                 key={result.externalId}
                 result={result}
                 signal={signal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
-                bulkMode={bulkMode}
+                bulkMode={bulkMode && canBulkAddSuggestion(result)}
                 showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={
                   bulkMode
@@ -176,12 +221,12 @@ export function SearchResultSections({
                 }
                 onSelect={() => {
                   onSelect(result.externalId);
-                  if (bulkMode) onToggleSelected(result);
+                  if (bulkMode && canBulkAddSuggestion(result)) onToggleSelected(result);
                   else onAdd(result);
                 }}
                 footer={statusFooterFor(result, signal)}
                 action={
-                  bulkMode ? (
+                  bulkMode && canBulkAddSuggestion(result) ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox
                         checked={bulkSelected}
@@ -197,14 +242,19 @@ export function SearchResultSections({
                       disabled={disabled}
                       onClick={() => onAdd(result)}
                     >
-                      <Plus className="h-4 w-4" /> Lägg till
+                      <Plus className="h-4 w-4" />{" "}
+                      {needsPlaceComparison(result)
+                        ? "Granska matchning"
+                        : result.canonical?.groupStatus === "archived"
+                          ? "Återställ"
+                          : "Lägg till"}
                     </Button>
                   )
                 }
-              />
-            );
+              />,
+            ];
           })
-        ) : sourceMatches.length === 0 ? (
+        ) : sourceMatches.length === 0 && existing.length === 0 ? (
           <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
             Inga nya ställen i den här sökningen.
           </p>
@@ -226,7 +276,13 @@ export function SearchResultSections({
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2 space-y-2">
             {existing.map((result) => {
-              const place = matchingPlace(places, result);
+              const canonicalId =
+                result.canonical?.placeId ??
+                result.identity?.knownPlace?.placeId ??
+                unambiguousPlaceCandidate(result)?.placeId;
+              const place = result.kind
+                ? places.find((p) => p.id === canonicalId)
+                : matchingPlace(places, result);
               const signal = signalFor(result);
               return (
                 <SuggestionRow
@@ -283,7 +339,7 @@ export function resultLocationContextFor(
 ): string {
   if (result.distanceKm == null) return searchAreaContextFor(result);
 
-  const distance = ` · ~${result.distanceKm} km`;
+  const distance = ` · ~${formatSearchDistanceKm(result.distanceKm)} km`;
   if (!showNearestAreaLabel) return distance;
 
   const label = result.nearestAreaLabel?.trim();

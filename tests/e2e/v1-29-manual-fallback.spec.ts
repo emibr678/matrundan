@@ -109,3 +109,75 @@ test("exempelgruppen återanvänder ett arkiverat kanoniskt ställe med samma pl
   await expect(page.getByText("Brödverket 47 lades tillbaka i gruppen")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Lägg till matställe" })).toHaveCount(0);
 });
+
+test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await openSearchDialog(page);
+  await fallbackButton(page).tap();
+
+  const placeName = "Kvarterskiosken utan kartpunkt";
+  await manualForm(page).fill(placeName);
+  await page.locator("#manual-location").fill("Skolvägen 3");
+
+  await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+
+  const confirmation = page.getByTestId("unverified-location-confirmation");
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation.getByText("Platsen är inte verifierad", { exact: true })).toBeVisible();
+  await expect(
+    confirmation.getByText(/syns inte på kartan eller när andra grupper söker/i),
+  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toBeVisible();
+  await expect(
+    page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
+  ).resolves.toBe(false);
+
+  const backToLocation = confirmation.getByRole("button", {
+    name: "Tillbaka och välj plats",
+    exact: true,
+  });
+  await expect(backToLocation).toBeVisible();
+  await backToLocation.click();
+  await expect(confirmation).toBeHidden();
+  await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+
+  await confirmation
+    .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
+    .click();
+
+  await expect(page.getByText(`${placeName} tillagd i gruppen`)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toHaveCount(0);
+  const placeLink = page.getByRole("link", { name: placeName, exact: true });
+  await expect(placeLink).toBeVisible();
+  await expect(page.getByText("Plats ej verifierad", { exact: true }).first()).toBeVisible();
+
+  await placeLink.click();
+  const addressRow = page.getByTestId("place-address-row");
+  await expect(addressRow).toContainText("Skolvägen 3");
+  await expect(addressRow).toContainText("Plats ej verifierad");
+  await expect(addressRow.getByRole("link", { name: /Google Maps/i })).toHaveCount(0);
+});
+
+test("ändrad fri text efter ett verifierat val rensar verifieringsstatus", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await openExampleSearchDialog(page);
+  await fallbackButton(page).tap();
+
+  await manualForm(page).fill("Brödverket 47");
+  const location = page.locator("#manual-location");
+  await location.fill("Degvägen 47");
+  const option = page.getByRole("option").filter({ hasText: "Degvägen 47" }).first();
+  await expect(option).toBeVisible();
+  await option.getByRole("button").click();
+
+  await expect(page.getByText(/Verifierad plats/)).toBeVisible();
+
+  await location.fill("Degvägen 48");
+  await expect(page.getByText(/Verifierad plats/)).toHaveCount(0);
+  await expect(page.getByText(/Välj en träff i listan för att bekräfta platsen/)).toBeVisible();
+
+  await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await expect(page.getByTestId("unverified-location-confirmation")).toBeVisible();
+});

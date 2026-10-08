@@ -22,7 +22,7 @@ describe("resultLocationContextFor", () => {
       nearestAreaLabel: "Folksam huset",
     });
 
-    expect(resultLocationContextFor(result, false)).toBe(" · ~0.8 km");
+    expect(resultLocationContextFor(result, false)).toBe(" · ~0,8 km");
   });
 
   test("visar närmaste utgångspunkt när flera är aktiva", () => {
@@ -32,7 +32,7 @@ describe("resultLocationContextFor", () => {
       nearestAreaLabel: "Folksam huset",
     });
 
-    expect(resultLocationContextFor(result, true)).toBe(" · ~0.8 km · närmast Folksam huset");
+    expect(resultLocationContextFor(result, true)).toBe(" · ~0,8 km · närmast Folksam huset");
   });
 
   test("dubblerar inte närmaste utgångspunkt om den redan är platsens ort", () => {
@@ -41,7 +41,15 @@ describe("resultLocationContextFor", () => {
       nearestAreaLabel: "Stockholm",
     });
 
-    expect(resultLocationContextFor(result, true)).toBe(" · ~0.8 km");
+    expect(resultLocationContextFor(result, true)).toBe(" · ~0,8 km");
+  });
+
+  test("avrundar beräknade avstånd utan att ändra sökträffens precision", () => {
+    const result = suggestion({ distanceKm: 1.897634528791 });
+
+    expect(resultLocationContextFor(result, false)).toBe(" · ~1,9 km");
+    expect(result.distanceKm).toBe(1.897634528791);
+    expect(resultLocationContextFor(suggestion({ distanceKm: 2 }), false)).toBe(" · ~2 km");
   });
 
   test("behåller sökområdeskontext för områdessökning utan avstånd", () => {

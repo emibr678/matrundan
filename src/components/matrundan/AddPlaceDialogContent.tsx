@@ -1,8 +1,9 @@
 import * as React from "react";
+import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
-import { ManualAddPlaceForm } from "./ManualAddPlaceForm";
+import { ManualAddPlaceForm, type ManualAddPlaceSnapshot } from "./ManualAddPlaceForm";
 import { PlaceDiscovery, type PlaceDiscoverySnapshot } from "./PlaceDiscovery";
 import type { SourceMatchResult } from "./SearchResultSections";
 import {
@@ -49,6 +50,14 @@ import { useStore } from "@/lib/matrundan/store";
 
 type AddPlaceView = "search" | "fallback";
 
+function comparisonLocation(place?: { address: string; city: string }): string {
+  if (!place) return "";
+  const addressCity = place.address.split(",").at(-1)?.trim().toLocaleLowerCase("sv-SE");
+  return addressCity === place.city.trim().toLocaleLowerCase("sv-SE")
+    ? place.address
+    : [place.address, place.city].filter(Boolean).join(", ");
+}
+
 export function AddPlaceDialogContent({
   open,
   onOpenChange,
@@ -60,6 +69,7 @@ export function AddPlaceDialogContent({
 }) {
   const { state, addPlace } = useStore();
   const { mode, activeGroupId, exampleMode } = useSession();
+  const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
@@ -70,6 +80,9 @@ export function AddPlaceDialogContent({
   const [discoverySnapshot, setDiscoverySnapshot] = React.useState<PlaceDiscoverySnapshot | null>(
     null,
   );
+  const [resolutions, setResolutions] = React.useState<Record<string, PlaceResolution>>({});
+  const currentScopeRef = React.useRef({ groupId: activeGroupId, mode });
+  currentScopeRef.current = { groupId: activeGroupId, mode };
   const [bulkBusy, setBulkBusy] = React.useState(false);
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
@@ -104,6 +117,16 @@ export function AddPlaceDialogContent({
         removeHiddenSelections,
       );
   }, [activeGroupId, mode, state.group.id]);
+
+  React.useEffect(() => {
+    setPending(null);
+    setPendingSourceMatch(null);
+    setSelectedResults([]);
+    setAddedResultIds(new Set());
+    setDiscoverySnapshot(null);
+    setResolutions({});
+    setManualSnapshot(null);
+  }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen && (pending != null || pendingSourceMatch != null)) return;
@@ -207,6 +230,7 @@ export function AddPlaceDialogContent({
   async function addSelectedResults() {
     if (bulkBusy || selectedResults.length === 0) return;
     setBulkBusy(true);
+    const operationScope = currentScopeRef.current;
     try {
       if (mode === "live" && !activeGroupId) throw new Error("Ingen aktiv grupp.");
       const result =
@@ -217,9 +241,44 @@ export function AddPlaceDialogContent({
             )
           : await addDemoResults(selectedResults);
 
+      if (
+        operationScope.groupId !== currentScopeRef.current.groupId ||
+        operationScope.mode !== currentScopeRef.current.mode
+      )
+        return;
+      setResolutions((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          result.items
+            .filter((item) => item.resolution)
+            .map((item) => [item.externalId, item.resolution!]),
+        ),
+      }));
       const completedIds = completedBulkExternalIds(result);
       markCompleted(completedIds);
-      setSelectedResults((current) => remainingBulkSelections(current, result));
+      const reviewItem = result.items.find((item) => item.resolution?.status === "review_required");
+      setSelectedResults((current) =>
+        remainingBulkSelections(current, result).filter(
+          (item) =>
+            !result.items.some(
+              (outcome) => outcome.externalId === item.externalId && outcome.resolution,
+            ),
+        ),
+      );
+      if (reviewItem?.resolution) {
+        const selected = selectedResults.find((item) => item.externalId === reviewItem.externalId);
+        if (selected) {
+          const identity = {
+            providerPlaceId: selected.externalId,
+            providerVersion: reviewItem.resolution.providerVersion ?? "",
+            knownPlace: null,
+            candidates: reviewItem.resolution.candidates ?? [],
+            reviewRequired: true,
+            identityConflict: false,
+          };
+          setPending({ ...selected, ...reviewItem.resolution.provider, identity });
+        }
+      }
 
       if (mode === "live" && completedIds.length > 0) {
         window.dispatchEvent(new Event("matrundan:reload"));
@@ -230,7 +289,9 @@ export function AddPlaceDialogContent({
         toast.warning(
           `${addedCount} ${addedCount === 1 ? "ställe tillagt" : "ställen tillagda"}. ${result.failed} kunde inte läggas till.`,
           {
-            description: "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
+            description: reviewItem
+              ? "Granska matchningen som öppnats innan du fortsätter."
+              : "De misslyckade ställena är fortfarande valda så att du kan försöka igen.",
           },
         );
       } else if (addedCount > 0) {
@@ -322,6 +383,15 @@ export function AddPlaceDialogContent({
       <Dialog open={searchDialogOpen} onOpenChange={handleOpenChange}>
         <DialogContent
           ref={searchDialogRef}
+          onEscapeKeyDown={(event) => {
+            // The first Escape dismisses the suggestions; a second closes the dialog.
+            if (
+              event.target instanceof Element &&
+              event.target.closest('[role="combobox"][aria-expanded="true"]')
+            ) {
+              event.preventDefault();
+            }
+          }}
           onOpenAutoFocus={(event) => {
             if (!returningToSearchRef.current) return;
             event.preventDefault();
@@ -343,6 +413,7 @@ export function AddPlaceDialogContent({
           {view === "search" ? (
             <PlaceDiscovery
               initialQuery={initialQuery}
+              resolutions={resolutions}
               addedResultIds={addedResultIds}
               selectedResults={selectedResults}
               bulkBusy={bulkBusy || sourceLinkBusy}
@@ -369,7 +440,12 @@ export function AddPlaceDialogContent({
                 <ArrowLeft className="h-4 w-4" />
                 Tillbaka till sök
               </Button>
-              <ManualAddPlaceForm onClose={() => handleOpenChange(false)} />
+              <ManualAddPlaceForm
+                onClose={() => handleOpenChange(false)}
+                onProviderFound={beginAdd}
+                snapshot={manualSnapshot}
+                onSnapshotChange={setManualSnapshot}
+              />
             </>
           )}
         </DialogContent>
@@ -388,42 +464,40 @@ export function AddPlaceDialogContent({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Länka till befintligt matställe?</AlertDialogTitle>
+            <AlertDialogTitle>Är det samma ställe?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 text-left">
               <span className="block">
-                Sökträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara
-                gruppens manuella ställe <strong>{pendingSourceMatch?.place.name}</strong>.
+                Kartträffen <strong>{pendingSourceMatch?.result.name}</strong> verkar motsvara
+                <strong> {pendingSourceMatch?.place.name}</strong> som redan finns i gruppen.
               </span>
               <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
                 <span>
-                  <strong>Sökträff:</strong>{" "}
-                  {[pendingSourceMatch?.result.address, pendingSourceMatch?.result.city]
-                    .filter(Boolean)
-                    .join(", ")}
+                  <strong>Hittat i kartan:</strong> {comparisonLocation(pendingSourceMatch?.result)}
                 </span>
                 <span>
-                  <strong>I gruppen:</strong>{" "}
-                  {[pendingSourceMatch?.place.address, pendingSourceMatch?.place.city]
-                    .filter(Boolean)
-                    .join(", ")}
+                  <strong>Redan i Matrundan:</strong>{" "}
+                  {comparisonLocation(pendingSourceMatch?.place)}
                 </span>
               </span>
               <span className="block">
-                Bara den externa källidentiteten länkas. Det befintliga plats-ID:t, besök, omdömen
-                och privata gruppuppgifter bevaras. Åtgärden slår inte ihop två redan etablerade
-                matställen.
+                Kartinformationen kompletterar stället. Besök, omdömen och gruppuppgifter ligger
+                kvar.
               </span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={sourceLinkBusy}>Avbryt</AlertDialogCancel>
-            <Button disabled={sourceLinkBusy} onClick={() => void confirmSourceLink()}>
+            <AlertDialogCancel disabled={sourceLinkBusy}>Tillbaka</AlertDialogCancel>
+            <Button
+              className="h-auto min-h-11 whitespace-normal"
+              disabled={sourceLinkBusy}
+              onClick={() => void confirmSourceLink()}
+            >
               {sourceLinkBusy ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
                 <Link2 className="h-4 w-4" />
               )}
-              Länka källa
+              Ja, använd stället som redan finns
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

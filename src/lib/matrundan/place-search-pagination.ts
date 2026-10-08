@@ -47,6 +47,8 @@ export function mergePlaceSearchPages(
 
     merged.set(key, {
       ...base,
+      ...(suggestion.identity ? { identity: suggestion.identity } : {}),
+      ...(suggestion.canonical ? { canonical: suggestion.canonical } : {}),
       nearestAreaLabel: base.nearestAreaLabel ?? existing.nearestAreaLabel,
       ...(labels.length > 0 ? { matchingAreaLabels: labels } : {}),
     });

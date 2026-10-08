@@ -2368,6 +2368,10 @@ export type Database = {
         }
         Returns: Json
       }
+      create_manual_place_fallback_v2: {
+        Args: { _data: Json; _decisions?: Json; _group_id: string }
+        Returns: Json
+      }
       create_or_link_provider_place: {
         Args: {
           _address?: string
@@ -2681,6 +2685,18 @@ export type Database = {
         }
         Returns: Json
       }
+      find_reusable_manual_place_candidates_v2: {
+        Args: {
+          _address: string
+          _category?: string
+          _city: string
+          _group_id: string
+          _lat: number
+          _lng: number
+          _name: string
+        }
+        Returns: Json
+      }
       find_share_visit_duplicate_v1: {
         Args: { _target_group_id: string; _visit_id: string }
         Returns: Json
@@ -2764,6 +2780,10 @@ export type Database = {
         Args: { _group_id: string; _targets: Json }
         Returns: Json
       }
+      get_place_discovery_context_v1: {
+        Args: { _group_id: string }
+        Returns: Json
+      }
       get_place_external_info_context_v1: {
         Args: { _group_id: string; _place_id: string }
         Returns: Json
@@ -2831,6 +2851,15 @@ export type Database = {
         Returns: undefined
       }
       leave_group: { Args: { _group_id: string }; Returns: undefined }
+      link_canonical_place_to_group_v1: {
+        Args: {
+          _group_id: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id: string
+        }
+        Returns: Json
+      }
       link_provider_source_for_maintenance_v1: {
         Args: {
           _address: string
@@ -2888,6 +2917,10 @@ export type Database = {
           _place_id: string
         }
         Returns: Json
+      }
+      link_verified_maintenance_source_v1: {
+        Args: { _actor_id: string; _candidate_id: string; _data: Json }
+        Returns: string
       }
       list_group_hidden_place_suggestions: {
         Args: { _group_id: string }
@@ -3060,6 +3093,10 @@ export type Database = {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
       }
+      match_place_discovery_candidates_v1: {
+        Args: { _group_id: string; _items: Json }
+        Returns: Json
+      }
       next_stop_v2_assert_revision: {
         Args: { _expected_revision: number; _group_id: string }
         Returns: undefined
@@ -3175,6 +3212,20 @@ export type Database = {
         Args: { _kind: string; _work_item_id: string }
         Returns: string
       }
+      resolve_verified_provider_place_v1: {
+        Args: {
+          _actor_id: string
+          _choice?: string
+          _data: Json
+          _decisions?: Json
+          _group_id: string
+          _notes?: string
+          _occasions?: string[]
+          _place_id?: string
+          _provider_version?: string
+        }
+        Returns: Json
+      }
       resolve_visit_photo_delivery_v1: {
         Args: { _delivery_token: string; _viewer_id: string }
         Returns: Json
@@ -3273,6 +3324,17 @@ export type Database = {
         Returns: undefined
       }
       search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
+      search_canonical_places_v1: {
+        Args: {
+          _categories?: string[]
+          _centers: Json
+          _cuisines?: string[]
+          _group_id: string
+          _limit?: number
+          _text: string
+        }
+        Returns: Json
+      }
       select_next_stop_place_v2: {
         Args: {
           _expected_revision?: number
@@ -3709,3 +3771,4 @@ export const Constants = {
     Enums: {},
   },
 } as const
+

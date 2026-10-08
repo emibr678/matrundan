@@ -32,13 +32,29 @@ Geoapify-anrop sker server-side med serverhemligheten. Klienten skickar använda
 
 För `point` används providerfiltrering med cirkel runt centrum och vald radie.
 
-För `boundary` används provideridentiteten som sökfilter. Providerresultatet är sanningen för vilka matställen som matchar området; kartpolygonen är en presentation och får inte bli en separat säkerhets- eller filtreringsmekanism i live-läget.
+För `boundary` används provideridentiteten som sökfilter för externa träffar. Providerresultatet avgör deras områdesmedlemskap. Interna kanoniska kandidater saknar provideridentitet; för dem verifierar servern medlemskap mot den hämtade Polygon/MultiPolygon-gränsen, inklusive hål och öar. Klientens kartpolygon avgör aldrig live-resultatens medlemskap eller behörighet.
 
 Vid val av en boundary-kandidat skiljer resolverflödet på bred administrativ geografi och övriga boundary-kandidater. Kommuner, län, regioner och andra tydligt breda administrativa val går direkt till Boundaries API `part-of` med administrativ boundary och `geometry_1000`, eftersom Geoapifys autocomplete kan representera sådana namn med en punkt/node även när en separat administrativ boundary finns. Det undviker onödiga Place Details-anrop för exempelvis `Nacka kommun`. Om den direkta Boundaries-vägen inte ger en namnmatchad polygon får Place Details fortfarande fungera som robust fallback. För övriga boundary-kandidater verifieras kandidatens eget Geoapify-`place_id` först via Place Details; `details` är förstahandsval och `details.full_geometry` används bara som tillägg när standarddetaljerna saknar polygon, varefter Boundaries API är fallback. Boundaries-svar får endast accepteras när en Polygon/MultiPolygon har ett namn som motsvarar användarens valda områdesetikett; orten `Nacka` får exempelvis inte automatiskt bli `Nacka kommun`.
 
 När Boundaries API identifierar en separat boundary används boundaryns eget returnerade `place_id` som den kanoniska provideridentiteten för sökområdet. Samma identitet används senare i `filter=place:<place_id>` och för att hämta kartgeometrin igen. Autocomplete-punktens `place_id` får alltså inte sparas som boundaryidentitet när providern har löst den till en annan administrativ boundary. Bred administrativ geografi får inte sparas eller användas som ny punkt om ingen namnmatchad boundary kan verifieras. Mindre lokal geografi kan behålla punktbeteende när ingen gräns finns, eftersom den redan är säker i punkt + radie-modellen.
 
 Geoapifys proximity-bias får användas för stabil intern rangordning även när `filter=place:<place_id>` avgränsar en boundary. Ett sådant bias-avstånd är däremot avståndet till områdets representativa punkt, inte avståndet till kommunen eller dess gräns, och får därför aldrig presenteras som `km från <boundary>`. Användarsynligt avstånd hör bara till en faktisk `point`-match. Om samma matställe matchar både boundary och punkt ska punktmatchningens riktiga avstånd vinna för avståndspresentationen; en boundary-only-träff får i stället bära neutral områdeskontext.
+
+## Specifik namnsökning
+
+Places är primär sökväg. När första sidan för ett specifikt namn saknar relevanta
+träffar och är uttömd får servern använda Geocoding för högst tio namnfrön och
+prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
+genom Places väljer en enda paginerad sökström. Geocoding används bara som
+bias-ankare; både Geocoding och Places behåller ursprungligt circle-/place-filter.
+Resultat, identitet och matmetadata kommer alltid från Places.
+
+Valet cacheas kortlivat per ursprunglig namn-/områdesrequest utan offset eller
+API-nyckel. En fortsättningssida väljer samma ström från första sidan även om
+cachen saknas. En full primärsida utan relevanta träffar behåller ordinarie
+paginering. Avstånd för ankrade Places-träffar räknas från ursprungligt centrum;
+boundary-only-träffar visar fortsatt inget punktavstånd. Sökområdet flyttas eller
+utökas aldrig av namnankaret.
 
 ## Blandade områden och deduplicering
 

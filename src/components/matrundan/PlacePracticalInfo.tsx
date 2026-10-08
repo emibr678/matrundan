@@ -303,6 +303,11 @@ export function PlaceOpeningHoursInfo({ compact = false }: { compact?: boolean }
 
 export function PlacePracticalInfoPanel() {
   const { effectivePlace, hasExternalSource } = usePlacePracticalInfo();
+  const unverifiedLocation =
+    effectivePlace.origin === "manual" &&
+    (!Number.isFinite(effectivePlace.lat) || !Number.isFinite(effectivePlace.lng));
+  const locationLabel =
+    [effectivePlace.address, effectivePlace.city].filter(Boolean).join(", ") || "Plats saknas";
 
   return (
     <div
@@ -316,16 +321,28 @@ export function PlacePracticalInfoPanel() {
           hasExternalSource ? "pr-14" : "pr-3",
         )}
       >
-        <PlaceExternalLink
-          href={googleMapsUrl(effectivePlace)}
-          target="_blank"
-          rel="noreferrer"
-          icon={MapPin}
-          prefix={`${effectivePlace.address}, `}
-          tail={effectivePlace.city}
-          className="min-w-0 flex-1"
-          aria-label={`Öppna ${effectivePlace.name} i Google Maps`}
-        />
+        {unverifiedLocation ? (
+          <div className="flex min-w-0 flex-1 items-start gap-2 py-2 text-sm">
+            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span className="min-w-0">
+              <span className="block truncate">{locationLabel}</span>
+              <span className="block text-[11px] leading-tight text-muted-foreground">
+                Plats ej verifierad
+              </span>
+            </span>
+          </div>
+        ) : (
+          <PlaceExternalLink
+            href={googleMapsUrl(effectivePlace)}
+            target="_blank"
+            rel="noreferrer"
+            icon={MapPin}
+            prefix={`${effectivePlace.address}, `}
+            tail={effectivePlace.city}
+            className="min-w-0 flex-1"
+            aria-label={`Öppna ${effectivePlace.name} i Google Maps`}
+          />
+        )}
         {hasExternalSource ? (
           <div className="absolute inset-y-0 right-1 flex items-center">
             <PlaceLocationRefresh />

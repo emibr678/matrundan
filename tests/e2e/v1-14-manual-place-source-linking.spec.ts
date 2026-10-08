@@ -30,6 +30,7 @@ async function openManualAdd(page: Page) {
 }
 
 test("ett manuellt ställe behåller sin historik när en senare källa länkas", async ({ page }) => {
+  test.setTimeout(60_000);
   await page.setViewportSize({ width: 360, height: 800 });
   await page.goto("/matstallen?demo=1");
   await page.evaluate(() => {
@@ -48,7 +49,7 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   const manualDialog = await openManualAdd(page);
   await manualDialog.getByLabel("Namn").fill("Hagabackens Kafferum");
   const locationInput = manualDialog.getByPlaceholder("Sök adress eller plats");
-  await locationInput.fill("Haga, Göteborg");
+  await locationInput.fill("Backstigen 11, Göteborg");
   await locationInput.press("Enter");
   await expect(manualDialog.getByText(/Verifierad plats.*Haga.*Göteborg/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Manuellt tillägg på mobil");
@@ -63,23 +64,36 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const addDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const matchRegion = addDialog.getByRole("region", { name: "Möjliga matchningar i gruppen" });
-  await expect(matchRegion.getByText("Möjlig match i gruppen", { exact: true })).toBeVisible();
+  await expect(matchRegion.getByText("Är det samma ställe?", { exact: true })).toBeVisible();
   await expect(matchRegion.getByText(/Samma namn och kartposition i närheten/)).toBeVisible();
   await expectNoHorizontalOverflow(page, "Möjlig källmatchning på mobil");
-  await matchRegion.getByRole("button", { name: "Granska länk" }).click();
+  await addDialog.getByRole("button", { name: "Karta", exact: true }).click();
+  const map = addDialog.getByRole("region", {
+    name: "Karta över sökresultat och valda sökområden",
+    exact: true,
+  });
+  await expect(map).toHaveAttribute("data-map-ready", "true");
+  // Autocomplete selects the same result in either view; only the card CTA opens review.
+  await addDialog.getByRole("combobox", { name: "Sök matställen" }).fill("Hagabackens Kafferum");
+  await addDialog.getByRole("option", { name: /Hagabackens Kafferum/ }).click();
+  await expect(map.getByRole("button", { name: "Granska matchning" })).toBeVisible();
+  await expect(page.getByRole("alertdialog", { name: "Är det samma ställe?" })).toBeHidden();
+  await map.getByRole("button", { name: "Granska matchning" }).click();
 
   const confirmation = page.getByRole("alertdialog", {
-    name: "Länka till befintligt matställe?",
+    name: "Är det samma ställe?",
   });
-  await expect(confirmation.getByText(/Bara den externa källidentiteten länkas/)).toBeVisible();
+  await expect(confirmation.getByText(/Kartinformationen kompletterar/)).toBeVisible();
   await expect(
-    confirmation.getByText(/besök, omdömen och privata gruppuppgifter bevaras/),
+    confirmation.getByText(/Besök, omdömen och gruppuppgifter ligger kvar/),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Bekräftelse av källkoppling på mobil");
-  await confirmation.getByRole("button", { name: "Länka källa" }).click();
+  await page.screenshot({ path: "visual-review/issue-389-demo-source-comparison-mobile.png" });
+  await confirmation.getByRole("button", { name: "Ja, använd stället som redan finns" }).click();
   await expect(confirmation).toBeHidden();
 
   await expect(addDialog.getByText("1 ställe hanterat i den här omgången")).toBeVisible();
+  await expect(addDialog.getByText("Visar 0 träffar", { exact: true })).toHaveCount(0);
   const existingSection = addDialog
     .getByRole("button", { name: /Redan i gruppen \(\d+\)/ })
     .first();
