@@ -1108,6 +1108,14 @@ innehåll; återförsök skapar ingen ny aktivitet eller omdömesversion. Avstä
 innehållsval återkallar inte tidigare synlighet. Andra målgruppers lyckade
 transaktioner består om ett mål misslyckas.
 
+Typ av upplevelse överförs endast som ett uttryckligt användarval. Klienten
+föreslår den aktiva gruppkontextens typer; målprojektionen returnerar endast en
+boolean om klassificering redan finns. `share_visit_to_group_v6` omsluter den
+befintliga delningstransaktionen och fyller enbart en fortfarande tom
+`group_places.occasions`. UPDATE-predikatet revalideras efter eventuell låsväntan,
+så ett nyare val i målgruppen inte skrivs över. Ingen källgrupp läses implicit,
+ingen annan metadata kopieras och historiska reviewmodeller ändras inte.
+
 Konsekvensläsningen för egna kanoniska innehållsändringar returnerar endast
 booleaner om annan gruppsynlighet. Den kräver legitim aktuell gruppkontext;
 originalgruppens moderator kan också läsa bildkonsekvensen inför borttagning.

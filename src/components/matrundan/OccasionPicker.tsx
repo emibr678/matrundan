@@ -215,6 +215,7 @@ export function OccasionSummary({ value }: { value: Occasion[] }) {
 
 export function OccasionPicker({
   id,
+  label = "Typ av upplevelse",
   value,
   onChange,
   disabled = false,
@@ -224,6 +225,7 @@ export function OccasionPicker({
   showInstructions = true,
 }: {
   id: string;
+  label?: string;
   value: Occasion[];
   onChange: (value: Occasion[]) => void;
   disabled?: boolean;
@@ -245,7 +247,7 @@ export function OccasionPicker({
   return (
     <div className="space-y-2">
       <div className="flex min-h-11 items-center justify-between gap-2">
-        <Label id={`${id}-label`}>Typ av upplevelse</Label>
+        <Label id={`${id}-label`}>{label}</Label>
         {showGuide ? <OccasionGuide /> : null}
       </div>
       {showInstructions ? (

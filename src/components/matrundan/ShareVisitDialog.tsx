@@ -16,6 +16,9 @@ import { Label } from "@/components/ui/label";
 import { listVisitShareTargets, type VisitShareTarget } from "@/lib/matrundan/live-sharing";
 import { useSession } from "@/lib/matrundan/session";
 import { useVisitShareBatch } from "./useVisitShareBatch";
+import { useStore } from "@/lib/matrundan/store";
+import type { Occasion } from "@/lib/matrundan/types";
+import { VisitShareExperience } from "./VisitShareExperience";
 
 interface Props {
   visitId: string | null;
@@ -25,6 +28,8 @@ interface Props {
     groupIds: string[];
     shareComment: boolean;
     sharePhoto: boolean;
+    experience?: Occasion[];
+    experienceConfirmed?: boolean;
   } | null;
   onOpenChange: (open: boolean) => void;
   onShared: () => Promise<void> | void;
@@ -45,6 +50,10 @@ export function ShareVisitDialog({
   onShared,
 }: Props) {
   const { userGroups } = useSession();
+  const { state } = useStore();
+  const [experience, setExperience] = React.useState<Occasion[] | null>(null);
+  // null follows the visible suggestion; false is a persistent opt-out.
+  const [experienceSave, setExperienceConfirmed] = React.useState<boolean | null>(null);
   const [targets, setTargets] = React.useState<VisitShareTarget[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -68,6 +77,8 @@ export function ShareVisitDialog({
     setFailures([]);
     setShareComment(initialSelection?.shareComment ?? true);
     setSharePhoto(initialSelection?.sharePhoto ?? true);
+    setExperience(initialSelection?.experience ?? null);
+    setExperienceConfirmed(initialSelection?.experienceConfirmed ?? null);
     listVisitShareTargets(visitId)
       .then((rows) => {
         if (cancelled) return;
@@ -102,6 +113,15 @@ export function ShareVisitDialog({
   }, [currentGroupId, initialSelection, open, visitId]);
   const otherGroups = targets.filter((target) => target.groupId !== currentGroupId);
   const chosen = otherGroups.filter((target) => selected.includes(target.groupId));
+  const visit = state.visits.find((item) => item.id === visitId);
+  const suggestedExperience =
+    state.group.id === currentGroupId
+      ? (state.places.find((place) => place.id === visit?.placeId)?.occasions ?? [])
+      : [];
+  const experienceValue = experience ?? suggestedExperience;
+  const experienceConfirmed =
+    (experienceSave ?? true) && experienceValue.length > 0 && experienceValue.length <= 2;
+  const unclassified = chosen.filter((target) => !target.hasExperienceClassification);
   const hasComment = chosen.some(
     (target) => target.ownHasComment && (!target.alreadyLinked || !target.ownCommentShared),
   );
@@ -116,6 +136,9 @@ export function ShareVisitDialog({
     if (!visitId || submitting || jobs.length === 0) return;
     setSubmitting(true);
     setFailures([]);
+    // Keep this submitted draft intact if only some groups succeed.
+    setExperience([...experienceValue]);
+    setExperienceConfirmed(experienceConfirmed);
     try {
       const results = await batch.run(
         jobs.map((target) => ({
@@ -125,6 +148,10 @@ export function ShareVisitDialog({
           alreadyLinked: target.alreadyLinked,
           shareComment: target.ownHasComment && shareComment,
           sharePhoto: target.ownHasPhoto && sharePhoto,
+          confirmedExperience:
+            !target.hasExperienceClassification && experienceConfirmed
+              ? experienceValue
+              : undefined,
         })),
       );
       const successful = results.filter((result) => result.status === "success");
@@ -146,6 +173,9 @@ export function ShareVisitDialog({
               ? {
                   ...target,
                   alreadyLinked: true,
+                  hasExperienceClassification:
+                    target.hasExperienceClassification ||
+                    (experienceConfirmed && experienceValue.length > 0),
                   ownCommentShared:
                     target.ownCommentShared || (target.ownHasComment && shareComment),
                   ownPhotoShared: target.ownPhotoShared || (target.ownHasPhoto && sharePhoto),
@@ -340,6 +370,15 @@ export function ShareVisitDialog({
               </p>
             </div>
           ) : null}
+          <VisitShareExperience
+            id="share-experience"
+            groups={unclassified.map((target) => target.name)}
+            value={experienceValue}
+            onChange={setExperience}
+            confirmed={experienceConfirmed}
+            onConfirmedChange={setExperienceConfirmed}
+            disabled={submitting}
+          />
           {failures.length > 0 ? (
             <div role="alert" className="space-y-1 text-sm">
               <p className="font-medium">De här grupperna återstår</p>
@@ -369,8 +408,8 @@ export function ShareVisitDialog({
                   : jobs.length === 0
                     ? "Välj grupp"
                     : jobs.length === 1
-                      ? "Spara i vald grupp"
-                      : `Spara i ${jobs.length} grupper`}
+                      ? "Lägg till besöket"
+                      : `Lägg till besöket i ${jobs.length} grupper`}
             </Button>
           </DialogFooter>
         </DialogContent>

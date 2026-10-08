@@ -38,6 +38,10 @@ async function stabilize(page: Page) {
 }
 
 async function capture(page: Page, testInfo: TestInfo, name: string) {
+  const experience = page.getByTestId("share-experience");
+  if (name.startsWith("issue-396") && (await experience.count()) === 1) {
+    await experience.getByRole("checkbox").scrollIntoViewIfNeeded();
+  }
   const outputDirectory = path.join("visual-review", testInfo.project.name);
   await mkdir(outputDirectory, { recursive: true });
   await page.screenshot({ path: path.join(outputDirectory, `${name}.png`), fullPage: true });
@@ -198,7 +202,12 @@ function sourceState() {
   };
 }
 
-async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) {
+async function mockLive(
+  page: Page,
+  ownHasPhoto: boolean,
+  fromNextStop = false,
+  unclassified: string[] = [],
+) {
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
 
@@ -273,6 +282,7 @@ async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) 
             name: "Jobbgänget med ett lite längre namn",
             emoji: "🥘",
             placeExistsInGroup: true,
+            hasExperienceClassification: !unclassified.includes(TARGET_GROUP_ID),
             sharedVisitsCountForProgression: true,
           },
           {
@@ -280,6 +290,7 @@ async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) 
             name: "Stockholms skärgård",
             emoji: "🍣",
             placeExistsInGroup: false,
+            hasExperienceClassification: !unclassified.includes(SECOND_TARGET_GROUP_ID),
             sharedVisitsCountForProgression: false,
           },
         ]),
@@ -298,6 +309,7 @@ async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) 
             emoji: "🍕",
             alreadyLinked: false,
             placeExistsInGroup: true,
+            hasExperienceClassification: !unclassified.includes(SECOND_TARGET_GROUP_ID),
             externalParticipantCount: 1,
             visibleParticipants: [
               { id: USER_ID, name: "Kalle", avatar: "🙂", avatarImage: null, status: "active" },
@@ -315,6 +327,7 @@ async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) 
             emoji: "🥘",
             alreadyLinked: false,
             placeExistsInGroup: false,
+            hasExperienceClassification: !unclassified.includes(TARGET_GROUP_ID),
             externalParticipantCount: 2,
             visibleParticipants: [
               {
@@ -358,9 +371,9 @@ async function mockLive(page: Page, ownHasPhoto: boolean, fromNextStop = false) 
   });
 }
 
-async function openShareDialog(page: Page, ownHasPhoto: boolean) {
+async function openShareDialog(page: Page, ownHasPhoto: boolean, unclassified: string[] = []) {
   await seedSession(page);
-  await mockLive(page, ownHasPhoto);
+  await mockLive(page, ownHasPhoto, false, unclassified);
   await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
 
   const visitDialog = page.getByRole("dialog").first();
@@ -461,6 +474,7 @@ test("dölj bildvalet när användaren saknar egen bild", async ({ page }, testI
   const shareDialog = await openShareDialog(page, false);
 
   await expect(shareDialog.getByRole("switch", { name: "Dela min bild" })).toHaveCount(0);
+  await expect(shareDialog.getByTestId("share-experience")).toHaveCount(0);
   const commentSwitch = shareDialog.getByRole("switch", { name: "Dela min kommentar" });
   await expect(commentSwitch).toBeVisible();
   await expect(commentSwitch).toBeChecked();
@@ -505,131 +519,182 @@ test("fånga förenklad flergruppsdelning vid registrering", async ({ page }, te
   await capture(page, testInfo, "issue-179-registrera-flergruppsdelning");
 });
 
-test("flera målgrupper behåller lyckade resultat och återförsöker bara felande mål", async ({
-  page,
-}, testInfo) => {
-  const dialog = await openShareDialog(page, true);
-  await dialog.getByRole("button", { name: /Familjen/ }).click();
-  const writes: string[] = [];
-  let fail = true;
-  await page.route("**/rest/v1/rpc/share_visit_to_group_v5", async (route) => {
-    const body = route.request().postDataJSON();
-    expect(body._visit_id).toBe(VISIT_ID);
-    expect(body._share_own_comment).toBe(true);
-    expect(body._share_own_photo).toBe(true);
-    writes.push(body._target_group_id);
-    await route.fulfill({
-      status: body._target_group_id === TARGET_GROUP_ID && fail ? 400 : 200,
-      contentType: "application/json",
-      body:
-        body._target_group_id === TARGET_GROUP_ID && fail
+for (const saveExperience of [false, true]) {
+  test(`flera målgrupper behåller lyckade resultat och återförsöker bara felande mål (${saveExperience})`, async ({
+    page,
+  }, testInfo) => {
+    const dialog = await openShareDialog(page, true, [TARGET_GROUP_ID]);
+    await dialog.getByRole("button", { name: /Familjen/ }).click();
+    await expect(dialog.getByTestId("share-experience").getByRole("checkbox")).toBeChecked();
+    if (!saveExperience)
+      await dialog.getByTestId("share-experience").getByRole("checkbox").uncheck();
+    const writes: string[] = [];
+    let fail = true;
+    await page.route("**/rest/v1/rpc/share_visit_to_group_*", async (route) => {
+      const body = route.request().postDataJSON();
+      expect(body._visit_id).toBe(VISIT_ID);
+      expect(body._confirmed_occasions).toEqual(
+        body._target_group_id === TARGET_GROUP_ID && saveExperience ? ["avslappnat"] : undefined,
+      );
+      expect(body._share_own_comment).toBe(true);
+      expect(body._share_own_photo).toBe(true);
+      writes.push(body._target_group_id);
+      await route.fulfill({
+        status: body._target_group_id === TARGET_GROUP_ID && fail ? 400 : 200,
+        contentType: "application/json",
+        body:
+          body._target_group_id === TARGET_GROUP_ID && fail
+            ? JSON.stringify({ message: "Medlemskapet ändrades" })
+            : JSON.stringify(body._target_group_id),
+      });
+    });
+    await dialog.getByRole("button", { name: "Lägg till besöket i 2 grupper" }).click();
+    await expect(dialog.getByText("De här grupperna återstår")).toBeVisible();
+    await expect(dialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(dialog.getByRole("button", { name: /Jobbgänget/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expectNoHorizontalOverflow(page);
+    await expect(dialog.getByTestId("share-experience").getByRole("checkbox")).toBeChecked({
+      checked: saveExperience,
+    });
+    await capture(page, testInfo, `issue-398-partiell-framgang-${saveExperience}`);
+    fail = false;
+    await dialog.getByRole("button", { name: "Försök igen" }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(writes).toEqual([SECOND_TARGET_GROUP_ID, TARGET_GROUP_ID, TARGET_GROUP_ID]);
+  });
+}
+
+for (const confirmedExperience of [false, true]) {
+  test(`registreringsretry behåller avstängt kommentarval och väljer bara kvarvarande grupp (${confirmedExperience ? "med bekräftad typ" : "utan bekräftad typ"})`, async ({
+    page,
+  }, testInfo) => {
+    await seedSession(page);
+    await mockLive(page, false, false, [TARGET_GROUP_ID, SECOND_TARGET_GROUP_ID]);
+
+    let creates = 0;
+    const writes: Array<{ groupId: string; shareComment: boolean; experience?: string[] }> = [];
+    let retry = false;
+
+    await page.route("**/rest/v1/rpc/create_visit_with_review_v5", async (route) => {
+      creates++;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(VISIT_ID),
+      });
+    });
+    await page.route("**/rest/v1/rpc/find_registration_visit_duplicate_v2", async (route) => {
+      await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
+    });
+    await page.route(/\/rest\/v1\/rpc\/share_visit_to_group_v[56]$/, async (route) => {
+      const body = route.request().postDataJSON();
+      writes.push({
+        groupId: body._target_group_id,
+        shareComment: body._share_own_comment,
+        experience: body._confirmed_occasions,
+      });
+      const failsBeforeRetry = body._target_group_id === TARGET_GROUP_ID && !retry;
+      await route.fulfill({
+        status: failsBeforeRetry ? 400 : 200,
+        contentType: "application/json",
+        body: failsBeforeRetry
           ? JSON.stringify({ message: "Medlemskapet ändrades" })
           : JSON.stringify(body._target_group_id),
+      });
     });
+
+    await page.goto(`/matstallen/${PLACE_ID}`);
+    await page.getByRole("button", { name: "Registrera besök" }).click();
+    const form = page.getByRole("dialog", { name: "Registrera besök" });
+    await form.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: "Ett glas" }).click();
+    await form.getByLabel("Kommentar (frivilligt)").fill("Ska inte delas.");
+
+    const commentSwitch = form.getByRole("switch", { name: "Dela min kommentar" });
+    await expect(commentSwitch).toBeChecked();
+    await commentSwitch.click();
+    await expect(commentSwitch).not.toBeChecked();
+
+    await form.getByRole("checkbox", { name: "Dela besöket med Stockholms skärgård" }).click();
+    await form.getByRole("button", { name: "Spara besök", exact: true }).click();
+    const confirmation = page.getByRole("alertdialog", { name: "Spara besöket i 3 grupper?" });
+    await expect(
+      confirmation.getByRole("checkbox", {
+        name: "Spara de här typerna i Jobbgänget med ett lite längre namn och Stockholms skärgård",
+        exact: true,
+      }),
+    ).toBeChecked();
+    expect(writes).toHaveLength(0);
+    if (confirmedExperience) {
+      await confirmation
+        .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
+        .click();
+    } else {
+      await confirmation.getByRole("checkbox", { name: /Spara de här typerna i/ }).uncheck();
+    }
+    await confirmation.getByRole("button", { name: "Spara besöket i 3 grupper" }).click();
+
+    await expect.poll(() => creates).toBe(1);
+    await expect(form).toHaveCount(0);
+    await expect(page.getByText("Besöket kunde inte läggas till i alla grupper.")).toBeVisible();
+
+    retry = true;
+    await page.getByRole("button", { name: "Försök igen" }).click();
+
+    const retryDialog = page.getByRole("dialog", { name: "Lägg till besöket i fler grupper" });
+    await expect(retryDialog).toBeVisible();
+    await expect(retryDialog.getByRole("button", { name: /Jobbgänget/ })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(retryDialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(retryDialog.getByRole("switch", { name: "Dela min kommentar" })).not.toBeChecked();
+    await expect(retryDialog.getByRole("checkbox", { name: /Spara de här typerna i/ })).toBeChecked(
+      { checked: confirmedExperience },
+    );
+    if (confirmedExperience) {
+      await expect(
+        retryDialog.getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true }),
+      ).toHaveAttribute("aria-pressed", "true");
+      await expect(
+        retryDialog.getByRole("checkbox", { name: /Spara de här typerna i Jobbgänget/ }),
+      ).toBeChecked();
+    }
+    await expectNoHorizontalOverflow(page);
+    await stabilize(page);
+    await capture(page, testInfo, `issue-396-460-registreringsretry-${confirmedExperience}`);
+
+    await retryDialog.getByRole("button", { name: "Lägg till besöket", exact: true }).click();
+    await expect(retryDialog).toHaveCount(0);
+
+    expect(writes).toEqual([
+      {
+        groupId: TARGET_GROUP_ID,
+        shareComment: false,
+        experience: confirmedExperience ? ["avslappnat", "middag"] : undefined,
+      },
+      {
+        groupId: SECOND_TARGET_GROUP_ID,
+        shareComment: false,
+        experience: confirmedExperience ? ["avslappnat", "middag"] : undefined,
+      },
+      {
+        groupId: TARGET_GROUP_ID,
+        shareComment: false,
+        experience: confirmedExperience ? ["avslappnat", "middag"] : undefined,
+      },
+    ]);
   });
-  await dialog.getByRole("button", { name: "Spara i 2 grupper" }).click();
-  await expect(dialog.getByText("De här grupperna återstår")).toBeVisible();
-  await expect(dialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(dialog.getByRole("button", { name: /Jobbgänget/ })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expectNoHorizontalOverflow(page);
-  await capture(page, testInfo, "issue-398-partiell-framgang");
-  fail = false;
-  await dialog.getByRole("button", { name: "Försök igen" }).click();
-  await expect(dialog).toHaveCount(0);
-  expect(writes).toEqual([SECOND_TARGET_GROUP_ID, TARGET_GROUP_ID, TARGET_GROUP_ID]);
-});
-
-test("registreringsretry behåller avstängt kommentarval och väljer bara kvarvarande grupp", async ({
-  page,
-}, testInfo) => {
-  await seedSession(page);
-  await mockLive(page, false);
-
-  let creates = 0;
-  const writes: Array<{ groupId: string; shareComment: boolean }> = [];
-  let retry = false;
-
-  await page.route("**/rest/v1/rpc/create_visit_with_review_v5", async (route) => {
-    creates++;
-    await route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(VISIT_ID),
-    });
-  });
-  await page.route("**/rest/v1/rpc/find_registration_visit_duplicate_v2", async (route) => {
-    await route.fulfill({ status: 200, contentType: "application/json", body: "null" });
-  });
-  await page.route("**/rest/v1/rpc/share_visit_to_group_v5", async (route) => {
-    const body = route.request().postDataJSON();
-    writes.push({
-      groupId: body._target_group_id,
-      shareComment: body._share_own_comment,
-    });
-    const failsBeforeRetry = body._target_group_id === TARGET_GROUP_ID && !retry;
-    await route.fulfill({
-      status: failsBeforeRetry ? 400 : 200,
-      contentType: "application/json",
-      body: failsBeforeRetry
-        ? JSON.stringify({ message: "Medlemskapet ändrades" })
-        : JSON.stringify(body._target_group_id),
-    });
-  });
-
-  await page.goto(`/matstallen/${PLACE_ID}`);
-  await page.getByRole("button", { name: "Registrera besök" }).click();
-  const form = page.getByRole("dialog", { name: "Registrera besök" });
-  await form.getByRole("combobox").first().click();
-  await page.getByRole("option", { name: "Ett glas" }).click();
-  await form.getByLabel("Kommentar (frivilligt)").fill("Ska inte delas.");
-
-  const commentSwitch = form.getByRole("switch", { name: "Dela min kommentar" });
-  await expect(commentSwitch).toBeChecked();
-  await commentSwitch.click();
-  await expect(commentSwitch).not.toBeChecked();
-
-  await form.getByRole("checkbox", { name: "Dela besöket med Stockholms skärgård" }).click();
-  await form.getByRole("button", { name: "Spara besök", exact: true }).click();
-  const confirmation = page.getByRole("alertdialog", { name: "Spara besöket i 3 grupper?" });
-  await confirmation.getByRole("button", { name: "Spara i 3 grupper" }).click();
-
-  await expect.poll(() => creates).toBe(1);
-  await expect(form).toHaveCount(0);
-  await expect(page.getByText("Besöket kunde inte läggas till i alla grupper.")).toBeVisible();
-
-  retry = true;
-  await page.getByRole("button", { name: "Försök igen" }).click();
-
-  const retryDialog = page.getByRole("dialog", { name: "Lägg till besöket i fler grupper" });
-  await expect(retryDialog).toBeVisible();
-  await expect(retryDialog.getByRole("button", { name: /Jobbgänget/ })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(retryDialog.getByRole("button", { name: /Familjen/ })).not.toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
-  await expect(retryDialog.getByRole("switch", { name: "Dela min kommentar" })).not.toBeChecked();
-  await expectNoHorizontalOverflow(page);
-  await stabilize(page);
-  await capture(page, testInfo, "issue-460-registreringsretry");
-
-  await retryDialog.getByRole("button", { name: "Spara i vald grupp" }).click();
-  await expect(retryDialog).toHaveCount(0);
-
-  expect(writes).toEqual([
-    { groupId: TARGET_GROUP_ID, shareComment: false },
-    { groupId: SECOND_TARGET_GROUP_ID, shareComment: false },
-    { groupId: TARGET_GROUP_ID, shareComment: false },
-  ]);
-});
+}
 
 for (const fromNextStop of [false, true]) {
   test(`registrering bekräftar förvalda grupper före skrivning och behåller utkastet vid tillbaka (${fromNextStop ? "Hem" : "ställets sida"})`, async ({
@@ -682,7 +747,7 @@ for (const fromNextStop of [false, true]) {
     await confirmation.getByRole("button", { name: "Ändra grupper" }).click();
     await expect(form.getByLabel("Kommentar (frivilligt)")).toHaveValue("En fin kväll.");
     await form.getByRole("button", { name: "Spara besök", exact: true }).click();
-    await confirmation.getByRole("button", { name: "Spara i 2 grupper" }).click();
+    await confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" }).click();
     await expect.poll(() => creates).toBe(1);
     await expect(form).toHaveCount(0);
   });
@@ -725,4 +790,226 @@ test("registreraren redigerar ett delat besök utan att få tillgång till priva
   expect(updatePayload?._visited_on).toBe("2026-09-21");
   expect(updatePayload?._guests).toEqual([]);
   expect(updatePayload?._removed_guest_ids).toEqual([]);
+});
+
+for (const choice of ["default", "changed", "opt-out"] as const) {
+  test(`Typ av upplevelse följer dialogens synliga val (${choice})`, async ({ page }, testInfo) => {
+    const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
+    await dialog.getByRole("button", { name: /Familjen/ }).click();
+    const field = dialog.getByTestId("share-experience");
+    await expect(field.getByText(/Jobbgänget.*har inte valt någon typ ännu/)).toBeVisible();
+    await expect(field.getByText(/Familjen.*har inte valt någon typ ännu/)).toHaveCount(0);
+    await expect(
+      field.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }),
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(field.getByRole("checkbox")).toBeChecked();
+    if (choice === "changed") {
+      await field
+        .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
+        .click();
+    } else if (choice === "opt-out") {
+      await field
+        .getByText("Spara de här typerna i Jobbgänget med ett lite längre namn", { exact: true })
+        .click();
+      await field
+        .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
+        .click();
+      await dialog.getByRole("switch", { name: "Dela min kommentar" }).click();
+      await dialog.getByRole("button", { name: /Familjen/ }).click();
+      await dialog.getByRole("button", { name: /Familjen/ }).click();
+      await expect(field.getByRole("checkbox")).not.toBeChecked();
+    }
+    await expectNoHorizontalOverflow(page);
+    await capture(page, testInfo, `issue-396-confirm-${choice}`);
+    const writes: Array<{ rpc: string; body: Record<string, unknown> }> = [];
+    await page.route("**/rest/v1/rpc/share_visit_to_group_*", async (route) => {
+      const body = route.request().postDataJSON();
+      const rpc = new URL(route.request().url()).pathname.split("/").pop()!;
+      writes.push({ rpc, body });
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(body._target_group_id),
+      });
+    });
+    await dialog.getByRole("button", { name: "Lägg till besöket i 2 grupper" }).click();
+    await expect(dialog).toHaveCount(0);
+    const missing = writes.find((x) => x.body._target_group_id === TARGET_GROUP_ID)!;
+    const existing = writes.find((x) => x.body._target_group_id === SECOND_TARGET_GROUP_ID)!;
+    expect(existing.rpc).toBe("share_visit_to_group_v5");
+    expect(existing.body._confirmed_occasions).toBeUndefined();
+    expect(missing.rpc).toBe(
+      choice !== "opt-out" ? "share_visit_to_group_v6" : "share_visit_to_group_v5",
+    );
+    expect(missing.body._confirmed_occasions).toEqual(
+      choice === "opt-out"
+        ? undefined
+        : choice === "changed"
+          ? ["avslappnat", "middag"]
+          : ["avslappnat"],
+    );
+  });
+}
+
+for (const manual of [false, true]) {
+  test(`vidare delning tillåter tomt förslag och direkt typval (${manual})`, async ({
+    page,
+  }, testInfo) => {
+    await seedSession(page);
+    await mockLive(page, false, false, [TARGET_GROUP_ID]);
+    const appState = sourceState();
+    appState.visits[0].linkType = "shared";
+    appState.places[0].occasions = [];
+    await page.route("**/rest/v1/rpc/get_group_app_state_v5*", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(appState),
+      }),
+    );
+    await page.goto(`/besok?visit=${VISIT_ID}`);
+    await page.getByRole("button", { name: "Lägg till besöket i en annan grupp" }).click();
+    const dialog = page.getByRole("dialog", { name: "Lägg till besöket i fler grupper" });
+    await dialog.getByRole("button", { name: /Jobbgänget/ }).click();
+    const field = dialog.getByTestId("share-experience");
+    await expect(field.getByRole("button", { pressed: true })).toHaveCount(0);
+    await expect(field.getByRole("checkbox")).toBeDisabled();
+    await expect(
+      dialog.getByRole("button", { name: "Lägg till besöket", exact: true }),
+    ).toBeEnabled();
+    await expectNoHorizontalOverflow(page);
+    const writes: Record<string, unknown>[] = [];
+    await page.route("**/rest/v1/rpc/share_visit_to_group_*", async (route) => {
+      writes.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(TARGET_GROUP_ID),
+      });
+    });
+    if (manual) {
+      await field
+        .getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true })
+        .click();
+      await expect(field.getByRole("checkbox")).toBeChecked();
+      await field
+        .getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true })
+        .click();
+      await expect(field.getByRole("checkbox")).not.toBeChecked();
+      await expect(field.getByRole("checkbox")).toBeDisabled();
+      await field
+        .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
+        .click();
+      await expect(field.getByRole("checkbox")).toBeChecked();
+    }
+    expect(writes).toHaveLength(0);
+    await capture(page, testInfo, `issue-396-no-suggestion-${manual}`);
+    await dialog.getByRole("button", { name: "Lägg till besöket", exact: true }).click();
+    await expect(dialog).toHaveCount(0);
+    expect(writes[0]._confirmed_occasions).toEqual(manual ? ["middag"] : undefined);
+  });
+}
+
+for (const suggestion of ["default", "two"] as const) {
+  test(`registrering bekräftar synligt typval före delning (${suggestion})`, async ({
+    page,
+  }, testInfo) => {
+    await seedSession(page);
+    await mockLive(page, false, false, [TARGET_GROUP_ID]);
+    if (suggestion === "two") {
+      const appState = sourceState();
+      appState.places[0].occasions = ["avslappnat", "middag"];
+      await page.route("**/rest/v1/rpc/get_group_app_state_v5*", (route) =>
+        route.fulfill({
+          status: 200,
+          contentType: "application/json",
+          body: JSON.stringify(appState),
+        }),
+      );
+    }
+    const writes: Record<string, unknown>[] = [];
+    await page.route("**/rest/v1/rpc/create_visit_with_review_v5", (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(VISIT_ID),
+      }),
+    );
+    await page.route("**/rest/v1/rpc/find_registration_visit_duplicate_v2", (route) =>
+      route.fulfill({ status: 200, contentType: "application/json", body: "null" }),
+    );
+    await page.route("**/rest/v1/rpc/share_visit_to_group_*", async (route) => {
+      writes.push(route.request().postDataJSON());
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify(TARGET_GROUP_ID),
+      });
+    });
+    await page.goto(`/matstallen/${PLACE_ID}`);
+    await page.getByRole("button", { name: "Registrera besök" }).click();
+    const form = page.getByRole("dialog", { name: "Registrera besök" });
+    await form.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: "Ett glas" }).click();
+    await form.getByRole("button", { name: /^Spara besök(?: utan omdöme)?$/ }).click();
+    const confirmation = page.getByRole("alertdialog");
+    const field = confirmation.getByTestId("share-experience");
+    await expect(field.getByRole("checkbox")).toBeChecked();
+    expect(writes).toHaveLength(0);
+    await expectNoHorizontalOverflow(page);
+    await capture(page, testInfo, `issue-396-registration-${suggestion}`);
+    await confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" }).click();
+    await expect.poll(() => writes.length).toBe(1);
+    expect(writes[0]._confirmed_occasions).toEqual(
+      suggestion === "two" ? ["avslappnat", "middag"] : ["avslappnat"],
+    );
+  });
+}
+
+test("Typ av upplevelse räknar upp tre målgrupper på naturlig svenska", async ({
+  page,
+}, testInfo) => {
+  await seedSession(page);
+  await mockLive(page, false);
+  const names = ["Familjen", "Jobbgänget med ett lite längre namn", "Vännerna"];
+  await page.route("**/rest/v1/rpc/list_visit_share_targets_v6", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(
+        names.map((name, i) => ({
+          groupId: [
+            SECOND_TARGET_GROUP_ID,
+            TARGET_GROUP_ID,
+            "99999999-9999-4999-8999-999999999999",
+          ][i],
+          name,
+          emoji: "🍽️",
+          alreadyLinked: false,
+          placeExistsInGroup: true,
+          hasExperienceClassification: false,
+          externalParticipantCount: 0,
+          visibleParticipants: [],
+          relevantReviewCount: 1,
+          ownHasComment: true,
+          ownCommentShared: false,
+          ownHasPhoto: false,
+          ownPhotoShared: false,
+          sharedVisitsCountForProgression: true,
+        })),
+      ),
+    }),
+  );
+  await page.goto(`/besok?visit=${VISIT_ID}`);
+  await page.getByRole("button", { name: "Lägg till besöket i en annan grupp" }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till besöket i fler grupper" });
+  for (const name of names) await dialog.getByRole("button", { name: new RegExp(name) }).click();
+  await expect(
+    dialog.getByRole("checkbox", {
+      name: "Spara de här typerna i Familjen, Jobbgänget med ett lite längre namn och Vännerna",
+      exact: true,
+    }),
+  ).toBeChecked();
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, "issue-396-three-groups");
 });

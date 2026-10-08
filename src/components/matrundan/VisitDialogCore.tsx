@@ -54,6 +54,7 @@ import {
 } from "@/lib/matrundan/visit-duplicates";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { useVisitShareBatch } from "./useVisitShareBatch";
+import { VisitShareExperience } from "./VisitShareExperience";
 import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
@@ -98,6 +99,9 @@ export function VisitDialog({
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
   const [confirmGroups, setConfirmGroups] = React.useState(false);
+  const [shareExperience, setShareExperience] = React.useState<Occasion[] | null>(null);
+  // null follows the visible suggestion; false is a persistent opt-out.
+  const [shareExperienceSave, setShareExperienceConfirmed] = React.useState<boolean | null>(null);
   const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
@@ -109,6 +113,8 @@ export function VisitDialog({
       groupIds: string[];
       shareComment: boolean;
       sharePhoto: boolean;
+      experience?: Occasion[];
+      experienceConfirmed?: boolean;
     };
   } | null>(null);
   const [guestLinkPayload, setGuestLinkPayload] = React.useState<{
@@ -172,6 +178,8 @@ export function VisitDialog({
       setShareTargetsError(null);
       setShareGroupIds([]);
       setConfirmGroups(false);
+      setShareExperience(null);
+      setShareExperienceConfirmed(null);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -229,6 +237,14 @@ export function VisitDialog({
   const applicableOccasions = placeNeedsOccasionClassification
     ? reviewOccasions
     : currentPlace.occasions;
+  const shareExperienceValue = shareExperience ?? applicableOccasions;
+  const shareExperienceConfirmed =
+    (shareExperienceSave ?? true) &&
+    shareExperienceValue.length > 0 &&
+    shareExperienceValue.length <= 2;
+  const unclassifiedTargets = shareableGroups.filter(
+    (group) => shareGroupIds.includes(group.groupId) && !group.hasExperienceClassification,
+  );
   const reviewModel = scoredVisit
     ? reviewModelForContext({ isTakeaway, occasions: applicableOccasions })
     : null;
@@ -345,6 +361,11 @@ export function VisitDialog({
         label: shareableGroups.find((group) => group.groupId === groupId)?.name ?? "Gruppen",
         shareComment: hasComment && shareComment,
         sharePhoto: photoFile != null && photoError == null && sharePhoto,
+        confirmedExperience:
+          shareExperienceConfirmed &&
+          !shareableGroups.find((group) => group.groupId === groupId)?.hasExperienceClassification
+            ? shareExperienceValue
+            : undefined,
       })),
     );
     const remaining = results.filter(
@@ -395,6 +416,8 @@ export function VisitDialog({
                       groupIds: remaining.map((result) => result.job.groupId),
                       shareComment: hasComment && shareComment,
                       sharePhoto: photoFile != null && photoError == null && sharePhoto,
+                      experience: [...shareExperienceValue],
+                      experienceConfirmed: shareExperienceConfirmed,
                     },
                   }),
               }
@@ -947,6 +970,15 @@ export function VisitDialog({
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <VisitShareExperience
+            id="register-share-experience"
+            groups={unclassifiedTargets.map((group) => group.name)}
+            value={shareExperienceValue}
+            onChange={setShareExperience}
+            confirmed={shareExperienceConfirmed}
+            onConfirmedChange={setShareExperienceConfirmed}
+            disabled={isBusy}
+          />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
             <AlertDialogAction
@@ -957,7 +989,7 @@ export function VisitDialog({
                 void saveRegistration();
               }}
             >
-              Spara i {shareGroupIds.length + 1} grupper
+              Spara besöket i {shareGroupIds.length + 1} grupper
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

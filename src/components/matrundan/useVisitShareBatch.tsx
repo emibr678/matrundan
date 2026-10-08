@@ -50,7 +50,14 @@ export function useVisitShareBatch() {
             setCandidate(duplicate);
           }),
         share: (job, allow) =>
-          shareVisitToGroup(job.visitId, job.groupId, job.shareComment, allow, job.sharePhoto),
+          shareVisitToGroup(
+            job.visitId,
+            job.groupId,
+            job.shareComment,
+            allow,
+            job.sharePhoto,
+            job.confirmedExperience,
+          ),
       });
     } finally {
       running.current = false;

@@ -3444,6 +3444,17 @@ export type Database = {
         }
         Returns: string
       }
+      share_visit_to_group_v6: {
+        Args: {
+          _allow_strong_duplicate?: boolean
+          _confirmed_occasions?: string[]
+          _share_own_comment?: boolean
+          _share_own_photo?: boolean
+          _target_group_id: string
+          _visit_id: string
+        }
+        Returns: string
+      }
       shares_group: {
         Args: { _user_a: string; _user_b: string }
         Returns: boolean
