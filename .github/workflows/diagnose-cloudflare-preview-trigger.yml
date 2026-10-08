@@ -1,4 +1,4 @@
-name: Diagnose current Cloudflare branch build
+name: Trigger exact PR preview
 
 on:
   push:
@@ -9,66 +9,150 @@ permissions:
   contents: read
 
 concurrency:
-  group: diagnose-current-cloudflare-branch
+  group: trigger-exact-pr-preview
   cancel-in-progress: true
 
 jobs:
-  diagnose:
-    name: Find current PR preview build
+  preview:
+    name: Trigger and verify exact PR preview
     runs-on: ubuntu-24.04
-    timeout-minutes: 5
+    timeout-minutes: 8
     environment: staging
     env:
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       CLOUDFLARE_BUILDS_API_TOKEN: ${{ secrets.CLOUDFLARE_BUILDS_API_TOKEN }}
+      WORKER_ID: 7c8c82bbf93444ba9a46836c34dbae84
+      TRIGGER_UUID: 9d42b7f3-f017-48f4-ac3b-4612535d53b6
       TARGET_BRANCH: feature/389-canonical-place-discovery
       TARGET_SHA: 44358741918d2b432a2aebde88b54e0ee4d50120
-      WORKER_ID: 7c8c82bbf93444ba9a46836c34dbae84
 
     steps:
-      - name: List matching builds read-only
+      - name: Guard trigger and start exact build
+        id: build
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from "node:fs";
+
+          const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
+          const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
+          const worker = process.env.WORKER_ID?.trim();
+          const triggerUuid = process.env.TRIGGER_UUID?.trim();
+          const branch = process.env.TARGET_BRANCH?.trim();
+          const sha = process.env.TARGET_SHA?.trim();
+
+          if (!accountId || !token || !worker || !triggerUuid || !branch || !/^[0-9a-f]{40}$/.test(sha ?? "")) {
+            throw new Error("Missing or invalid preview build configuration.");
+          }
+
+          async function request(path, { method = "GET", body } = {}) {
+            const response = await fetch(
+              `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
+              {
+                method,
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  Accept: "application/json",
+                  ...(body ? { "Content-Type": "application/json" } : {}),
+                },
+                ...(body ? { body: JSON.stringify(body) } : {}),
+              },
+            );
+            const payload = await response.json();
+            if (!response.ok || payload?.success === false) {
+              const msg = (payload?.errors ?? []).map((e) => e?.message ?? e?.code).join("; ");
+              throw new Error(`Cloudflare API ${method} failed (HTTP ${response.status})${msg ? `: ${msg}` : ""}`);
+            }
+            return payload?.result;
+          }
+
+          const triggers = await request(`/builds/workers/${worker}/triggers`);
+          const trigger = (triggers ?? []).find((candidate) => candidate?.trigger_uuid === triggerUuid);
+          if (!trigger) throw new Error("Verified preview trigger not found.");
+
+          const same = (a, b) => JSON.stringify([...(a ?? [])].sort()) === JSON.stringify([...b].sort());
+          if (
+            trigger?.trigger_name !== "Deploy non-production branches" ||
+            trigger?.build_command !== "bun run cloudflare:build" ||
+            trigger?.deploy_command !== "npx wrangler versions upload --env staging" ||
+            !same(trigger?.branch_includes, ["*"]) ||
+            !same(trigger?.branch_excludes, ["main"]) ||
+            trigger?.root_directory !== "/"
+          ) {
+            throw new Error("Refusing manual preview: Cloudflare trigger no longer matches verified contract.");
+          }
+
+          const build = await request(`/builds/triggers/${triggerUuid}/builds`, {
+            method: "POST",
+            body: { branch, commit_hash: sha },
+          });
+          if (!build?.build_uuid) throw new Error("Cloudflare did not return a build UUID.");
+
+          console.log(JSON.stringify({ branch, commit_hash: sha, build_uuid: build.build_uuid }, null, 2));
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `uuid=${build.build_uuid}\n`);
+          NODE
+
+      - name: Poll exact preview and verify health
+        env:
+          BUILD_UUID: ${{ steps.build.outputs.uuid }}
         shell: bash
         run: |
           set -euo pipefail
           node --input-type=module <<'NODE'
           const accountId = process.env.CLOUDFLARE_ACCOUNT_ID?.trim();
           const token = process.env.CLOUDFLARE_BUILDS_API_TOKEN?.trim();
+          const uuid = process.env.BUILD_UUID?.trim();
           const branch = process.env.TARGET_BRANCH?.trim();
-          const targetSha = process.env.TARGET_SHA?.trim();
-          const worker = process.env.WORKER_ID?.trim();
+          const sha = process.env.TARGET_SHA?.trim();
 
-          async function get(path) {
+          async function getBuild() {
             const response = await fetch(
-              `https://api.cloudflare.com/client/v4/accounts/${accountId}${path}`,
+              `https://api.cloudflare.com/client/v4/accounts/${accountId}/builds/builds/${uuid}`,
               { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } },
             );
             const payload = await response.json();
-            if (!response.ok || payload?.success === false) {
-              throw new Error(`Cloudflare GET failed HTTP ${response.status}`);
-            }
+            if (!response.ok || payload?.success === false) throw new Error("Cloudflare build read failed.");
             return payload?.result;
           }
 
-          const list = await get(`/builds/workers/${worker}/builds`);
-          const builds = (Array.isArray(list) ? list : [])
-            .filter((b) => b?.build_trigger_metadata?.branch === branch)
-            .slice(0, 15)
-            .map((b) => ({
-              build_uuid: b?.build_uuid,
-              status: b?.status,
-              outcome: b?.build_outcome,
-              commit_hash: b?.build_trigger_metadata?.commit_hash,
-              source: b?.build_trigger_metadata?.build_trigger_source,
-              created_on: b?.created_on,
-              stopped_on: b?.stopped_on,
-              modified_on: b?.modified_on,
-              preview_url: b?.preview_url ?? null,
-            }));
+          let build;
+          for (let attempt = 1; attempt <= 60; attempt++) {
+            build = await getBuild();
+            console.log(`attempt ${attempt}: ${build?.status ?? "unknown"} / ${build?.build_outcome ?? "pending"}`);
+            if (build?.status === "stopped") break;
+            await new Promise((resolve) => setTimeout(resolve, 3000));
+          }
 
-          console.log("MATCHING_BRANCH_BUILDS");
-          console.log(JSON.stringify(builds, null, 2));
+          if (build?.status !== "stopped" || build?.build_outcome !== "success") {
+            throw new Error(`Exact preview build did not succeed: ${build?.status ?? "unknown"} / ${build?.build_outcome ?? "unknown"}`);
+          }
 
-          const exact = builds.find((b) => b.commit_hash === targetSha);
-          console.log("EXACT_TARGET");
-          console.log(JSON.stringify(exact ?? null, null, 2));
+          const metadata = build?.build_trigger_metadata ?? {};
+          if (metadata?.branch !== branch || metadata?.commit_hash !== sha) {
+            throw new Error("Exact preview metadata does not match requested branch/SHA.");
+          }
+          if (metadata?.build_command !== "bun run cloudflare:build" ||
+              metadata?.deploy_command !== "npx wrangler versions upload --env staging") {
+            throw new Error("Exact preview used unexpected build/deploy commands.");
+          }
+
+          const previewUrl = build?.preview_url;
+          if (!previewUrl) throw new Error("Cloudflare exact preview URL is missing.");
+
+          const healthResponse = await fetch(new URL("/api/health", previewUrl));
+          if (!healthResponse.ok) throw new Error(`Preview health failed HTTP ${healthResponse.status}`);
+          const health = await healthResponse.json();
+          if (health?.release !== sha) {
+            throw new Error(`Preview health mismatch: expected ${sha}, got ${health?.release ?? "missing"}`);
+          }
+
+          console.log("EXACT_PREVIEW_VERIFIED");
+          console.log(JSON.stringify({
+            build_uuid: uuid,
+            preview_url: previewUrl,
+            branch: metadata.branch,
+            commit_hash: metadata.commit_hash,
+            health_release: health.release,
+          }, null, 2));
           NODE
