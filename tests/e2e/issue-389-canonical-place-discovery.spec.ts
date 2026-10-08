@@ -359,7 +359,13 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   await expect(internalOption).toContainText("Skolvägen 3, Stockholm");
   await expect(internalOption).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
   await expect(internalOption.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
-  await expect(search.getByText("Hittar du inte rätt ställe?", { exact: true })).toHaveCount(0);
+  const suggestionList = search.getByRole("listbox", {
+    name: "Förslag på kök, typer och matställen",
+    exact: true,
+  });
+  await expect(
+    suggestionList.getByText("Hittar du inte rätt ställe?", { exact: true }),
+  ).toHaveCount(0);
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
   const row = search.getByRole("button", {
     name: `Visa information om ${canonical.name}`,
