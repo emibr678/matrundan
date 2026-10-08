@@ -132,11 +132,15 @@ iteration. A Cloudflare branch preview may be handed off as **iterationspreview 
 full CI ej körd** after targeted self-review; do not make early user feedback wait
 for candidate CI.
 
-Use the stable Cloudflare Branch Preview URL for all interactive browser
-verification. After every new branch build, check `/api/health` and require its
-`release` to match the current PR head before testing. Use the immutable commit
-preview only for final exact-SHA verification. Keep the branch URL across pushes
-so the signed-in browser session can be reused.
+Use the stable Cloudflare Branch Preview URL **root path** for interactive
+browser and user tests; reuse the signed-in session across pushes. Check
+`/api/health` separately to verify the release against the current PR head.
+If health fails or is unreachable, diagnose it but also try the app root: a
+health failure alone does not prove the UI is unavailable. Exploratory UI testing
+may continue, explicitly labelled **head/version unverified**, but must not be
+reported as verified for the current PR head or merge-ready. For requested user
+tests, actually navigate and interact with the app; health is not a user test.
+Use the immutable commit preview for final exact-SHA verification.
 
 When the PR is ready, follow the current head SHA and the canonical **CI /
 required** gate rather than polling every sub-workflow. On failure, diagnose the
@@ -169,9 +173,11 @@ After a candidate or merge, use the visually structured chat receipt in
 merge, Lovable, database or publication status. Always include the `Preview:`
 field. Before handing off a GUI candidate, read the canonical `Mobile PR handoff`
 comment for the current PR head and use its verified commit preview for the final
-exact-SHA check. Link the stable branch preview in chat after checking its health
-against the same head. If the candidate has no rendered surface, state
-`Preview: Inte relevant` with a short reason instead of omitting the field.
+exact-SHA check. Link the stable branch preview in a verified handoff only after
+its health matches the same head. An exploratory link with failed health must be
+clearly labelled unverified, never **Redo att testa** as an exact candidate.
+If the candidate has no rendered surface, state `Preview: Inte relevant` with a
+short reason instead of omitting the field.
 
 ## Documentation lifecycle
 
