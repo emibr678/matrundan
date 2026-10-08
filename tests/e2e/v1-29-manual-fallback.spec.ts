@@ -110,7 +110,6 @@ test("exempelgruppen återanvänder ett arkiverat kanoniskt ställe med samma pl
   await expect(page.getByRole("heading", { name: "Lägg till matställe" })).toHaveCount(0);
 });
 
-
 test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 800 });
   await openSearchDialog(page);
@@ -130,7 +129,9 @@ test("fri platstext kräver ett uttryckligt val och märks som ej verifierad", a
   ).toBeVisible();
   await expect(page.getByRole("heading", { name: "Stället saknas i sökningen" })).toBeVisible();
   await expect(
-    page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth),
+    page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
+    ),
   ).resolves.toBe(false);
 
   await confirmation
@@ -166,9 +167,7 @@ test("ändrad fri text efter ett verifierat val rensar verifieringsstatus", asyn
 
   await location.fill("Degvägen 48");
   await expect(page.getByText(/Verifierad plats/)).toHaveCount(0);
-  await expect(
-    page.getByText(/Välj en träff i listan för att bekräfta platsen/),
-  ).toBeVisible();
+  await expect(page.getByText(/Välj en träff i listan för att bekräfta platsen/)).toBeVisible();
 
   await page.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(page.getByTestId("unverified-location-confirmation")).toBeVisible();

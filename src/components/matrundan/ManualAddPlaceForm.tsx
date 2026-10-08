@@ -651,8 +651,8 @@ export function ManualAddPlaceForm({
           <div className="space-y-1">
             <p className="text-sm font-medium">Platsen är inte verifierad</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Du kan använda stället i den här gruppen ändå. Det syns inte på kartan eller när
-              andra grupper söker efter stället förrän platsen verifierats.
+              Du kan använda stället i den här gruppen ändå. Det syns inte på kartan eller när andra
+              grupper söker efter stället förrän platsen verifierats.
             </p>
           </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
