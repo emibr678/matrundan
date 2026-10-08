@@ -331,8 +331,9 @@ Under draft-/UX-iteration får en användartestpunkt komma tidigare: ange då
 **Preview:** med den stabila branchpreviewn och redovisa health-/versionsstatus.
 Märk den **iterationspreview – full CI ej körd** och, om health inte kunnat
 verifieras mot aktuell head, även **versionskontroll ej verifierad**. Det får
-användas för utforskande feedback men inte beskrivas som verifierad kandidat. Det kanoniska `Mobile PR handoff`-
-kvittot skapas först efter grön **CI / required** för aktuell head-SHA.
+användas för utforskande feedback men inte beskrivas som verifierad kandidat.
+Det kanoniska `Mobile PR handoff`-kvittot skapas först efter grön
+**CI / required** för aktuell head-SHA.
 
 När en verklig handoff nås:
 
