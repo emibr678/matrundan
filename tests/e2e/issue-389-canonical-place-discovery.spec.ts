@@ -235,7 +235,11 @@ async function setup(
     let reply: unknown = [];
     const projectedCanonical = {
       ...canonical,
-      groupStatus: options.archived ? "archived" : options.active ? "active" : canonical.groupStatus,
+      groupStatus: options.archived
+        ? "archived"
+        : options.active
+          ? "active"
+          : canonical.groupStatus,
     };
     if (name.startsWith("searchPlaceDiscovery"))
       reply = {
@@ -424,8 +428,12 @@ test("befintligt ställe visar inte en falsk nollträffssektion", async ({ page 
 
   await expect(search.getByText("Visar 0 träffar", { exact: true })).toHaveCount(0);
   await expect(search.getByText("Ställen att lägga till", { exact: true })).toHaveCount(0);
-  await expect(search.getByText("Inga nya ställen i den här sökningen.", { exact: true })).toHaveCount(0);
-  await expect(search.getByRole("button", { name: "Redan i gruppen (1)", exact: true })).toBeVisible();
+  await expect(
+    search.getByText("Inga nya ställen i den här sökningen.", { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    search.getByRole("button", { name: "Redan i gruppen (1)", exact: true }),
+  ).toBeVisible();
   await noOverflow(page);
 });
 
