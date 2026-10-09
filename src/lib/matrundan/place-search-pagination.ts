@@ -127,7 +127,10 @@ export function selectMapCandidates(
   }
   const counts = new Map<string, number>();
   const indexes = new Map<string, number>();
-  for (const id of areaIds) { counts.set(id, 0); indexes.set(id, 0); }
+  for (const id of areaIds) {
+    counts.set(id, 0);
+    indexes.set(id, 0);
+  }
   while (selected.length < totalLimit) {
     let added = false;
     for (const id of areaIds) {

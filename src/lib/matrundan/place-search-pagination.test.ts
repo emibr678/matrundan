@@ -152,8 +152,12 @@ describe("handlingsbara sidor", () => {
 describe("kartpool per sökområde", () => {
   test("flera områden får representation och högst 100 kandidater var", () => {
     const source = [
-      ...Array.from({ length: 140 }, (_, i) => suggestion({ externalId: "a-" + i, nearestAreaId: "a" })),
-      ...Array.from({ length: 60 }, (_, i) => suggestion({ externalId: "b-" + i, nearestAreaId: "b" })),
+      ...Array.from({ length: 140 }, (_, i) =>
+        suggestion({ externalId: "a-" + i, nearestAreaId: "a" }),
+      ),
+      ...Array.from({ length: 60 }, (_, i) =>
+        suggestion({ externalId: "b-" + i, nearestAreaId: "b" }),
+      ),
     ];
     const selected = selectMapCandidates(source, ["a", "b"]);
     expect(selected).toHaveLength(160);
@@ -163,7 +167,6 @@ describe("kartpool per sökområde", () => {
     expect(source[0].externalId).toBe("a-0");
   });
   test("legacy results without area IDs are retained", () => {
-    expect(selectMapCandidates([suggestion({ externalId: "legacy" })], ["a"]))
-      .toHaveLength(1);
+    expect(selectMapCandidates([suggestion({ externalId: "legacy" })], ["a"])).toHaveLength(1);
   });
 });

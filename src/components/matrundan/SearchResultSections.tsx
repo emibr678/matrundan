@@ -113,7 +113,9 @@ export function SearchResultSections({
         return undefined;
       return (
         <div className="space-y-1.5">
-          {supporting ? <span className="text-[11px] text-muted-foreground">{supporting}</span> : null}
+          {supporting ? (
+            <span className="text-[11px] text-muted-foreground">{supporting}</span>
+          ) : null}
           {signal?.closureStatus !== "none" ? <PlaceDataSignalBadge signal={signal} /> : null}
           <OwnPlaceSuggestionReportBadge active={ownReportOpen} />
         </div>

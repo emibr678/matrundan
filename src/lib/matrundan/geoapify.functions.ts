@@ -473,9 +473,7 @@ async function searchProviderAreas(
       const matchingAreaLabels = Array.from(
         new Set([...(current?.matchingAreaLabels ?? []), center.label]),
       );
-      const matchingAreaIds = Array.from(
-        new Set([...(current?.matchingAreaIds ?? []), center.id]),
-      );
+      const matchingAreaIds = Array.from(new Set([...(current?.matchingAreaIds ?? []), center.id]));
       const preferNext =
         !current ||
         (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
