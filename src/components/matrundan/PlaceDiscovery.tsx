@@ -1402,6 +1402,8 @@ function PlaceSearchCombobox({
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
   const inputRef = React.useRef<HTMLInputElement>(null);
+  const blurTimeoutRef = React.useRef<number | null>(null);
+  const touchedOptionRef = React.useRef(false);
   const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
     kind: "generic",
     key: suggestion.id,
@@ -1430,6 +1432,10 @@ function PlaceSearchCombobox({
   React.useEffect(() => {
     setActiveIx(-1);
   }, [query]);
+
+  React.useEffect(() => () => {
+    if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
+  }, []);
 
   React.useEffect(() => {
     if (!focused || !window.matchMedia("(max-width: 1023px)").matches) return;
@@ -1529,8 +1535,20 @@ function PlaceSearchCombobox({
                   "flex w-full min-w-0 items-center gap-2 rounded px-2 py-2 text-left hover:bg-accent",
                   optionIndex === activeIx ? "bg-accent" : "",
                 ].join(" ")}
+                onPointerDown={(event) => {
+                  if (event.pointerType !== "touch") return;
+                  event.preventDefault();
+                  touchedOptionRef.current = true;
+                  select(option);
+                }}
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => select(option)}
+                onClick={() => {
+                  if (touchedOptionRef.current) {
+                    touchedOptionRef.current = false;
+                    return;
+                  }
+                  select(option);
+                }}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block min-w-0 break-words font-medium text-foreground">
@@ -1572,15 +1590,19 @@ function PlaceSearchCombobox({
             setOpen(true);
           }}
           onFocus={() => {
+            if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
+            blurTimeoutRef.current = null;
             setOpen(true);
             onFocusChange(true);
           }}
-          onBlur={() =>
-            window.setTimeout(() => {
+          onBlur={() => {
+            if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
+            blurTimeoutRef.current = window.setTimeout(() => {
               setOpen(false);
               onFocusChange(false);
-            }, 150)
-          }
+              blurTimeoutRef.current = null;
+            }, 150);
+          }}
           onKeyDown={onKeyDown}
           autoComplete="off"
           role="combobox"

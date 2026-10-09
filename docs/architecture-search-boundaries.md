@@ -42,9 +42,12 @@ Geoapifys proximity-bias får användas för stabil intern rangordning även nä
 
 ## Specifik namnsökning
 
-Places är primär sökväg. När första sidan för ett specifikt namn saknar relevanta
-träffar och är uttömd får servern använda Geocoding för högst tio namnfrön och
-prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
+Places är primär sökväg. Vid aktiv namnsökning kan en enda begränsad
+kandidatradie användas redan i primärhämtningen, med tydlig märkning av
+träffar utanför valt avstånd. Vid utebliven stark träff provas först en
+kort, geografiskt begränsad namnankarsökning via Places. Först om den
+saknar rimliga namn- eller stavfelskandidater får servern använda Geocoding
+för högst tio namnfrön och prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
 genom Places väljer en enda paginerad sökström. Geocoding används bara som
 bias-ankare; både Geocoding och Places behåller ursprungligt circle-/place-filter.
 Resultat, identitet och matmetadata kommer alltid från Places.

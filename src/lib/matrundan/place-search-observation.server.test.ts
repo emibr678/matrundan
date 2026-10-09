@@ -23,10 +23,13 @@ test("concurrent search observations remain isolated and include failed calls", 
   expect(second.observation.phaseMs.sources).toBe(0);
   expect(first.observation.candidates.primary).toBe(2);
   expect(second.observation.candidates.primary).toBe(0);
+  expect(first.observation.providerCalls.other).toBe(2);
+  expect(second.observation.providerCalls.other).toBe(1);
   expect(Object.keys(first.observation).sort()).toEqual([
     "candidates",
     "elapsedMs",
     "failures",
+    "providerCalls",
     "providerFeatures",
     "providerMs",
     "phaseMs",

@@ -6,6 +6,7 @@ type Observation = {
   failures: number;
   providerFeatures: number;
   providerMs: number;
+  providerCalls: { places: number; geocoding: number; other: number };
   phaseMs: { access: number; sources: number; recovery: number; identity: number };
   candidates: { primary: number; canonical: number; nearby: number; typo: number };
 };
@@ -22,6 +23,7 @@ export async function observePlaceSearch<T extends object>(
     failures: 0,
     providerFeatures: 0,
     providerMs: 0,
+    providerCalls: { places: 0, geocoding: 0, other: 0 },
     phaseMs: { access: 0, sources: 0, recovery: 0, identity: 0 },
     candidates: { primary: 0, canonical: 0, nearby: 0, typo: 0 },
   };
@@ -39,10 +41,12 @@ export function observeSearchWithBudget(limits: { requests: number; credits: num
 
 export async function observeProviderRequest<T extends { features?: unknown[] }>(
   run: () => Promise<T>,
+  kind: keyof Observation["providerCalls"] = "other",
 ): Promise<T> {
   const counters = observation.getStore();
   if (!counters) return run();
   counters.requests += 1;
+  counters.providerCalls[kind] += 1;
   const started = performance.now();
   try {
     const result = await run();

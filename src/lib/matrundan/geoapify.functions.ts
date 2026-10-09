@@ -175,7 +175,14 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
   return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
     budgetProviderRequest(estimatedGeoapifyCredits(url), () =>
-      observeProviderRequest(() => fetchGeoapify(url)),
+      observeProviderRequest(
+        () => fetchGeoapify(url),
+        url.pathname === "/v2/places"
+          ? "places"
+          : url.pathname.includes("/geocode/")
+            ? "geocoding"
+            : "other",
+      ),
     ),
   );
 }
