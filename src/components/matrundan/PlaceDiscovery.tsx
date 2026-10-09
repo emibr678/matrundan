@@ -177,6 +177,7 @@ export function PlaceDiscovery({
     snapshot?.budgetRemaining ?? AUTO_SEARCH_BUDGET,
   );
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const [queuedMore, setQueuedMore] = React.useState(false);
   const [mapFilling, setMapFilling] = React.useState(false);
   const completedMapFillKeyRef = React.useRef<string | null>(null);
   const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
@@ -478,6 +479,7 @@ export function PlaceDiscovery({
       setNextOffset(0);
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
+      setQueuedMore(false);
       return;
     }
     const requestId = ++requestRef.current;
@@ -622,7 +624,12 @@ export function PlaceDiscovery({
       setDisplayLimit(targetActionable);
       if (bufferedActionableCount >= targetActionable) return;
     }
-    if (!hasMore || !isLive || loadingMore || mapFilling) return;
+    if (mapFilling) {
+      // Preserve the user's explicit "Visa fler" action while map refill settles.
+      setQueuedMore(true);
+      return;
+    }
+    if (!hasMore || !isLive || loadingMore) return;
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -664,12 +671,20 @@ export function PlaceDiscovery({
   ]);
 
   React.useEffect(() => {
+    if (!mapFilling && queuedMore) {
+      setQueuedMore(false);
+      void showMoreResults();
+    }
+  }, [mapFilling, queuedMore, showMoreResults]);
+
+  React.useEffect(() => {
     if (
       !isLive ||
       !groupId ||
       hiddenLoading ||
       loading ||
       loadingMore ||
+      queuedMore ||
       mapFilling ||
       !hasMore ||
       results.length === 0 ||
@@ -740,6 +755,7 @@ export function PlaceDiscovery({
     loading,
     loadingMore,
     mapFilling,
+    queuedMore,
     nextOffset,
     query,
     radiusKm,
@@ -1090,7 +1106,7 @@ export function PlaceDiscovery({
                     variant="secondary"
                     size="sm"
                     className="min-h-11 w-full sm:w-auto"
-                    disabled={loadingMore || mapFilling || interactionsDisabled}
+                    disabled={loadingMore || interactionsDisabled}
                     onClick={() => void showMoreResults()}
                   >
                     {loadingMore ? (
