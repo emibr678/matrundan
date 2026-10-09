@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
@@ -49,6 +50,8 @@ type SearchInput = {
   radiusKm: 1 | 2 | 5 | 25 | null;
   limit?: number;
   offset?: number;
+  areaOffsets?: Record<string, number>;
+  exhaustedAreaIds?: string[];
 };
 
 /** Execute the actual server handlers with only framework/auth and HTTP stubs.
@@ -84,6 +87,7 @@ function adapter(
         URL,
         AbortController,
         DOMException,
+        performance,
         setTimeout,
         clearTimeout,
         process: { env: { GEOAPIFY_API_KEY: "fixture-only-secret" } },
@@ -97,6 +101,7 @@ function adapter(
           return { status, ok: status === 200, json: async () => ({ features: result.features }) };
         },
         require: (specifier: string) => {
+          if (specifier === "node:async_hooks") return { AsyncLocalStorage };
           if (specifier === "zod") return { z };
           if (specifier === "@/integrations/supabase/auth-middleware")
             return { requireSupabaseAuth: {} };
@@ -447,4 +452,31 @@ describe("namn-fallback tillsammans med kanonisk discovery (#389 + #464)", () =>
     ).toBe(true);
     expect(db.calls.some((c) => c.name === "match_place_discovery_candidates_v1")).toBe(false);
   });
+});
+
+
+test("multi-area continuation skips exhausted areas and preserves independent offsets", async () => {
+  const other = { ...area, id: "other", label: "Norr", lat: 59.4 };
+  const input: SearchInput = { text: "", centers: [area, other], radiusKm: 1 };
+  const a = adapter((url) => {
+    if (url.searchParams.get("filter")?.includes("59.4"))
+      return { features: [place("other-place", "Norrs restaurang")] };
+    return {
+      features: url.searchParams.get("offset") === "20"
+        ? [place("later-place", "Senare restaurang")]
+        : Array.from({ length: 20 }, (_, i) => place("first-" + i, "Restaurang " + i)),
+    };
+  });
+  const first = await a.multi(input);
+  expect(first.results).toHaveLength(21);
+  expect(first.exhaustedAreaIds).toContain("other");
+  expect(first.areaOffsets[area.id]).toBe(20);
+  const second = await a.multi({
+    ...input, areaOffsets: first.areaOffsets, exhaustedAreaIds: first.exhaustedAreaIds,
+  });
+  expect(second.results.map((row) => row.externalId)).toEqual(["later-place"]);
+  expect(second.exhaustedAreaIds).toEqual(expect.arrayContaining(["other", area.id]));
+  expect(a.calls.filter((url) => url.searchParams.get("filter")?.includes("59.4"))).toHaveLength(1);
+  expect(a.calls.find((url) => url.searchParams.get("offset") === "20")?.searchParams.get("filter"))
+    .toBe("circle:18.0710935,59.3251172,1000");
 });

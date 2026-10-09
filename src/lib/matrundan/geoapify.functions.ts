@@ -84,6 +84,9 @@ export interface MultiAreaSearchResponse {
   failedAreaLabels: string[];
   hasMore: boolean;
   nextOffset: number;
+  areaOffsets: Record<string, number>;
+  exhaustedAreaIds: string[];
+  failedAreaIds: string[];
 }
 
 export interface SearchAreaBoundaryResponse {
@@ -402,13 +405,18 @@ const multiAreaInputSchema = z.object({
   radiusKm: radiusSchema,
   limit: z.number().int().min(1).max(50).optional(),
   offset: z.number().int().min(0).max(10_000).optional(),
+  areaOffsets: z.record(z.number().int().min(0).max(10_000)).optional(),
+  exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
 });
 
 async function searchProviderAreas(
   data: z.infer<typeof multiAreaInputSchema>,
 ): Promise<MultiAreaSearchResponse> {
+  const exhausted = new Set(data.exhaustedAreaIds ?? []);
+  const centers = data.centers.filter((center) => !exhausted.has(center.id));
+  const offsets = { ...(data.areaOffsets ?? {}) };
   const settled = await Promise.allSettled(
-    data.centers.map(async (center) => ({
+    centers.map(async (center) => ({
       center,
       page: await searchPlacesAtArea({
         text: data.text,
@@ -418,26 +426,30 @@ async function searchProviderAreas(
         placeId: center.placeId,
         radiusKm: data.radiusKm,
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
-        offset: data.offset ?? 0,
+        offset: offsets[center.id] ?? data.offset ?? 0,
       }),
     })),
   );
 
   const failedAreaLabels: string[] = [];
+  const failedAreaIds: string[] = [];
   const merged = new Map<string, RankedMultiAreaPlaceSuggestion>();
   let firstFailure: unknown = null;
   let hasMore = false;
   let nextOffset = data.offset ?? 0;
 
   settled.forEach((outcome, index) => {
-    const center = data.centers[index];
+    const center = centers[index];
     if (outcome.status === "rejected") {
       firstFailure ??= outcome.reason;
       failedAreaLabels.push(center.label);
+      failedAreaIds.push(center.id);
       return;
     }
 
-    hasMore ||= outcome.value.page.hasMore;
+    if (outcome.value.page.hasMore) hasMore = true;
+    else exhausted.add(center.id);
+    offsets[center.id] = outcome.value.page.nextOffset;
     nextOffset = Math.max(nextOffset, outcome.value.page.nextOffset);
     const centerMode: SearchAreaMode = center.searchMode === "boundary" ? "boundary" : "point";
 
@@ -467,7 +479,7 @@ async function searchProviderAreas(
     }
   });
 
-  if (merged.size === 0 && failedAreaLabels.length === data.centers.length) {
+  if (centers.length > 0 && merged.size === 0 && failedAreaIds.length === centers.length) {
     throw firstFailure instanceof Error
       ? firstFailure
       : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
@@ -483,7 +495,15 @@ async function searchProviderAreas(
       nearestAreaSearchMode === "boundary" ? { ...result, distanceKm: undefined } : result,
   );
 
-  return { results, failedAreaLabels, hasMore, nextOffset };
+  return {
+    results,
+    failedAreaLabels,
+    failedAreaIds,
+    hasMore: hasMore || failedAreaIds.length > 0,
+    nextOffset,
+    areaOffsets: offsets,
+    exhaustedAreaIds: [...exhausted],
+  };
 }
 
 export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
@@ -605,6 +625,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             failedAreaLabels: data.centers.map((c) => c.label),
             hasMore: false,
             nextOffset: data.offset ?? 0,
+            areaOffsets: data.areaOffsets ?? {},
+            exhaustedAreaIds: data.exhaustedAreaIds ?? [],
+            failedAreaIds: data.centers.map((c) => c.id),
           };
       const items = page.results.map((place) => {
         const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
