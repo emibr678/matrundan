@@ -127,17 +127,6 @@ jobs:
         id: changes
         run: bun scripts/repo-tools.mjs ci-flags >> "$GITHUB_OUTPUT"
 
-      # Temporary read-only formatter diagnostic for connector-only code changes.
-      # The output contains only source files already in this repository.
-      - name: Connector formatting diagnostic
-        run: |
-          for file in src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/place-search-budget.server.test.ts; do
-            echo "::group::FORMAT_BEGIN:${file}"
-            bunx prettier "${file}"
-            echo "FORMAT_END:${file}"
-            echo "::endgroup::"
-          done
-
       - name: Fast changed verification
         env:
           MATRUNDAN_BASE_SHA: ${{ steps.changes.outputs.base_sha }}
