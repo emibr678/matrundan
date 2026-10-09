@@ -583,7 +583,31 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           _limit: 200,
         });
         if (found.error) return { results: [], incomplete: true };
-        const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
+        let rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
+        const primaryTruncated = rows.length === 200;
+        let fuzzyIncomplete = false;
+        if (
+          intent.kind === "text" &&
+          isSpecificPlaceName(intent.query) &&
+          !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
+        ) {
+          const fuzzy = await context.supabase.rpc("search_canonical_name_candidates_v1", {
+            _group_id: data.groupId,
+            _text: intent.query,
+            _centers: centers,
+          });
+          if (fuzzy.error) {
+            // Missing migration or a provider/database fault is never a confirmed zero-result.
+            fuzzyIncomplete = true;
+          } else {
+            const seen = new Set(rows.map((row) => row.placeId));
+            for (const row of z.array(canonicalPlaceCandidateSchema).parse(fuzzy.data)) {
+              if (seen.has(row.placeId)) continue;
+              seen.add(row.placeId);
+              rows.push(row);
+            }
+          }
+        }
         const results = rows.flatMap((canonical) => {
           const matching = valid.filter(({ center, boundary }) =>
             boundary
@@ -627,7 +651,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             },
           ];
         });
-        return { results, incomplete: rows.length === 200 || valid.length < data.centers.length };
+        return {
+          results,
+          incomplete: primaryTruncated || fuzzyIncomplete || valid.length < data.centers.length,
+        };
       })().catch(() => ({ results: [], incomplete: true }));
       const [providerOutcome, internal] = await Promise.all([
         searchProviderAreas(data)
