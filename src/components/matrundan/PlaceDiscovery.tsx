@@ -379,6 +379,7 @@ export function PlaceDiscovery({
       startBudget,
       targetActionable,
       isStale,
+      onProgress,
       maxPages = MAX_PROVIDER_PAGES_PER_ACTION,
     }: {
       seed: PlaceSuggestion[];
@@ -387,6 +388,7 @@ export function PlaceDiscovery({
       startBudget: SearchBudget;
       targetActionable: number;
       isStale: () => boolean;
+      onProgress?: (currentResults: PlaceSuggestion[]) => void;
       maxPages?: number;
     }) => {
       let collected = seed;
@@ -434,6 +436,8 @@ export function PlaceDiscovery({
         };
         canonicalIncomplete ||= response.canonicalIncomplete;
         collected = mergePlaceSearchPages(collected, response.results);
+        // Make fully verified results usable while later pages are still loading.
+        onProgress?.(collected);
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
@@ -502,6 +506,9 @@ export function PlaceDiscovery({
             startBudget: AUTO_SEARCH_BUDGET,
             targetActionable: RESULT_PAGE_SIZE,
             isStale: () => requestId !== requestRef.current,
+            onProgress: (currentResults) => {
+              if (requestId === requestRef.current) setResults(currentResults);
+            },
           });
           if (!filled) return;
           nextResults = filled.results;
@@ -718,6 +725,9 @@ export function PlaceDiscovery({
       maxPages: 8,
       targetActionable: 200,
       isStale: () => requestRef.current !== requestId,
+      onProgress: (currentResults) => {
+        if (requestRef.current === requestId) setResults(currentResults);
+      },
     })
       .then((filled) => {
         if (!filled || requestRef.current !== requestId) return;
