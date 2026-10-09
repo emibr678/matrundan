@@ -224,6 +224,8 @@ async function searchPlacesAtArea(
     text?: string;
     limit?: number;
     offset?: number;
+    /** The original #464 name recovery is used only for the primary search. */
+    allowNameAnchorRecovery?: boolean;
   },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
@@ -258,7 +260,10 @@ async function searchPlacesAtArea(
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
 
-  const anchor = nameQuery ? await resolveNameSearchAnchor(url, intent) : null;
+  const anchor =
+    nameQuery && input.allowNameAnchorRecovery !== false
+      ? await resolveNameSearchAnchor(url, intent)
+      : null;
   if (anchor) url.searchParams.set("bias", `proximity:${anchor.lng},${anchor.lat}`);
 
   const json = await callGeoapify(url);
@@ -711,6 +716,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               radiusKm: expansionRadius,
               limit: 20,
               offset: 0,
+              allowNameAnchorRecovery: false,
             }),
           ),
         );
@@ -767,6 +773,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               radiusKm: data.radiusKm,
               limit: 50,
               offset: 0,
+              allowNameAnchorRecovery: false,
             }),
           ),
         );

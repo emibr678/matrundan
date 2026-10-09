@@ -484,3 +484,58 @@ test("multi-area continuation skips exhausted areas and preserves independent of
     a.calls.find((url) => url.searchParams.get("offset") === "20")?.searchParams.get("filter"),
   ).toBe("circle:18.0710935,59.3251172,1000");
 });
+
+describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1")
+          return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+
+  test("1 km -> 2 km kräver inte en extra Geocoding-kedja", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") return { features: [] };
+      return {
+        features: url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-nearby", "Pelikan")]
+          : [],
+      };
+    }, context);
+    const result = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1 });
+    const recovered = result.results.find((row) => row.externalId === "pelikan-nearby");
+    expect(recovered?.searchAreaGroup).toBe("nearby");
+    expect(a.calls.map((url) => url.pathname)).toEqual([
+      "/v2/places",
+      "/v1/geocode/search",
+      "/v2/places",
+    ]);
+    expect(a.calls[2].searchParams.get("filter")).toBe(
+      "circle:18.0710935,59.3251172,2000",
+    );
+    expect(result.budgetUsage.requests).toBe(3);
+  });
+
+  test("stavfelsförslag använder namnankare utan ytterligare Geocoding", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") return { features: [] };
+      return {
+        features: url.searchParams.get("name") === "pharma"
+          ? [place("pharmarium-typo", "Pharmarium")]
+          : [],
+      };
+    }, context);
+    const result = await a.discovery({ text: "Pharmarim", centers: [area], radiusKm: 5 });
+    expect(result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType)
+      .toBe("tolerant");
+    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
+    expect(result.budgetUsage.requests).toBe(4);
+  });
+});
