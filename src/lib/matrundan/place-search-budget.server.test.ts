@@ -50,12 +50,12 @@ describe("providerbudget per sökomgång", () => {
   });
 
   test("reserverar konservativt för större pages och geometri", () => {
-    expect(
-      estimatedGeoapifyCredits(new URL("https://api.geoapify.com/v2/places?limit=20")),
-    ).toBe(1);
-    expect(
-      estimatedGeoapifyCredits(new URL("https://api.geoapify.com/v2/places?limit=50")),
-    ).toBe(4);
+    expect(estimatedGeoapifyCredits(new URL("https://api.geoapify.com/v2/places?limit=20"))).toBe(
+      1,
+    );
+    expect(estimatedGeoapifyCredits(new URL("https://api.geoapify.com/v2/places?limit=50"))).toBe(
+      4,
+    );
     expect(
       estimatedGeoapifyCredits(
         new URL("https://api.geoapify.com/v2/place-details?features=details,details.full_geometry"),
