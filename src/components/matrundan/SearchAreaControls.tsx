@@ -258,6 +258,12 @@ export function SearchAreaControls({
         onRemoveTemporary={removeTemporaryArea}
       />
 
+      {pointCount > 0 && boundaryCount === 0 ? (
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          Avståndet gäller runt varje vald punkt. En ort utan verifierad gräns används som sökcentrum.
+        </p>
+      ) : null}
+
       {boundaryCount > 0 && pointCount > 0 ? (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
           Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.

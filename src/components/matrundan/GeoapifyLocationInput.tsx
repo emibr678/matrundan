@@ -364,6 +364,11 @@ export function GeoapifyLocationInput({
                   <span className="mt-0.5 block min-w-0 break-words text-xs leading-snug text-muted-foreground">
                     {suggestion.secondaryLabel}
                   </span>
+                  {allowBoundaryAreas && suggestion.resultType === "city" ? (
+                    <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">
+                      Om ortens gräns inte kan verifieras söker vi runt dess centrum.
+                    </span>
+                  ) : null}
                   {suggestion.blocked ? (
                     <span className="mt-1 block text-xs leading-snug">
                       Välj en kommun, ort, stadsdel eller adress som kan avgränsas säkert.

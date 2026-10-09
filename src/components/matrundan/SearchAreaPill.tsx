@@ -7,7 +7,7 @@ export function SearchAreaPill({
   onRemove,
   removeAriaLabel,
 }: {
-  area: Pick<SearchArea, "label">;
+  area: Pick<SearchArea, "label" | "searchMode">;
   onRemove: () => void;
   removeAriaLabel: string;
 }) {
@@ -17,8 +17,11 @@ export function SearchAreaPill({
       className="flex h-8 max-w-full items-center gap-0.5 rounded-full border border-primary/40 bg-primary/10 pl-2.5 pr-0.5 text-xs"
       title={area.label}
     >
-      <span className="min-w-0 max-w-[min(14rem,calc(100vw-4.5rem))] truncate whitespace-nowrap">
+      <span className="min-w-0 max-w-[min(14rem,calc(100vw-6rem))] truncate whitespace-nowrap">
         {shortSearchAreaLabel(area.label)}
+      </span>
+      <span className="shrink-0 text-[10px] text-muted-foreground">
+        {area.searchMode === "boundary" ? "område" : "punkt"}
       </span>
       <button
         type="button"
