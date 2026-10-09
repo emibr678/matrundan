@@ -684,7 +684,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             if (candidate.lat == null || candidate.lng == null) continue;
             const memberships = data.centers.map((center) => ({
               center,
-              distance: distanceKm(center, candidate),
+              distance: distanceKm(center, { lat: candidate.lat, lng: candidate.lng }),
             }));
             if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50)))
               continue;
