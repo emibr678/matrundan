@@ -727,6 +727,7 @@ export function PlaceDiscovery({
       !groupId ||
       hiddenLoading ||
       loading ||
+      !resultMatchesSearch ||
       loadingMore ||
       queuedMore ||
       mapFilling ||
@@ -806,6 +807,7 @@ export function PlaceDiscovery({
     nextOffset,
     query,
     radiusKm,
+    resultMatchesSearch,
     resultView,
     results,
   ]);
