@@ -536,10 +536,9 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     expect(
       result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
     ).toBe("tolerant");
-    // One geocoding attempt for the primary radius, one for nearby recovery.
-    // The actual typo candidate search does not add another geocoding call.
-    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(2);
-    expect(result.budgetUsage.requests).toBe(5);
+    // A single prefix candidate request avoids repeating Geocoding for an obvious typo.
+    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
+    expect(result.budgetUsage.requests).toBe(3);
   });
 });
 
@@ -705,6 +704,7 @@ test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökn
       .observation.candidates.typo,
   ).toBe(1);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(0);
 });
 
 test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallback", async () => {

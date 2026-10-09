@@ -769,129 +769,109 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           matchesSpecificPlaceName(intent.query, place.name),
         );
       const recoveryStarted = performance.now();
-      const mayExpand =
-        !primaryOnly &&
-        recoveryEligible &&
-        expansionRadius != null &&
-        data.centers.every((center) => center.searchMode !== "boundary");
       const nearbyCandidates: typeof page.results = [];
-      if (mayExpand && expansionRadius != null) {
-        const results = await Promise.allSettled(
-          data.centers.map((center) =>
-            searchPlacesAtArea({
-              text: data.text,
-              lat: center.lat,
-              lng: center.lng,
-              searchMode: "point",
-              radiusKm: expansionRadius,
-              limit: 20,
-              offset: 0,
-              // Retain the #464 bounded name anchor when the enlarged Places
-              // area is empty. Otherwise nearby real places can disappear.
-              allowNameAnchorRecovery: true,
-            }),
-          ),
-        );
-        const seen = new Set(page.results.map((place) => place.externalId));
-        for (const outcome of results) {
-          if (outcome.status !== "fulfilled") continue;
-          for (const candidate of outcome.value.results) {
-            if (seen.has(candidate.externalId)) continue;
-            if (!matchesSpecificPlaceName(intent.query, candidate.name)) continue;
-            if (candidate.lat == null || candidate.lng == null) continue;
-            const coordinates = { lat: candidate.lat, lng: candidate.lng };
-            const memberships = data.centers.map((center) => ({
-              center,
-              distance: distanceKm(center, coordinates),
-            }));
-            if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50))) continue;
-            const closest = memberships.sort((left, right) => left.distance - right.distance)[0];
-            if (!closest || closest.distance > expansionRadius) continue;
-            seen.add(candidate.externalId);
-            nearbyCandidates.push({
-              ...candidate,
-              distanceKm: closest.distance,
-              nearestAreaLabel: closest.center.label,
-              nearestAreaId: closest.center.id,
-              matchingAreaLabels: [],
-              matchingAreaIds: [],
-              searchAreaGroup: "nearby",
-            });
-          }
-        }
-      }
       const typoCandidates: typeof page.results = [];
-      const mayTryTypo =
-        !primaryOnly &&
-        (data.offset ?? 0) === 0 &&
-        !page.hasMore &&
-        !page.failedAreaIds.length &&
-        nearbyCandidates.length === 0 &&
-        intent.kind === "text" &&
-        isSpecificPlaceName(intent.query) &&
-        ![...page.results, ...internal.results].some((place) =>
-          matchesSpecificPlaceName(intent.query, place.name),
-        );
-      if (mayTryTypo && intent.kind === "text") {
+      // One bounded candidate stage: try a broad-enough name prefix before
+      // spending time on Geocoding -> Places verification. All returned
+      // identities still come exclusively from Places and the group-scoped RPC.
+      if (!primaryOnly && recoveryEligible && intent.kind === "text") {
+        const allPoints = data.centers.every((center) => center.searchMode !== "boundary");
+        const retrievalRadius = allPoints
+          ? (expandedNameRadiusKm(data.radiusKm) ?? data.radiusKm)
+          : data.radiusKm;
         const seen = new Set(page.results.map((place) => place.externalId));
-        const typoSeed = typoProviderSearchSeed(intent.query);
-        const outcomes = await Promise.allSettled(
-          data.centers.map((center) =>
-            searchPlacesAtArea({
-              text: typoSeed ?? undefined,
-              lat: center.lat,
-              lng: center.lng,
-              searchMode: center.searchMode ?? "point",
-              placeId: center.placeId,
-              radiusKm:
-                data.centers.every((area) => area.searchMode !== "boundary")
-                  ? (expandedNameRadiusKm(data.radiusKm) ?? data.radiusKm)
-                  : data.radiusKm,
-              limit: 50,
-              offset: 0,
-              allowNameAnchorRecovery: false,
-            }),
-          ),
-        );
-        for (let index = 0; index < outcomes.length; index++) {
-          const outcome = outcomes[index];
-          if (outcome.status !== "fulfilled") continue;
-          for (const candidate of outcome.value.results) {
-            if (seen.has(candidate.externalId) || !matchesTypoPlaceName(intent.query, candidate.name))
-              continue;
-            const center = data.centers[index];
-            const allPoint = data.centers.every((area) => area.searchMode !== "boundary");
-            const distances =
-              candidate.lat != null && candidate.lng != null && allPoint
-                ? data.centers.map((area) => ({
-                    area,
-                    km: distanceKm(area, { lat: candidate.lat!, lng: candidate.lng! }),
-                  }))
-                : [];
-            const searchRadius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
-            const candidateLimit = allPoint
-              ? (expandedNameRadiusKm(data.radiusKm) ?? searchRadius)
-              : searchRadius;
-            if (allPoint && (!distances.length || distances.every(({ km }) => km > candidateLimit)))
-              continue;
-            const insideAreas = allPoint
-              ? distances.filter(({ km }) => km <= searchRadius).map(({ area }) => area)
-              : [center];
-            const nearest = allPoint
-              ? [...distances].sort((left, right) => left.km - right.km)[0]
-              : null;
-            seen.add(candidate.externalId);
-            typoCandidates.push({
-              ...candidate,
-              nearestAreaLabel: nearest?.area.label ?? center.label,
-              nearestAreaId: nearest?.area.id ?? center.id,
-              distanceKm: nearest?.km ?? candidate.distanceKm,
-              matchingAreaLabels: insideAreas.map((area) => area.label),
-              matchingAreaIds: insideAreas.map((area) => area.id),
-              searchAreaGroup: insideAreas.length ? undefined : "nearby",
-              searchMatchType: "tolerant",
-            });
-          }
+
+        const recordCandidate = (
+          candidate: (typeof page.results)[number],
+          centerIndex: number,
+          tolerant: boolean,
+        ) => {
+          if (seen.has(candidate.externalId)) return;
+          const center = data.centers[centerIndex];
+          const distances =
+            allPoints && candidate.lat != null && candidate.lng != null
+              ? data.centers.map((area) => ({
+                  area,
+                  km: distanceKm(area, { lat: candidate.lat!, lng: candidate.lng! }),
+                }))
+              : [];
+          const selectedRadius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
+          const maxRadius = retrievalRadius ?? WIDE_AREA_RADIUS_KM;
+          if (allPoints && (!distances.length || distances.every(({ km }) => km > maxRadius)))
+            return;
+          const primary = allPoints
+            ? distances.filter(({ km }) => km <= selectedRadius).map(({ area }) => area)
+            : [center];
+          const nearest = allPoints
+            ? [...distances].sort((left, right) => left.km - right.km)[0]
+            : null;
+          seen.add(candidate.externalId);
+          const normalized = {
+            ...candidate,
+            nearestAreaLabel: nearest?.area.label ?? center.label,
+            nearestAreaId: nearest?.area.id ?? center.id,
+            distanceKm: nearest?.km ?? candidate.distanceKm,
+            matchingAreaLabels: primary.map((area) => area.label),
+            matchingAreaIds: primary.map((area) => area.id),
+            searchAreaGroup: primary.length ? undefined : ("nearby" as const),
+            searchMatchType: tolerant ? ("tolerant" as const) : undefined,
+          };
+          if (tolerant) typoCandidates.push(normalized);
+          else nearbyCandidates.push(normalized);
+        };
+
+        const prefix = typoProviderSearchSeed(intent.query);
+        if (prefix) {
+          const candidatePages = await Promise.allSettled(
+            data.centers.map((center) =>
+              searchPlacesAtArea({
+                text: prefix,
+                lat: center.lat,
+                lng: center.lng,
+                searchMode: center.searchMode ?? "point",
+                placeId: center.placeId,
+                radiusKm: retrievalRadius,
+                limit: 50,
+                offset: 0,
+                allowNameAnchorRecovery: false,
+              }),
+            ),
+          );
+          candidatePages.forEach((outcome, centerIndex) => {
+            if (outcome.status !== "fulfilled") return;
+            for (const candidate of outcome.value.results) {
+              const exact = matchesSpecificPlaceName(intent.query, candidate.name);
+              const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
+              if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
+            }
+          });
+        }
+
+        // The Places name index can omit a real venue even for a valid prefix.
+        // Keep the original bounded #464 name anchor as a LAST resort.
+        if (nearbyCandidates.length === 0 && typoCandidates.length === 0) {
+          const anchoredPages = await Promise.allSettled(
+            data.centers.map((center) =>
+              searchPlacesAtArea({
+                text: data.text,
+                lat: center.lat,
+                lng: center.lng,
+                searchMode: center.searchMode ?? "point",
+                placeId: center.placeId,
+                radiusKm: retrievalRadius,
+                limit: 20,
+                offset: 0,
+                allowNameAnchorRecovery: true,
+              }),
+            ),
+          );
+          anchoredPages.forEach((outcome, centerIndex) => {
+            if (outcome.status !== "fulfilled") return;
+            for (const candidate of outcome.value.results) {
+              if (matchesSpecificPlaceName(intent.query, candidate.name))
+                recordCandidate(candidate, centerIndex, false);
+            }
+          });
         }
       }
       recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
