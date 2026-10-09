@@ -151,7 +151,7 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   await page.setViewportSize({ width: 360, height: 690 });
   const dialog = await openPlaceSearch(page);
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
-  const heading = dialog.getByText("Ställen att lägga till", { exact: true });
+  const heading = dialog.getByRole("heading", { name: "Ställen att lägga till" }).first();
   const listY = (await heading.boundingBox())!.y;
   await input.focus();
   await expect(
