@@ -67,6 +67,7 @@ async function openPlaceSearch(page: Page) {
   });
   await expect(searchInput).toBeVisible();
   await searchInput.fill(PLACE_NAME);
+  await searchInput.evaluate((node) => (node as HTMLInputElement).blur());
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
@@ -154,12 +155,16 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   const heading = dialog.getByRole("heading", { name: "Ställen att lägga till" }).first();
   const listY = (await heading.boundingBox())!.y;
   await input.focus();
-  // Full results already exist; the same place must not cover them in autocomplete.
-  await expect(dialog.getByRole("listbox")).toHaveCount(0);
-  expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
+  // Mobile typing has one inline result surface and a compact search-area summary.
+  await expect(dialog.getByRole("listbox")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
+  await expect(heading).toBeHidden();
+  await expect(dialog.getByRole("listbox").getByText(PLACE_NAME, { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Fokuserad sökyta");
 
   await input.evaluate((element) => (element as HTMLInputElement).blur());
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  await expect(heading).toBeVisible();
   expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
 
   await input.fill("Totalt osannolikt påhittat namn");
@@ -273,4 +278,18 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await openPlaceSearch(page);
   await expect(placeSuggestionButton(page)).toBeVisible();
+});
+
+
+test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 620 });
+  const dialog = await openPlaceSearch(page);
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.focus();
+  const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await expect(listbox).toBeVisible();
+  await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeHidden();
+  await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
+  await listbox.getByRole("option").filter({ hasText: PLACE_NAME }).getByRole("button").click();
+  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
 });

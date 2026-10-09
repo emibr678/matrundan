@@ -144,6 +144,11 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
+  const [searchFocused, setSearchFocused] = React.useState(false);
+  const [clientTiming, setClientTiming] = React.useState<{
+    firstResultMs?: number;
+    completedMs?: number;
+  } | null>(null);
   const [searchObservation, setSearchObservation] = React.useState<unknown>(null);
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(
     snapshot?.selectedAreaIds ?? savedAreas.map((area) => area.id),
@@ -422,8 +427,7 @@ export function PlaceDiscovery({
 
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const isRecoveryPass = recoveryPending;
-        const isFastFirstPage =
-          pages === 0 && startOffset === 0 && seed.length === 0 && query.trim().length >= 2;
+        const textSearch = query.trim().length >= 2;
         const response = await searchPlaceDiscovery({
           data: {
             groupId: groupId!,
@@ -438,7 +442,7 @@ export function PlaceDiscovery({
             })),
             radiusKm,
             limit: RESULT_PAGE_SIZE,
-            searchPhase: isFastFirstPage ? "primary" : "complete",
+            searchPhase: isRecoveryPass ? "recovery" : textSearch ? "primary" : "complete",
             offset: isRecoveryPass ? startOffset : offset,
             areaOffsets: isRecoveryPass ? startProgress.offsets : progress.offsets,
             exhaustedAreaIds: isRecoveryPass ? startProgress.exhaustedIds : progress.exhaustedIds,
@@ -511,6 +515,9 @@ export function PlaceDiscovery({
       return;
     }
     const requestId = ++requestRef.current;
+    const queuedAt = performance.now();
+    let firstResultRecorded = false;
+    setClientTiming(null);
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -534,6 +541,10 @@ export function PlaceDiscovery({
               if (requestId !== requestRef.current) return;
               setResults(currentResults);
               setResultsForSearchKey(currentSearchKey);
+              if (!firstResultRecorded && currentResults.length > 0) {
+                firstResultRecorded = true;
+                setClientTiming({ firstResultMs: Math.round(performance.now() - queuedAt) });
+              }
             },
           });
           if (!filled) return;
@@ -579,6 +590,10 @@ export function PlaceDiscovery({
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
         setResultsForSearchKey(currentSearchKey);
+        setClientTiming((previous) => ({
+          ...previous,
+          completedMs: Math.round(performance.now() - queuedAt),
+        }));
         setFailedAreas(nextFailedAreas);
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
@@ -1006,17 +1021,41 @@ export function PlaceDiscovery({
     () =>
       query.trim().length < 2
         ? []
-        : visibleResults.filter((result) => statusForResult(result) !== "existing").slice(0, 5),
+        : visibleResults.slice(0, 6),
     [query, statusForResult, visibleResults],
   );
-  const suppressEmptyAutocomplete =
-    query.trim().length >= 2 &&
-    placeAutocompleteSuggestions.length === 0 &&
-    existingResults.length > 0;
+  const searchAreaSummary =
+    activeAreas.length === 1
+      ? shortSearchAreaLabel(activeAreas[0].label)
+      : `${activeAreas.length} sökområden`;
+  const includesPointArea = activeAreas.some((area) => searchAreaMode(area) === "point");
+
+  const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
+    setSearchFocused(false);
+    const sourceMatch = allSourceMatches.find(
+      (match) => match.result.externalId === suggestion.externalId,
+    );
+    if (sourceMatch) {
+      onLinkSource(sourceMatch);
+      return;
+    }
+    if (statusForResult(suggestion) === "existing") {
+      const placeId =
+        (suggestion.canonical ?? suggestion.identity?.knownPlace ?? unambiguousPlaceCandidate(suggestion))
+          ?.placeId ?? matchingPlace(state.places, suggestion)?.id;
+      if (placeId) void navigate({ to: "/matstallen/$placeId", params: { placeId } });
+      return;
+    }
+    onBeginAdd(suggestion);
+  };
 
   return (
-    <div className="space-y-4" data-search-observation={JSON.stringify(searchObservation)}>
-      <SearchAreaControls
+    <div
+      className="space-y-4"
+      data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
+    >
+      <div className={searchFocused ? "hidden lg:block" : ""}>
+        <SearchAreaControls
         heading="Sök i"
         addAreaActionLabel="Lägg till område eller adress"
         savedAreas={savedAreas}
@@ -1028,7 +1067,28 @@ export function PlaceDiscovery({
         onRadiusChange={setRadiusKm}
         isLive={isLive}
         fallbackCity={state.group.city}
-      />
+        />
+      </div>
+      {searchFocused ? (
+        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm lg:hidden">
+          <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
+          {includesPointArea ? (
+            <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
+          ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            className="min-h-10 shrink-0 px-2"
+            onClick={() => {
+              setSearchFocused(false);
+              document.getElementById("place-query")?.blur();
+            }}
+          >
+            Ändra
+          </Button>
+        </div>
+      ) : null}
 
       <PlaceSearchCombobox
         query={query}
@@ -1036,12 +1096,13 @@ export function PlaceDiscovery({
         loading={searchInFlight}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
-        suppressEmptyState={suppressEmptyAutocomplete}
-        resultsAlreadyShown={visibleResults.length > 0}
-        onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
+        focused={searchFocused}
+        onFocusChange={setSearchFocused}
+        onSelectPlace={activateSearchSuggestion}
         onMissingPlace={onMissingPlace}
       />
 
+      <div className={searchFocused ? "hidden lg:block" : ""}>
       {activeAreas.length === 0 ? (
         <Empty text="Sök och välj minst ett sökområde." />
       ) : isInitialSearchLoading ? (
@@ -1240,6 +1301,7 @@ export function PlaceDiscovery({
           Klar
         </Button>
       </div>
+      </div>
     </div>
   );
 }
@@ -1298,8 +1360,8 @@ function PlaceSearchCombobox({
   loading,
   genericSuggestions,
   placeSuggestions,
-  suppressEmptyState = false,
-  resultsAlreadyShown = false,
+  focused,
+  onFocusChange,
   onSelectPlace,
   onMissingPlace,
 }: {
@@ -1308,13 +1370,14 @@ function PlaceSearchCombobox({
   loading: boolean;
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
-  suppressEmptyState?: boolean;
-  resultsAlreadyShown?: boolean;
+  focused: boolean;
+  onFocusChange: (focused: boolean) => void;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
   onMissingPlace: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
   const [activeIx, setActiveIx] = React.useState(-1);
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
     kind: "generic",
     key: suggestion.id,
@@ -1322,15 +1385,13 @@ function PlaceSearchCombobox({
     meta: suggestion.groupLabel,
     searchValue: suggestion.searchValue,
   }));
-  const placeOptions: PlaceSearchOption[] = (resultsAlreadyShown ? [] : placeSuggestions).map(
-    (suggestion) => ({
+  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
       kind: "place",
       key: suggestion.externalId,
       label: suggestion.name,
       meta: placeOptionMeta(suggestion),
       suggestion,
-    }),
-  );
+  }));
   const isInternalOption = (option: PlaceSearchOption) =>
     option.kind === "place" &&
     (option.suggestion.kind === "canonical" ||
@@ -1340,12 +1401,17 @@ function PlaceSearchCombobox({
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList =
-    open && hasQuery && (options.length > 0 || (!suppressEmptyState && !resultsAlreadyShown));
+  const showList = open && hasQuery;
 
   React.useEffect(() => {
     setActiveIx(-1);
   }, [query]);
+
+  React.useEffect(() => {
+    if (!focused || !window.matchMedia("(max-width: 1023px)").matches) return;
+    const timer = window.setTimeout(() => inputRef.current?.scrollIntoView({ block: "nearest" }), 0);
+    return () => window.clearTimeout(timer);
+  }, [focused]);
 
   React.useEffect(() => {
     const viewport = window.visualViewport;
@@ -1354,17 +1420,22 @@ function PlaceSearchCombobox({
     const onResize = () => {
       const nextHeight = viewport.height;
       // Android keyboard dismissal may resize the viewport without blurring the input.
-      if (nextHeight - previousHeight > 120) setOpen(false);
+      if (nextHeight - previousHeight > 120) {
+        setOpen(false);
+        onFocusChange(false);
+      }
       previousHeight = nextHeight;
     };
     viewport.addEventListener("resize", onResize);
     return () => viewport.removeEventListener("resize", onResize);
-  }, []);
+  }, [onFocusChange]);
 
   function select(option: PlaceSearchOption) {
     if (option.kind === "generic") onQueryChange(option.label);
     else onSelectPlace(option.suggestion);
     setOpen(false);
+    onFocusChange(false);
+    inputRef.current?.blur();
     setActiveIx(-1);
   }
 
@@ -1431,10 +1502,8 @@ function PlaceSearchCombobox({
                   "flex w-full min-w-0 items-center gap-2 rounded px-2 py-2 text-left hover:bg-accent",
                   optionIndex === activeIx ? "bg-accent" : "",
                 ].join(" ")}
-                onMouseDown={(event) => {
-                  event.preventDefault();
-                  select(option);
-                }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => select(option)}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block min-w-0 break-words font-medium text-foreground">
@@ -1466,6 +1535,7 @@ function PlaceSearchCombobox({
       <div className="relative min-w-0">
         <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
+          ref={inputRef}
           id="place-query"
           className="pl-9"
           placeholder="Namn, kök eller typ"
@@ -1474,8 +1544,14 @@ function PlaceSearchCombobox({
             onQueryChange(event.target.value);
             setOpen(true);
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+          onFocus={() => {
+            setOpen(true);
+            onFocusChange(true);
+          }}
+          onBlur={() => window.setTimeout(() => {
+            setOpen(false);
+            onFocusChange(false);
+          }, 150)}
           onKeyDown={onKeyDown}
           autoComplete="off"
           role="combobox"
@@ -1489,7 +1565,12 @@ function PlaceSearchCombobox({
             id="place-search-listbox"
             role="listbox"
             aria-label="Förslag på kök, typer och matställen"
-            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-[min(42dvh,20rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:max-h-72"
+            className={[
+              "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
+              focused
+                ? "relative mt-2 max-h-[min(38dvh,17rem)] lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
+            ].join(" ")}
           >
             {options.length === 0 ? (
               <p className="px-2 py-2 text-muted-foreground">
