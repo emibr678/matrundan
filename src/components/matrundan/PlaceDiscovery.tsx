@@ -85,6 +85,7 @@ export interface PlaceDiscoverySnapshot {
   temporaryAreas: SearchArea[];
   radiusKm: SearchRadiusKm;
   results: PlaceSuggestion[];
+  resultsForSearchKey?: string;
   failedAreas: string[];
   selectedId: string | null;
   resultView: ResultView;
@@ -153,6 +154,24 @@ export function PlaceDiscovery({
   const [radiusKm, setRadiusKm] = React.useState<SearchRadiusKm>(
     snapshot?.radiusKm ?? state.group.defaultSearchRadiusKm ?? 1,
   );
+  const currentSearchKey = JSON.stringify([
+    query.trim(),
+    radiusKm,
+    savedAreas
+      .filter((area) => selectedAreaIds.includes(area.id))
+      .map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
+    temporaryAreas.map((area) => [
+      area.id,
+      area.lat,
+      area.lng,
+      searchAreaMode(area),
+      area.placeId,
+    ]),
+  ]);
+  const [resultsForSearchKey, setResultsForSearchKey] = React.useState(
+    snapshot?.resultsForSearchKey ?? currentSearchKey,
+  );
+  const resultMatchesSearch = resultsForSearchKey === currentSearchKey;
   const [results, setResults] = React.useState<PlaceSuggestion[]>(snapshot?.results ?? []);
   const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
   const [localSourceLinks, setLocalSourceLinks] = React.useState<LocalManualSourceLink[]>([]);
@@ -198,6 +217,7 @@ export function PlaceDiscovery({
       temporaryAreas,
       radiusKm,
       results,
+      resultsForSearchKey,
       failedAreas,
       selectedId,
       resultView,
@@ -225,6 +245,7 @@ export function PlaceDiscovery({
     radiusKm,
     resultView,
     results,
+    resultsForSearchKey,
     selectedAreaIds,
     selectedId,
     temporaryAreas,
@@ -476,6 +497,7 @@ export function PlaceDiscovery({
     }
     if (activeAreas.length === 0) {
       setResults([]);
+      setResultsForSearchKey(currentSearchKey);
       setFailedAreas([]);
       setError(null);
       setDisplayLimit(RESULT_PAGE_SIZE);
@@ -507,7 +529,9 @@ export function PlaceDiscovery({
             targetActionable: RESULT_PAGE_SIZE,
             isStale: () => requestId !== requestRef.current,
             onProgress: (currentResults) => {
-              if (requestId === requestRef.current) setResults(currentResults);
+              if (requestId !== requestRef.current) return;
+              setResults(currentResults);
+              setResultsForSearchKey(currentSearchKey);
             },
           });
           if (!filled) return;
@@ -552,6 +576,7 @@ export function PlaceDiscovery({
         }
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
+        setResultsForSearchKey(currentSearchKey);
         setFailedAreas(nextFailedAreas);
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
@@ -565,6 +590,7 @@ export function PlaceDiscovery({
       } catch (caught) {
         if (requestId !== requestRef.current) return;
         setResults([]);
+        setResultsForSearchKey(currentSearchKey);
         setHasMore(false);
         setNextOffset(0);
         setAreaProgress({ offsets: {}, exhaustedIds: [] });
@@ -578,12 +604,12 @@ export function PlaceDiscovery({
       window.clearTimeout(timer);
       requestRef.current++;
     };
-  }, [activeAreas, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
+  }, [activeAreas, currentSearchKey, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
 
   const filteredResults = React.useMemo(
     () =>
       presentPlaceSearchResults(
-        results
+        (resultMatchesSearch ? results : [])
           .map((result) => {
             const resolution = resolutions[result.externalId];
             return resolution
@@ -604,7 +630,7 @@ export function PlaceDiscovery({
           })
           .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
       ),
-    [hiddenKeys, resolutions, results],
+    [hiddenKeys, resolutions, resultMatchesSearch, results],
   );
   const visibleResults = React.useMemo(
     () =>
@@ -621,7 +647,7 @@ export function PlaceDiscovery({
   );
   const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
   const canShowMore = bufferedRemaining > 0 || hasMore;
-  const searchInFlight = loading || hiddenLoading;
+  const searchInFlight = loading || hiddenLoading || !resultMatchesSearch;
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
@@ -1430,7 +1456,7 @@ function PlaceSearchCombobox({
             id="place-search-listbox"
             role="listbox"
             aria-label="Förslag på kök, typer och matställen"
-            className="relative z-30 mt-1 max-h-[min(42dvh,20rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72"
+            className="absolute left-0 right-0 top-full z-30 mt-1 max-h-[min(42dvh,20rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:max-h-72"
           >
             {options.length === 0 ? (
               <p className="px-2 py-2 text-muted-foreground">

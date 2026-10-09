@@ -716,7 +716,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               radiusKm: expansionRadius,
               limit: 20,
               offset: 0,
-              allowNameAnchorRecovery: false,
+              // Retain the #464 bounded name anchor when the enlarged Places
+              // area is empty. Otherwise nearby real places can disappear.
+              allowNameAnchorRecovery: true,
             }),
           ),
         );

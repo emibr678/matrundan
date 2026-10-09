@@ -537,3 +537,49 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     expect(result.budgetUsage.requests).toBe(4);
   });
 });
+
+// Geoapify may omit a known business in its first 2-km Places-name response.
+// The expanded area must retain the narrow #464 Geocoding -> Places recovery.
+test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    const expanded = url.searchParams.get("filter")?.endsWith(",2000");
+    if (url.pathname === "/v1/geocode/search")
+      return {
+        features: expanded
+          ? [seedWithName("Pelikan")]
+          : [],
+      };
+    return {
+      features: expanded && url.searchParams.get("bias") === oxBias
+        ? [place("pelikan-2km", "Pelikan")]
+        : [],
+    };
+  }, context);
+  const result = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1 });
+  expect(result.results.find((place) => place.externalId === "pelikan-2km")?.searchAreaGroup)
+    .toBe("nearby");
+  expect(a.calls.some((url) => url.pathname === "/v1/geocode/search" &&
+    url.searchParams.get("filter")?.endsWith(",2000"))).toBe(true);
+  expect(result.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
+function seedWithName(name: string) {
+  return place("pelikan-geocoding-anchor", name, {
+    result_type: "amenity",
+    category: "catering.restaurant",
+    categories: [],
+    datasource: { raw: { cuisine: "coffee" } },
+  });
+}
