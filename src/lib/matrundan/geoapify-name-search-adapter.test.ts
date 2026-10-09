@@ -149,6 +149,7 @@ function adapter(
           Omit<MultiAreaSearchResponse, "results"> & {
             results: PlaceSuggestion[];
             canConfirm: boolean;
+            budgetUsage: { requests: number; reservedCredits: number; limited: boolean };
           }
         >
       )({ data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" } }),
