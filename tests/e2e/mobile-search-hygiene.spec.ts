@@ -159,11 +159,14 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   ).toBeVisible();
   expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
 
+  await input.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
+
   await input.fill("Totalt osannolikt påhittat namn");
   await expect(dialog.getByRole("listbox").getByText(PLACE_NAME, { exact: true })).toHaveCount(0);
   await input.evaluate((element) => (element as HTMLInputElement).blur());
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
-  expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
   await expectNoHorizontalOverflow(page, "Sökförslag och nedfällt tangentbord");
 });
 

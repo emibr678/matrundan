@@ -1023,7 +1023,7 @@ export function PlaceDiscovery({
       <PlaceSearchCombobox
         query={query}
         onQueryChange={setQuery}
-        loading={loading}
+        loading={searchInFlight}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
         suppressEmptyState={suppressEmptyAutocomplete}
