@@ -284,6 +284,11 @@ async function setup(
         canConfirm: !options.member,
         hasMore: false,
         nextOffset: 20,
+        areaOffsets: { "area-1": 20 },
+        exhaustedAreaIds: ["area-1"],
+        failedAreaIds: [],
+        budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+        observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
