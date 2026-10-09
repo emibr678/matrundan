@@ -866,7 +866,7 @@ export function PlaceDiscovery({
               ? "Återställ"
               : "Lägg till",
       bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
-      eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}`,
+      eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}${result.searchAreaGroup === "nearby" ? " · utanför vald radie" : ""}`,
       description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
     };
   });

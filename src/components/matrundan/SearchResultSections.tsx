@@ -101,9 +101,19 @@ export function SearchResultSections({
   const statusFooterFor = React.useCallback(
     (suggestion: PlaceSuggestion, signal?: PlaceDataSignal): React.ReactNode | undefined => {
       const ownReportOpen = hasOwnOpenReport(suggestion);
-      if ((!signal || signal.closureStatus === "none") && !ownReportOpen) return undefined;
+      const supporting =
+        suggestion.searchMatchType === "tolerant"
+          ? "Liknande namn"
+          : suggestion.searchAreaGroup === "nearby"
+            ? "Utanför vald radie"
+            : suggestion.searchAreaGroup === "name-outside"
+              ? "Namnträff utanför sökområdet"
+              : null;
+      if ((!signal || signal.closureStatus === "none") && !ownReportOpen && !supporting)
+        return undefined;
       return (
         <div className="space-y-1.5">
+          {supporting ? <span className="text-[11px] text-muted-foreground">{supporting}</span> : null}
           {signal?.closureStatus !== "none" ? <PlaceDataSignalBadge signal={signal} /> : null}
           <OwnPlaceSuggestionReportBadge active={ownReportOpen} />
         </div>
