@@ -542,9 +542,10 @@ async function searchProviderAreas(
     ({ nearestAreaSearchMode, ...result }) => {
       if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
       if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
-      if (!data.centers.some((center) => distanceKm(center, result) <= expandedRadius)) return [];
+      const position = { lat: result.lat, lng: result.lng };
+      if (!data.centers.some((center) => distanceKm(center, position) <= expandedRadius)) return [];
       const distances = data.centers
-        .map((center) => ({ center, km: distanceKm(center, result) }))
+        .map((center) => ({ center, km: distanceKm(center, position) }))
         .sort((left, right) => left.km - right.km);
       const nearest = distances[0];
       const primaryMemberships = distances.filter(
