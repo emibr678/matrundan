@@ -687,55 +687,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             exhaustedAreaIds: data.exhaustedAreaIds ?? [],
             failedAreaIds: data.centers.map((c) => c.id),
           };
-      const typoCandidates: typeof page.results = [];
-      const mayTryTypo =
-        (data.offset ?? 0) === 0 &&
-        !page.hasMore &&
-        !page.failedAreaIds.length &&
-        intent.kind === "text" &&
-        isSpecificPlaceName(intent.query) &&
-        ![...page.results, ...internal.results].some((place) =>
-          matchesSpecificPlaceName(intent.query, place.name),
-        );
-      if (mayTryTypo && intent.kind === "text") {
-        const seen = new Set(page.results.map((place) => place.externalId));
-        const typoSeed = typoProviderSearchSeed(intent.query);
-        const outcomes = await Promise.allSettled(
-          data.centers.map((center) =>
-            searchPlacesAtArea({
-              text: typoSeed ?? undefined,
-              lat: center.lat,
-              lng: center.lng,
-              searchMode: center.searchMode ?? "point",
-              placeId: center.placeId,
-              radiusKm: data.radiusKm,
-              limit: 50,
-              offset: 0,
-            }),
-          ),
-        );
-        for (let index = 0; index < outcomes.length; index++) {
-          const outcome = outcomes[index];
-          if (outcome.status !== "fulfilled") continue;
-          for (const candidate of outcome.value.results) {
-            if (
-              seen.has(candidate.externalId) ||
-              !matchesTypoPlaceName(intent.query, candidate.name)
-            )
-              continue;
-            seen.add(candidate.externalId);
-            const center = data.centers[index];
-            typoCandidates.push({
-              ...candidate,
-              nearestAreaLabel: center.label,
-              nearestAreaId: center.id,
-              matchingAreaLabels: [center.label],
-              matchingAreaIds: [center.id],
-              searchMatchType: "tolerant",
-            });
-          }
-        }
-      }
       // One bounded external recovery after an exhausted primary name search.
       // Strong canonical 50-km results remain available without external expansion.
       const expansionRadius = expandedNameRadiusKm(data.radiusKm);
@@ -793,10 +744,60 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           }
         }
       }
+      const typoCandidates: typeof page.results = [];
+      const mayTryTypo =
+        (data.offset ?? 0) === 0 &&
+        !page.hasMore &&
+        !page.failedAreaIds.length &&
+        nearbyCandidates.length === 0 &&
+        intent.kind === "text" &&
+        isSpecificPlaceName(intent.query) &&
+        ![...page.results, ...internal.results].some((place) =>
+          matchesSpecificPlaceName(intent.query, place.name),
+        );
+      if (mayTryTypo && intent.kind === "text") {
+        const seen = new Set(page.results.map((place) => place.externalId));
+        const typoSeed = typoProviderSearchSeed(intent.query);
+        const outcomes = await Promise.allSettled(
+          data.centers.map((center) =>
+            searchPlacesAtArea({
+              text: typoSeed ?? undefined,
+              lat: center.lat,
+              lng: center.lng,
+              searchMode: center.searchMode ?? "point",
+              placeId: center.placeId,
+              radiusKm: data.radiusKm,
+              limit: 50,
+              offset: 0,
+            }),
+          ),
+        );
+        for (let index = 0; index < outcomes.length; index++) {
+          const outcome = outcomes[index];
+          if (outcome.status !== "fulfilled") continue;
+          for (const candidate of outcome.value.results) {
+            if (
+              seen.has(candidate.externalId) ||
+              !matchesTypoPlaceName(intent.query, candidate.name)
+            )
+              continue;
+            seen.add(candidate.externalId);
+            const center = data.centers[index];
+            typoCandidates.push({
+              ...candidate,
+              nearestAreaLabel: center.label,
+              nearestAreaId: center.id,
+              matchingAreaLabels: [center.label],
+              matchingAreaIds: [center.id],
+              searchMatchType: "tolerant",
+            });
+          }
+        }
+      }
       const allProviderResults = [
         ...page.results,
-        ...typoCandidates.slice(0, 5),
         ...nearbyCandidates.slice(0, 3),
+        ...typoCandidates.slice(0, 5),
       ];
       const items = allProviderResults.map((place) => {
         const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
