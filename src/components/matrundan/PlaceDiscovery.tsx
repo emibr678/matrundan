@@ -73,6 +73,7 @@ type ResultStatus = "available" | "linkable" | "existing";
 const RESULT_PAGE_SIZE = 20;
 /** Defensivt tak på provideranrop per användarhandling. */
 const MAX_PROVIDER_PAGES_PER_ACTION = 5;
+type AreaProgress = { offsets: Record<string, number>; exhaustedIds: string[] };
 
 export interface PlaceDiscoverySnapshot {
   query: string;
@@ -89,6 +90,7 @@ export interface PlaceDiscoverySnapshot {
   displayLimit: number;
   hasMore: boolean;
   nextOffset: number;
+  areaProgress?: AreaProgress;
 }
 
 export function PlaceDiscovery({
@@ -163,6 +165,9 @@ export function PlaceDiscovery({
   );
   const [hasMore, setHasMore] = React.useState(snapshot?.hasMore ?? false);
   const [nextOffset, setNextOffset] = React.useState(snapshot?.nextOffset ?? 0);
+  const [areaProgress, setAreaProgress] = React.useState<AreaProgress>(
+    snapshot?.areaProgress ?? { offsets: {}, exhaustedIds: [] },
+  );
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
     Record<string, SearchAreaBoundaryGeometry>
@@ -191,8 +196,10 @@ export function PlaceDiscovery({
       displayLimit,
       hasMore,
       nextOffset,
+      areaProgress,
     });
   }, [
+    areaProgress,
     bulkMode,
     displayLimit,
     error,
@@ -355,11 +362,13 @@ export function PlaceDiscovery({
     async ({
       seed,
       startOffset,
+      startProgress,
       targetActionable,
       isStale,
     }: {
       seed: PlaceSuggestion[];
       startOffset: number;
+      startProgress: AreaProgress;
       targetActionable: number;
       isStale: () => boolean;
     }) => {
@@ -367,6 +376,10 @@ export function PlaceDiscovery({
       const failedAreaLabels = new Set<string>();
       let canonicalIncomplete = false;
       let offset = startOffset;
+      let progress: AreaProgress = {
+        offsets: { ...startProgress.offsets },
+        exhaustedIds: [...startProgress.exhaustedIds],
+      };
       let moreAvailable = false;
       let pages = 0;
       const observations: unknown[] = [];
@@ -387,6 +400,8 @@ export function PlaceDiscovery({
             radiusKm,
             limit: RESULT_PAGE_SIZE,
             offset,
+            areaOffsets: progress.offsets,
+            exhaustedAreaIds: progress.exhaustedIds,
           },
         });
         if (isStale()) return null;
@@ -398,7 +413,9 @@ export function PlaceDiscovery({
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
-        if (!moreAvailable) break;
+        progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
+        // A failed area is retried on a later user action, not repeatedly in this batch.
+        if (response.failedAreaIds.length > 0 || !moreAvailable) break;
         if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable)
           break;
       }
@@ -413,6 +430,7 @@ export function PlaceDiscovery({
         ],
         hasMore: moreAvailable,
         nextOffset: offset,
+        areaProgress: progress,
       };
     },
     [activeAreas, groupId, query, radiusKm],
@@ -433,6 +451,7 @@ export function PlaceDiscovery({
       setDisplayLimit(RESULT_PAGE_SIZE);
       setHasMore(false);
       setNextOffset(0);
+      setAreaProgress({ offsets: {}, exhaustedIds: [] });
       return;
     }
     const requestId = ++requestRef.current;
@@ -445,10 +464,12 @@ export function PlaceDiscovery({
         let nextFailedAreas: string[] = [];
         let moreAvailable = false;
         let followingOffset = 0;
+        let followingProgress: AreaProgress = { offsets: {}, exhaustedIds: [] };
         if (isLive) {
           const filled = await fillProviderPages({
             seed: [],
             startOffset: 0,
+            startProgress: followingProgress,
             targetActionable: RESULT_PAGE_SIZE,
             isStale: () => requestId !== requestRef.current,
           });
@@ -457,6 +478,7 @@ export function PlaceDiscovery({
           nextFailedAreas = filled.failedAreaLabels;
           moreAvailable = filled.hasMore;
           followingOffset = filled.nextOffset;
+          followingProgress = filled.areaProgress;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -496,6 +518,7 @@ export function PlaceDiscovery({
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
         setNextOffset(followingOffset);
+        setAreaProgress(followingProgress);
         // Keep an explicit point/autocomplete choice if the refreshed result still exists.
         setSelectedId((current) =>
           nextResults.some((result) => result.externalId === current) ? current : null,
@@ -505,6 +528,7 @@ export function PlaceDiscovery({
         setResults([]);
         setHasMore(false);
         setNextOffset(0);
+        setAreaProgress({ offsets: {}, exhaustedIds: [] });
         setError(providerMessage(caught));
       } finally {
         if (requestId === requestRef.current) setLoading(false);
@@ -574,6 +598,7 @@ export function PlaceDiscovery({
       const filled = await fillProviderPages({
         seed: results,
         startOffset: nextOffset,
+        startProgress: areaProgress,
         targetActionable,
         isStale: () => requestId !== requestRef.current,
       });
@@ -581,6 +606,7 @@ export function PlaceDiscovery({
       setResults(filled.results);
       setHasMore(filled.hasMore);
       setNextOffset(filled.nextOffset);
+      setAreaProgress(filled.areaProgress);
       setDisplayLimit(targetActionable);
     } catch (caught) {
       if (requestId !== requestRef.current) return;
@@ -592,6 +618,7 @@ export function PlaceDiscovery({
       if (requestId === requestRef.current) setLoadingMore(false);
     }
   }, [
+    areaProgress,
     bufferedActionableCount,
     bufferedRemaining,
     fillProviderPages,
