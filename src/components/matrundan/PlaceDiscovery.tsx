@@ -1145,72 +1145,89 @@ export function PlaceDiscovery({
       ) : null}
 
       <div className={searchFocused ? "hidden lg:block" : ""}>
-      {activeAreas.length === 0 ? (
-        <Empty text="Sök och välj minst ett sökområde." />
-      ) : isInitialSearchLoading ? (
-        <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
-        </div>
-      ) : error ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
-          <p className="min-w-0 flex-1 text-destructive">{error}</p>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-11"
-            onClick={() => setRetry((value) => value + 1)}
-          >
-            Försök igen
-          </Button>
-        </div>
-      ) : (
-        <>
-          {isReloadingResults ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
+        {activeAreas.length === 0 ? (
+          <Empty text="Sök och välj minst ett sökområde." />
+        ) : isInitialSearchLoading ? (
+          <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Söker…
+          </div>
+        ) : error ? (
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3 text-sm">
+            <p className="min-w-0 flex-1 text-destructive">{error}</p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-11"
+              onClick={() => setRetry((value) => value + 1)}
             >
-              <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
-            </div>
-          ) : null}
-          {failedAreas.length > 0 ? (
-            <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
-              Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
-            </div>
-          ) : null}
-          {failedBoundaryGeometryLabels.length > 0 ? (
-            <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-              Kunde inte visa gränsen för {failedBoundaryGeometryLabels.join(", ")} på kartan.
-              Sökningen använder fortfarande det valda området.
-            </div>
-          ) : null}
-          {visibleResults.length === 0 ? (
-            <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
-              <div>
-                <p className="text-sm font-medium">Inga matställen hittades</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  {hasPointAreas
-                    ? "Prova större avstånd runt punktvalen eller andra sökområden. Om stället saknas kan du lägga till det."
-                    : "Prova andra sökområden. Om stället saknas kan du lägga till det."}
-                </p>
+              Försök igen
+            </Button>
+          </div>
+        ) : (
+          <>
+            {isReloadingResults ? (
+              <div
+                role="status"
+                aria-live="polite"
+                className="flex min-h-6 items-center gap-2 text-xs text-muted-foreground"
+              >
+                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
               </div>
-              <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
-            </div>
-          ) : (
-            <>
-              {actionableResultCount > 0 ? (
-                <>
-                  <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
-                  <div className="lg:hidden">
-                    <ResultToggle value={resultView} onChange={setResultView} />
-                    <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
-                      <span className="text-xs text-muted-foreground">
-                        {resultView === "karta"
-                          ? `Visar ${mappableResultCount} ställen på kartan`
-                          : `Visar ${actionableResultCount} ${actionableResultCount === 1 ? "träff" : "träffar"} i listan`}
-                      </span>
+            ) : null}
+            {failedAreas.length > 0 ? (
+              <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
+                Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
+              </div>
+            ) : null}
+            {failedBoundaryGeometryLabels.length > 0 ? (
+              <div className="rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                Kunde inte visa gränsen för {failedBoundaryGeometryLabels.join(", ")} på kartan.
+                Sökningen använder fortfarande det valda området.
+              </div>
+            ) : null}
+            {visibleResults.length === 0 ? (
+              <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
+                <div>
+                  <p className="text-sm font-medium">Inga matställen hittades</p>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {hasPointAreas
+                      ? "Prova större avstånd runt punktvalen eller andra sökområden. Om stället saknas kan du lägga till det."
+                      : "Prova andra sökområden. Om stället saknas kan du lägga till det."}
+                  </p>
+                </div>
+                <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
+              </div>
+            ) : (
+              <>
+                {actionableResultCount > 0 ? (
+                  <>
+                    <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
+                    <div className="lg:hidden">
+                      <ResultToggle value={resultView} onChange={setResultView} />
+                      <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
+                        <span className="text-xs text-muted-foreground">
+                          {resultView === "karta"
+                            ? `Visar ${mappableResultCount} ställen på kartan`
+                            : `Visar ${actionableResultCount} ${actionableResultCount === 1 ? "träff" : "träffar"} i listan`}
+                        </span>
+                        {availableResults.length > 0 ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-11 shrink-0"
+                            disabled={interactionsDisabled}
+                            onClick={toggleBulkMode}
+                          >
+                            {bulkMode ? "Avbryt" : "Välj flera"}
+                          </Button>
+                        ) : null}
+                      </div>
+                      <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+                    </div>
+                    <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
+                      <h3 className="text-sm font-medium">Ställen att lägga till</h3>
                       {availableResults.length > 0 ? (
                         <Button
                           type="button"
@@ -1224,125 +1241,108 @@ export function PlaceDiscovery({
                         </Button>
                       ) : null}
                     </div>
-                    <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+                    <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+                      <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
+                      {map}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="lg:hidden">{resultSections}</div>
+                    <div className="hidden lg:block">{resultSections}</div>
+                  </>
+                )}
+                {canShowMore ? (
+                  <div className="flex justify-center">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="min-h-11 w-full sm:w-auto"
+                      disabled={loadingMore || interactionsDisabled}
+                      onClick={() => void showMoreResults()}
+                    >
+                      {loadingMore ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+                        </>
+                      ) : (
+                        "Visa fler"
+                      )}
+                    </Button>
                   </div>
-                  <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
-                    <h3 className="text-sm font-medium">Ställen att lägga till</h3>
-                    {availableResults.length > 0 ? (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-11 shrink-0"
-                        disabled={interactionsDisabled}
-                        onClick={toggleBulkMode}
-                      >
-                        {bulkMode ? "Avbryt" : "Välj flera"}
-                      </Button>
-                    ) : null}
-                  </div>
-                  <div className="hidden gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-                    <div className="max-h-[52vh] overflow-y-auto pr-1">{resultSections}</div>
-                    {map}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="lg:hidden">{resultSections}</div>
-                  <div className="hidden lg:block">{resultSections}</div>
-                </>
-              )}
-              {canShowMore ? (
-                <div className="flex justify-center">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    className="min-h-11 w-full sm:w-auto"
-                    disabled={loadingMore || interactionsDisabled}
-                    onClick={() => void showMoreResults()}
-                  >
-                    {loadingMore ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-                      </>
-                    ) : (
-                      "Visa fler"
-                    )}
-                  </Button>
-                </div>
-              ) : null}
-              {unmappedCount > 0 ? (
-                <p className="text-[11px] text-muted-foreground">
-                  {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
-                  kartposition och visas bara i listan.
-                </p>
-              ) : null}
-              <div className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium">Hittar du inte rätt ställe?</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    Lägg till det som saknas först när sökningen inte räcker.
+                ) : null}
+                {unmappedCount > 0 ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
+                    kartposition och visas bara i listan.
                   </p>
+                ) : null}
+                <div className="flex min-w-0 flex-col gap-2 border-t border-border/60 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium">Hittar du inte rätt ställe?</p>
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Lägg till det som saknas först när sökningen inte räcker.
+                    </p>
+                  </div>
+                  <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
                 </div>
-                <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
-              </div>
-            </>
-          )}
-        </>
-      )}
+              </>
+            )}
+          </>
+        )}
 
-      {bulkMode && selectedResults.length > 0 ? (
-        <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className="min-w-0 flex-1 text-sm font-medium">
-              {selectedResults.length}{" "}
-              {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
-            </span>
+        {bulkMode && selectedResults.length > 0 ? (
+          <div className="sticky bottom-2 z-30 rounded-2xl border border-primary/25 bg-background/95 p-2 shadow-lg backdrop-blur">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="min-w-0 flex-1 text-sm font-medium">
+                {selectedResults.length}{" "}
+                {selectedResults.length === 1 ? "ställe valt" : "ställen valda"}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="min-h-11 shrink-0"
+                disabled={interactionsDisabled}
+                onClick={onClearSelected}
+              >
+                Rensa
+              </Button>
+            </div>
             <Button
               type="button"
-              variant="ghost"
-              size="sm"
-              className="min-h-11 shrink-0"
+              className="mt-1 min-h-11 w-full"
               disabled={interactionsDisabled}
-              onClick={onClearSelected}
+              onClick={onAddSelected}
             >
-              Rensa
+              {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
             </Button>
           </div>
-          <Button
-            type="button"
-            className="mt-1 min-h-11 w-full"
-            disabled={interactionsDisabled}
-            onClick={onAddSelected}
+        ) : null}
+
+        {addedResultIds.size > 0 ? (
+          <div
+            className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
+            role="status"
           >
-            {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
+            <Check className="h-4 w-4 shrink-0 text-primary" />
+            {addedResultIds.size}{" "}
+            {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
+          </div>
+        ) : null}
+
+        <p className="text-[11px] text-muted-foreground">
+          {isLive
+            ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
+            : "Fiktiv demodata för utveckling."}
+        </p>
+        <div className="flex justify-end">
+          <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
+            Klar
           </Button>
         </div>
-      ) : null}
-
-      {addedResultIds.size > 0 ? (
-        <div
-          className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/[0.06] px-3 py-2 text-sm"
-          role="status"
-        >
-          <Check className="h-4 w-4 shrink-0 text-primary" />
-          {addedResultIds.size}{" "}
-          {addedResultIds.size === 1 ? "ställe hanterat" : "ställen hanterade"} i den här omgången
-        </div>
-      ) : null}
-
-      <p className="text-[11px] text-muted-foreground">
-        {isLive
-          ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
-          : "Fiktiv demodata för utveckling."}
-      </p>
-      <div className="flex justify-end">
-        <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
-          Klar
-        </Button>
-      </div>
       </div>
     </div>
   );

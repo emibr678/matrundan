@@ -557,10 +557,18 @@ async function searchProviderAreas(
       }
       const fullName = normalizePlaceIdentity(result.name);
       const inputName = normalizePlaceIdentity(nameIntent.query);
-      if (!fullName.startsWith(inputName) && !matchesSpecificPlaceName(nameIntent.query, result.name))
+      if (
+        !fullName.startsWith(inputName) &&
+        !matchesSpecificPlaceName(nameIntent.query, result.name)
+      )
         return [];
       return [
-        { ...result, matchingAreaIds: [], matchingAreaLabels: [], searchAreaGroup: "nearby" as const },
+        {
+          ...result,
+          matchingAreaIds: [],
+          matchingAreaLabels: [],
+          searchAreaGroup: "nearby" as const,
+        },
       ];
     },
   );

@@ -1,5 +1,10 @@
 import { expect, test } from "bun:test";
-import { observePlaceSearch, observeProviderRequest, recordSearchCandidateCounts, recordSearchPhaseMs } from "./place-search-observation.server";
+import {
+  observePlaceSearch,
+  observeProviderRequest,
+  recordSearchCandidateCounts,
+  recordSearchPhaseMs,
+} from "./place-search-observation.server";
 
 test("concurrent search observations remain isolated and include failed calls", async () => {
   const [first, second] = await Promise.all([
