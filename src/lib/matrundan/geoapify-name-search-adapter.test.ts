@@ -454,17 +454,18 @@ describe("namn-fallback tillsammans med kanonisk discovery (#389 + #464)", () =>
   });
 });
 
-
 test("multi-area continuation skips exhausted areas and preserves independent offsets", async () => {
   const other = { ...area, id: "other", label: "Norr", lat: 59.4 };
   const input: SearchInput = { text: "", centers: [area, other], radiusKm: 1 };
   const a = adapter((url) => {
-    if (url.searchParams.get("filter")?.includes("59.4"))
+    if (url.searchParams.get("filter")?.includes("59.4")) {
       return { features: [place("other-place", "Norrs restaurang")] };
+    }
     return {
-      features: url.searchParams.get("offset") === "20"
-        ? [place("later-place", "Senare restaurang")]
-        : Array.from({ length: 20 }, (_, i) => place("first-" + i, "Restaurang " + i)),
+      features:
+        url.searchParams.get("offset") === "20"
+          ? [place("later-place", "Senare restaurang")]
+          : Array.from({ length: 20 }, (_, i) => place("first-" + i, "Restaurang " + i)),
     };
   });
   const first = await a.multi(input);
@@ -472,11 +473,14 @@ test("multi-area continuation skips exhausted areas and preserves independent of
   expect(first.exhaustedAreaIds).toContain("other");
   expect(first.areaOffsets[area.id]).toBe(20);
   const second = await a.multi({
-    ...input, areaOffsets: first.areaOffsets, exhaustedAreaIds: first.exhaustedAreaIds,
+    ...input,
+    areaOffsets: first.areaOffsets,
+    exhaustedAreaIds: first.exhaustedAreaIds,
   });
   expect(second.results.map((row) => row.externalId)).toEqual(["later-place"]);
   expect(second.exhaustedAreaIds).toEqual(expect.arrayContaining(["other", area.id]));
   expect(a.calls.filter((url) => url.searchParams.get("filter")?.includes("59.4"))).toHaveLength(1);
-  expect(a.calls.find((url) => url.searchParams.get("offset") === "20")?.searchParams.get("filter"))
-    .toBe("circle:18.0710935,59.3251172,1000");
+  expect(
+    a.calls.find((url) => url.searchParams.get("offset") === "20")?.searchParams.get("filter"),
+  ).toBe("circle:18.0710935,59.3251172,1000");
 });
