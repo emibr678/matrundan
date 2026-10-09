@@ -76,6 +76,7 @@ const searchModeSchema = z.enum(["point", "boundary"]);
 export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   nearestAreaLabel: string;
   matchingAreaLabels: string[];
+  searchAreaGroup?: "nearby" | "name-outside";
 };
 
 type RankedMultiAreaPlaceSuggestion = MultiAreaPlaceSuggestion & {

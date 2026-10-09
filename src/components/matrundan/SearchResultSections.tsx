@@ -114,9 +114,16 @@ export function SearchResultSections({
 
   const isInternal = (row: PlaceSuggestion) =>
     row.kind === "canonical" || !!unambiguousPlaceCandidate(row) || !!row.identity?.knownPlace;
+  const regularAvailable = available.filter((row) => !row.searchAreaGroup);
+  const nearbyAvailable = available.filter((row) => row.searchAreaGroup === "nearby");
+  const farAvailable = available.filter((row) => row.searchAreaGroup === "name-outside");
   const orderedAvailable = [
-    ...available.filter(isInternal),
-    ...available.filter((row) => !isInternal(row)),
+    ...regularAvailable.filter(isInternal),
+    ...regularAvailable.filter((row) => !isInternal(row)),
+    ...nearbyAvailable.filter(isInternal),
+    ...nearbyAvailable.filter((row) => !isInternal(row)),
+    ...farAvailable.filter(isInternal),
+    ...farAvailable.filter((row) => !isInternal(row)),
   ];
   return (
     <div className="space-y-4">
@@ -175,19 +182,36 @@ export function SearchResultSections({
               result.kind === "canonical" ||
               !!unambiguousPlaceCandidate(result) ||
               !!result.identity?.knownPlace;
+            const previous = orderedAvailable.slice(0, index);
+            const firstNearby =
+              result.searchAreaGroup === "nearby" &&
+              !previous.some((row) => row.searchAreaGroup === "nearby");
+            const firstFar =
+              result.searchAreaGroup === "name-outside" &&
+              !previous.some((row) => row.searchAreaGroup === "name-outside");
             const firstExternal =
-              !internal && !orderedAvailable.slice(0, index).some((row) => !isInternal(row));
+              !result.searchAreaGroup &&
+              !internal &&
+              !previous.some((row) => !row.searchAreaGroup && !isInternal(row));
             const firstInternal =
+              !result.searchAreaGroup &&
               internal &&
-              !orderedAvailable
-                .slice(0, index)
-                .some(
-                  (row) =>
-                    row.kind === "canonical" ||
-                    !!unambiguousPlaceCandidate(row) ||
-                    !!row.identity?.knownPlace,
-                );
+              !previous.some((row) => !row.searchAreaGroup && isInternal(row));
             return [
+              ...(firstNearby
+                ? [
+                    <h4 key="nearby-heading" className="pt-2 text-sm font-medium">
+                      Nära ditt sökområde
+                    </h4>,
+                  ]
+                : []),
+              ...(firstFar
+                ? [
+                    <h4 key="name-outside-heading" className="pt-2 text-sm font-medium">
+                      Namnträffar utanför sökområdet
+                    </h4>,
+                  ]
+                : []),
               ...(firstInternal
                 ? [
                     <h4
