@@ -1022,7 +1022,7 @@ export function PlaceDiscovery({
       query.trim().length < 2
         ? []
         : visibleResults.slice(0, 6),
-    [query, statusForResult, visibleResults],
+    [query, visibleResults],
   );
   const searchAreaSummary =
     activeAreas.length === 1
@@ -1041,8 +1041,11 @@ export function PlaceDiscovery({
     }
     if (statusForResult(suggestion) === "existing") {
       const placeId =
-        (suggestion.canonical ?? suggestion.identity?.knownPlace ?? unambiguousPlaceCandidate(suggestion))
-          ?.placeId ?? matchingPlace(state.places, suggestion)?.id;
+        (
+          suggestion.canonical ??
+          suggestion.identity?.knownPlace ??
+          unambiguousPlaceCandidate(suggestion)
+        )?.placeId ?? matchingPlace(state.places, suggestion)?.id;
       if (placeId) void navigate({ to: "/matstallen/$placeId", params: { placeId } });
       return;
     }
@@ -1056,17 +1059,17 @@ export function PlaceDiscovery({
     >
       <div className={searchFocused ? "hidden lg:block" : ""}>
         <SearchAreaControls
-        heading="Sök i"
-        addAreaActionLabel="Lägg till område eller adress"
-        savedAreas={savedAreas}
-        selectedAreaIds={selectedAreaIds}
-        onSelectedAreaIdsChange={setSelectedAreaIds}
-        temporaryAreas={temporaryAreas}
-        onTemporaryAreasChange={setTemporaryAreas}
-        radiusKm={radiusKm}
-        onRadiusChange={setRadiusKm}
-        isLive={isLive}
-        fallbackCity={state.group.city}
+          heading="Sök i"
+          addAreaActionLabel="Lägg till område eller adress"
+          savedAreas={savedAreas}
+          selectedAreaIds={selectedAreaIds}
+          onSelectedAreaIdsChange={setSelectedAreaIds}
+          temporaryAreas={temporaryAreas}
+          onTemporaryAreasChange={setTemporaryAreas}
+          radiusKm={radiusKm}
+          onRadiusChange={setRadiusKm}
+          isLive={isLive}
+          fallbackCity={state.group.city}
         />
       </div>
       {searchFocused ? (
@@ -1386,11 +1389,11 @@ function PlaceSearchCombobox({
     searchValue: suggestion.searchValue,
   }));
   const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
-      kind: "place",
-      key: suggestion.externalId,
-      label: suggestion.name,
-      meta: placeOptionMeta(suggestion),
-      suggestion,
+    kind: "place",
+    key: suggestion.externalId,
+    label: suggestion.name,
+    meta: placeOptionMeta(suggestion),
+    suggestion,
   }));
   const isInternalOption = (option: PlaceSearchOption) =>
     option.kind === "place" &&
@@ -1409,7 +1412,10 @@ function PlaceSearchCombobox({
 
   React.useEffect(() => {
     if (!focused || !window.matchMedia("(max-width: 1023px)").matches) return;
-    const timer = window.setTimeout(() => inputRef.current?.scrollIntoView({ block: "nearest" }), 0);
+    const timer = window.setTimeout(
+      () => inputRef.current?.scrollIntoView({ block: "nearest" }),
+      0,
+    );
     return () => window.clearTimeout(timer);
   }, [focused]);
 
@@ -1548,10 +1554,12 @@ function PlaceSearchCombobox({
             setOpen(true);
             onFocusChange(true);
           }}
-          onBlur={() => window.setTimeout(() => {
-            setOpen(false);
-            onFocusChange(false);
-          }, 150)}
+          onBlur={() =>
+            window.setTimeout(() => {
+              setOpen(false);
+              onFocusChange(false);
+            }, 150)
+          }
           onKeyDown={onKeyDown}
           autoComplete="off"
           role="combobox"

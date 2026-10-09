@@ -529,18 +529,23 @@ async function searchProviderAreas(
     ({ nearestAreaSearchMode, ...result }) => {
       if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
       if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
+      if (!data.centers.some((center) => distanceKm(center, result) <= expandedRadius)) return [];
       const primaryMemberships = data.centers.filter(
         (center) => distanceKm(center, result) <= (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
       );
       if (primaryMemberships.length > 0) {
-        return [{
-          ...result,
-          matchingAreaIds: primaryMemberships.map((center) => center.id),
-          matchingAreaLabels: primaryMemberships.map((center) => center.label),
-        }];
+        return [
+          {
+            ...result,
+            matchingAreaIds: primaryMemberships.map((center) => center.id),
+            matchingAreaLabels: primaryMemberships.map((center) => center.label),
+          },
+        ];
       }
       if (!matchesSpecificPlaceName(nameIntent.query, result.name)) return [];
-      return [{ ...result, matchingAreaIds: [], matchingAreaLabels: [], searchAreaGroup: "nearby" as const }];
+      return [
+        { ...result, matchingAreaIds: [], matchingAreaLabels: [], searchAreaGroup: "nearby" as const },
+      ];
     },
   );
 
@@ -578,7 +583,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       const intent = resolvePlaceSearchIntent(data.text ?? "");
       const explicit = (data.text?.trim().length ?? 0) >= 2;
       const internalPromise = (async () => {
-        if (!explicit || (data.offset ?? 0) > 0 || data.searchPhase === "recovery")
+        if (!explicit || (data.offset ?? 0) > 0)
           return {
             results: [] as import("./places-provider").PlaceSuggestion[],
             incomplete: false,
@@ -617,20 +622,29 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               : {}),
           };
         });
-        const found = await context.supabase.rpc("search_canonical_places_v1", {
-          _group_id: data.groupId,
-          _text: intent.kind === "text" ? intent.query : "",
-          _centers: centers,
-          _categories: intent.kind === "category" ? [intent.category] : [],
-          _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
-          _limit: 200,
-        });
+        const found =
+          data.searchPhase === "recovery"
+            ? { data: [], error: null }
+            : await context.supabase.rpc("search_canonical_places_v1", {
+                _group_id: data.groupId,
+                _text: intent.kind === "text" ? intent.query : "",
+                _centers: centers,
+                _categories: intent.kind === "category" ? [intent.category] : [],
+                _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
+                _limit: 200,
+              });
         if (found.error) return { results: [], incomplete: true };
         const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
         const primaryTruncated = rows.length === 200;
         let fuzzyIncomplete = false;
         const fuzzyIds = new Set<string>();
+        const fuzzyRadius =
+          data.searchPhase !== "complete" &&
+          data.centers.every((center) => center.searchMode !== "boundary")
+            ? expandedNameRadiusKm(data.radiusKm)
+            : null;
         if (
+          data.searchPhase !== "primary" &&
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
           !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
@@ -638,7 +652,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           const fuzzy = await context.supabase.rpc("search_canonical_name_candidates_v1", {
             _group_id: data.groupId,
             _text: intent.query,
-            _centers: centers,
+            _centers: fuzzyRadius == null
+              ? centers
+              : centers.map((center) => ({ ...center, radiusKm: fuzzyRadius })),
           });
           if (fuzzy.error) {
             // Missing migration or a provider/database fault is never a confirmed zero-result.
@@ -653,10 +669,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             }
           }
         }
-        const fuzzyRadius =
-          intent.kind === "text" && data.searchPhase === "primary"
-            ? expandedNameRadiusKm(data.radiusKm)
-            : null;
         const results = rows.flatMap((canonical) => {
           const matching = valid.filter(({ center, boundary }) =>
             boundary
@@ -845,25 +857,38 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           const outcome = outcomes[index];
           if (outcome.status !== "fulfilled") continue;
           for (const candidate of outcome.value.results) {
-            if (
-              seen.has(candidate.externalId) ||
-              !matchesTypoPlaceName(intent.query, candidate.name)
-            )
+            if (seen.has(candidate.externalId) || !matchesTypoPlaceName(intent.query, candidate.name))
               continue;
-            seen.add(candidate.externalId);
             const center = data.centers[index];
-            const inside =
-              candidate.lat != null && candidate.lng != null &&
-              distanceKm(center, { lat: candidate.lat, lng: candidate.lng }) <=
-                (data.radiusKm ?? WIDE_AREA_RADIUS_KM);
-            if (!inside && data.centers.some((area) => area.searchMode === "boundary")) continue;
+            const allPoint = data.centers.every((area) => area.searchMode !== "boundary");
+            const distances =
+              candidate.lat != null && candidate.lng != null && allPoint
+                ? data.centers.map((area) => ({
+                    area,
+                    km: distanceKm(area, { lat: candidate.lat!, lng: candidate.lng! }),
+                  }))
+                : [];
+            const searchRadius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
+            const candidateLimit = allPoint
+              ? (expandedNameRadiusKm(data.radiusKm) ?? searchRadius)
+              : searchRadius;
+            if (allPoint && (!distances.length || distances.every(({ km }) => km > candidateLimit)))
+              continue;
+            const insideAreas = allPoint
+              ? distances.filter(({ km }) => km <= searchRadius).map(({ area }) => area)
+              : [center];
+            const nearest = allPoint
+              ? [...distances].sort((left, right) => left.km - right.km)[0]
+              : null;
+            seen.add(candidate.externalId);
             typoCandidates.push({
               ...candidate,
-              nearestAreaLabel: center.label,
-              nearestAreaId: center.id,
-              matchingAreaLabels: inside ? [center.label] : [],
-              matchingAreaIds: inside ? [center.id] : [],
-              searchAreaGroup: inside ? undefined : "nearby",
+              nearestAreaLabel: nearest?.area.label ?? center.label,
+              nearestAreaId: nearest?.area.id ?? center.id,
+              distanceKm: nearest?.km ?? candidate.distanceKm,
+              matchingAreaLabels: insideAreas.map((area) => area.label),
+              matchingAreaIds: insideAreas.map((area) => area.id),
+              searchAreaGroup: insideAreas.length ? undefined : "nearby",
               searchMatchType: "tolerant",
             });
           }

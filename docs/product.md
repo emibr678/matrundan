@@ -147,7 +147,9 @@ Här hör bland annat hemma:
 - platsdetalj och gruppspecifika uppgifter om stället.
 
 Vid en konkret sökning söker Matrundan samtidigt i kartan och bland relevanta
-Matrundan-ställen. Befintliga ställen visas under **Finns i Matrundan** med neutral
+Matrundan-ställen. På mobil prioriteras en sammanhållen sökyta med förslag direkt
+under sökfältet medan användaren skriver; sökområden sammanfattas kompakt och
+lista/karta tar över när sökfältet lämnas. Befintliga ställen visas under **Finns i Matrundan** med neutral
 platsidentitet. Ett tidigare besök krävs inte. När kartträffen säkert motsvarar
 ett befintligt ställe presenteras en rad; osäkra träffar hålls isär.
 
