@@ -533,8 +533,10 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     expect(
       result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
     ).toBe("tolerant");
-    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
-    expect(result.budgetUsage.requests).toBe(4);
+    // One geocoding attempt for the primary radius, one for nearby recovery.
+    // The actual typo candidate search does not add another geocoding call.
+    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(2);
+    expect(result.budgetUsage.requests).toBe(5);
   });
 });
 
