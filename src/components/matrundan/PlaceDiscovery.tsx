@@ -74,6 +74,9 @@ const RESULT_PAGE_SIZE = 20;
 /** Defensivt tak på provideranrop per användarhandling. */
 const MAX_PROVIDER_PAGES_PER_ACTION = 5;
 type AreaProgress = { offsets: Record<string, number>; exhaustedIds: string[] };
+type SearchBudget = { requests: number; credits: number };
+const AUTO_SEARCH_BUDGET: SearchBudget = { requests: 25, credits: 40 };
+const EXPLICIT_MORE_BUDGET: SearchBudget = { requests: 5, credits: 20 };
 
 export interface PlaceDiscoverySnapshot {
   query: string;
@@ -91,6 +94,7 @@ export interface PlaceDiscoverySnapshot {
   hasMore: boolean;
   nextOffset: number;
   areaProgress?: AreaProgress;
+  budgetRemaining?: SearchBudget;
 }
 
 export function PlaceDiscovery({
@@ -168,6 +172,9 @@ export function PlaceDiscovery({
   const [areaProgress, setAreaProgress] = React.useState<AreaProgress>(
     snapshot?.areaProgress ?? { offsets: {}, exhaustedIds: [] },
   );
+  const [budgetRemaining, setBudgetRemaining] = React.useState<SearchBudget>(
+    snapshot?.budgetRemaining ?? AUTO_SEARCH_BUDGET,
+  );
   const [loadingMore, setLoadingMore] = React.useState(false);
   const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
     Record<string, SearchAreaBoundaryGeometry>
@@ -197,9 +204,11 @@ export function PlaceDiscovery({
       hasMore,
       nextOffset,
       areaProgress,
+      budgetRemaining,
     });
   }, [
     areaProgress,
+    budgetRemaining,
     bulkMode,
     displayLimit,
     error,
@@ -363,14 +372,18 @@ export function PlaceDiscovery({
       seed,
       startOffset,
       startProgress,
+      startBudget,
       targetActionable,
       isStale,
+      maxPages = MAX_PROVIDER_PAGES_PER_ACTION,
     }: {
       seed: PlaceSuggestion[];
       startOffset: number;
       startProgress: AreaProgress;
+      startBudget: SearchBudget;
       targetActionable: number;
       isStale: () => boolean;
+      maxPages?: number;
     }) => {
       let collected = seed;
       const failedAreaLabels = new Set<string>();
@@ -381,10 +394,11 @@ export function PlaceDiscovery({
         exhaustedIds: [...startProgress.exhaustedIds],
       };
       let moreAvailable = false;
+      let remaining: SearchBudget = { ...startBudget };
       let pages = 0;
       const observations: unknown[] = [];
 
-      while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
+      while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const response = await searchPlaceDiscovery({
           data: {
             groupId: groupId!,
@@ -402,20 +416,27 @@ export function PlaceDiscovery({
             offset,
             areaOffsets: progress.offsets,
             exhaustedAreaIds: progress.exhaustedIds,
+            providerRequestLimit: remaining.requests,
+            providerCreditLimit: remaining.credits,
           },
         });
         if (isStale()) return null;
         observations.push(response.observation);
         setSearchObservation(observations);
         pages += 1;
+        remaining = {
+          requests: Math.max(0, remaining.requests - response.budgetUsage.requests),
+          credits: Math.max(0, remaining.credits - response.budgetUsage.reservedCredits),
+        };
         canonicalIncomplete ||= response.canonicalIncomplete;
         collected = mergePlaceSearchPages(collected, response.results);
         response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
         progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
-        // A failed area is retried on a later user action, not repeatedly in this batch.
-        if (response.failedAreaIds.length > 0 || !moreAvailable) break;
+        // Stop if providers were limited or an area failed; never spin through its cursor.
+        if (response.budgetUsage.limited || response.failedAreaIds.length > 0 || !moreAvailable)
+          break;
         if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable)
           break;
       }
@@ -431,6 +452,7 @@ export function PlaceDiscovery({
         hasMore: moreAvailable,
         nextOffset: offset,
         areaProgress: progress,
+        budgetRemaining: remaining,
       };
     },
     [activeAreas, groupId, query, radiusKm],
@@ -452,6 +474,7 @@ export function PlaceDiscovery({
       setHasMore(false);
       setNextOffset(0);
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
+      setBudgetRemaining(AUTO_SEARCH_BUDGET);
       return;
     }
     const requestId = ++requestRef.current;
@@ -465,11 +488,13 @@ export function PlaceDiscovery({
         let moreAvailable = false;
         let followingOffset = 0;
         let followingProgress: AreaProgress = { offsets: {}, exhaustedIds: [] };
+        let followingBudget = AUTO_SEARCH_BUDGET;
         if (isLive) {
           const filled = await fillProviderPages({
             seed: [],
             startOffset: 0,
             startProgress: followingProgress,
+            startBudget: AUTO_SEARCH_BUDGET,
             targetActionable: RESULT_PAGE_SIZE,
             isStale: () => requestId !== requestRef.current,
           });
@@ -479,6 +504,7 @@ export function PlaceDiscovery({
           moreAvailable = filled.hasMore;
           followingOffset = filled.nextOffset;
           followingProgress = filled.areaProgress;
+          followingBudget = filled.budgetRemaining;
         } else {
           const settled = await Promise.allSettled(
             activeAreas.map(async (area) => ({
@@ -519,6 +545,7 @@ export function PlaceDiscovery({
         setHasMore(moreAvailable);
         setNextOffset(followingOffset);
         setAreaProgress(followingProgress);
+        setBudgetRemaining(followingBudget);
         // Keep an explicit point/autocomplete choice if the refreshed result still exists.
         setSelectedId((current) =>
           nextResults.some((result) => result.externalId === current) ? current : null,
@@ -529,6 +556,7 @@ export function PlaceDiscovery({
         setHasMore(false);
         setNextOffset(0);
         setAreaProgress({ offsets: {}, exhaustedIds: [] });
+        setBudgetRemaining(AUTO_SEARCH_BUDGET);
         setError(providerMessage(caught));
       } finally {
         if (requestId === requestRef.current) setLoading(false);
@@ -599,6 +627,7 @@ export function PlaceDiscovery({
         seed: results,
         startOffset: nextOffset,
         startProgress: areaProgress,
+        startBudget: EXPLICIT_MORE_BUDGET,
         targetActionable,
         isStale: () => requestId !== requestRef.current,
       });

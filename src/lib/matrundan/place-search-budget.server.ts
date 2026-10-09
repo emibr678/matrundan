@@ -63,6 +63,8 @@ export async function budgetProviderRequest<T>(estimatedCredits: number, run: ()
     state.reservedCredits + estimatedCredits > state.creditLimit
   ) {
     state.limited = true;
+    // A denied request must also wake queued peers; otherwise they can hang forever.
+    state.waiters.splice(0).forEach((wake) => wake());
     throw new Error("GEOAPIFY_SEARCH_BUDGET: Sökningens anropsbudget har nåtts.");
   }
 
