@@ -21,6 +21,7 @@ import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-sear
 import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
+import { expandedNameRadiusKm } from "./place-search-expansion";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import { observeProviderRequest, observeSearchWithBudget } from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
@@ -32,6 +33,7 @@ import {
   placeWithinBoundary,
   placeDistanceKm,
   matchesSpecificPlaceName,
+  isSpecificPlaceName,
   manualFallbackProviderCandidates,
 } from "./place-discovery";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
@@ -104,7 +106,7 @@ type PlaceSearchPage = {
 type SearchAreaInput = {
   lat: number;
   lng: number;
-  radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
+  radiusKm: number | null;
   searchMode?: SearchAreaMode;
   placeId?: string;
 };
@@ -615,6 +617,12 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               nearestAreaLabel: nearest.center.label,
               matchingAreaLabels: matching.map(({ center }) => center.label),
               distanceKm: nearest.boundary ? undefined : nearest.distance,
+            searchAreaGroup:
+              !nearest.boundary &&
+              nearest.distance > (data.radiusKm ?? 50) &&
+              matchesSpecificPlaceName(intent.query, canonical.name)
+                ? ("name-outside" as const)
+                : undefined,
             },
           ];
         });
@@ -637,7 +645,63 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             exhaustedAreaIds: data.exhaustedAreaIds ?? [],
             failedAreaIds: data.centers.map((c) => c.id),
           };
-      const items = page.results.map((place) => {
+      // One bounded external recovery after an exhausted primary name search.
+      // Strong canonical 50-km results remain available without external expansion.
+      const expansionRadius = expandedNameRadiusKm(data.radiusKm);
+      const mayExpand =
+        (data.offset ?? 0) === 0 &&
+        !page.hasMore &&
+        !page.failedAreaIds.length &&
+        intent.kind === "text" &&
+        isSpecificPlaceName(intent.query) &&
+        expansionRadius != null &&
+        data.centers.every((center) => center.searchMode !== "boundary") &&
+        ![...page.results, ...internal.results].some((place) =>
+          matchesSpecificPlaceName(intent.query, place.name),
+        );
+      const nearbyCandidates: typeof page.results = [];
+      if (mayExpand && expansionRadius != null) {
+        const results = await Promise.allSettled(
+          data.centers.map((center) =>
+            searchPlacesAtArea({
+              text: data.text,
+              lat: center.lat,
+              lng: center.lng,
+              searchMode: "point",
+              radiusKm: expansionRadius,
+              limit: 20,
+              offset: 0,
+            }),
+          ),
+        );
+        const seen = new Set(page.results.map((place) => place.externalId));
+        for (const outcome of results) {
+          if (outcome.status !== "fulfilled") continue;
+          for (const candidate of outcome.value.results) {
+            if (seen.has(candidate.externalId)) continue;
+            if (!matchesSpecificPlaceName(intent.query, candidate.name)) continue;
+            if (candidate.lat == null || candidate.lng == null) continue;
+            const memberships = data.centers.map((center) => ({
+              center,
+              distance: distanceKm(center, candidate),
+            }));
+            if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50)))
+              continue;
+            const closest = memberships.sort((left, right) => left.distance - right.distance)[0];
+            if (!closest || closest.distance > expansionRadius) continue;
+            seen.add(candidate.externalId);
+            nearbyCandidates.push({
+              ...candidate,
+              distanceKm: closest.distance,
+              nearestAreaLabel: closest.center.label,
+              matchingAreaLabels: [],
+              searchAreaGroup: "nearby",
+            });
+          }
+        }
+      }
+      const allProviderResults = [...page.results, ...nearbyCandidates.slice(0, 3)];
+      const items = allProviderResults.map((place) => {
         const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
         return {
           externalId: place.externalId,
@@ -664,7 +728,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         : z.array(providerIdentityReviewSchema).parse(matches.data);
       const results: import("./places-provider").PlaceSuggestion[] = [
         ...internal.results,
-        ...page.results.map(({ raw: _raw, ...place }) => ({
+        ...allProviderResults.map(({ raw: _raw, ...place }) => ({
           ...place,
           kind: "provider" as const,
           resultKey: `provider:geoapify:${place.externalId}`,

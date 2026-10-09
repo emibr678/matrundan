@@ -39,6 +39,7 @@ export interface PlaceSuggestion {
   raw?: string;
   nearestAreaLabel?: string;
   matchingAreaLabels?: string[];
+  searchAreaGroup?: "nearby" | "name-outside";
 }
 
 export interface PlacesSearchOpts {
