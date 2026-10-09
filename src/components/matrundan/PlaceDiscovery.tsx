@@ -176,6 +176,8 @@ export function PlaceDiscovery({
     snapshot?.budgetRemaining ?? AUTO_SEARCH_BUDGET,
   );
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const [mapFilling, setMapFilling] = React.useState(false);
+  const completedMapFillKeyRef = React.useRef<string | null>(null);
   const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
     Record<string, SearchAreaBoundaryGeometry>
   >({});
@@ -619,7 +621,7 @@ export function PlaceDiscovery({
       setDisplayLimit(targetActionable);
       if (bufferedActionableCount >= targetActionable) return;
     }
-    if (!hasMore || !isLive || loadingMore) return;
+    if (!hasMore || !isLive || loadingMore || mapFilling) return;
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -654,9 +656,95 @@ export function PlaceDiscovery({
     hasMore,
     isLive,
     loadingMore,
+    mapFilling,
     nextOffset,
     results,
     shownActionableCount,
+  ]);
+
+  React.useEffect(() => {
+    if (
+      !isLive ||
+      !groupId ||
+      hiddenLoading ||
+      loading ||
+      loadingMore ||
+      mapFilling ||
+      !hasMore ||
+      results.length === 0 ||
+      results.length >= 200 ||
+      budgetRemaining.requests <= 0 ||
+      budgetRemaining.credits <= 0
+    )
+      return;
+    const mapVisible =
+      resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
+    if (!mapVisible) return;
+
+    const searchKey = JSON.stringify([
+      groupId,
+      query,
+      radiusKm,
+      activeAreas.map((area) => [area.id, searchAreaMode(area), area.placeId]),
+    ]);
+    if (completedMapFillKeyRef.current === searchKey) return;
+    completedMapFillKeyRef.current = searchKey;
+    const requestId = requestRef.current;
+    const budget: SearchBudget = {
+      requests: Math.min(8, budgetRemaining.requests),
+      credits: budgetRemaining.credits,
+    };
+    setMapFilling(true);
+    void fillProviderPages({
+      seed: results,
+      startOffset: nextOffset,
+      startProgress: areaProgress,
+      startBudget: budget,
+      maxPages: 2,
+      targetActionable: 200,
+      isStale: () => requestRef.current !== requestId,
+    })
+      .then((filled) => {
+        if (!filled || requestRef.current !== requestId) return;
+        setResults(filled.results);
+        setHasMore(filled.hasMore);
+        setNextOffset(filled.nextOffset);
+        setAreaProgress(filled.areaProgress);
+        setBudgetRemaining({
+          requests: Math.max(
+            0,
+            budgetRemaining.requests - (budget.requests - filled.budgetRemaining.requests),
+          ),
+          credits: Math.max(
+            0,
+            budgetRemaining.credits - (budget.credits - filled.budgetRemaining.credits),
+          ),
+        });
+        setFailedAreas((current) => [...new Set([...current, ...filled.failedAreaLabels])]);
+      })
+      .catch((error) => {
+        if (requestRef.current === requestId) {
+          console.warn("[Matrundan] Kartans komplettering kunde inte slutföras:", error);
+        }
+      })
+      .finally(() => setMapFilling(false));
+  }, [
+    activeAreas,
+    areaProgress,
+    budgetRemaining,
+    fillProviderPages,
+    groupId,
+    hasMore,
+    hiddenLoading,
+    isLive,
+    loading,
+    loadingMore,
+    mapFilling,
+    nextOffset,
+    query,
+    radiusKm,
+    resultView,
+    results,
   ]);
 
   const allSourceMatches = React.useMemo<SourceMatchResult[]>(() => {
@@ -784,6 +872,7 @@ export function PlaceDiscovery({
   const unmappedCount = mapResults.filter(
     (result) => result.lat == null || result.lng == null,
   ).length;
+  const mappableResultCount = mapResults.length - unmappedCount;
   const actionableResultCount = sourceMatches.length + availableResults.length;
   const resultSections = (
     <SearchResultSections
@@ -948,8 +1037,9 @@ export function PlaceDiscovery({
                     <ResultToggle value={resultView} onChange={setResultView} />
                     <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
                       <span className="text-xs text-muted-foreground">
-                        Visar {actionableResultCount}{" "}
-                        {actionableResultCount === 1 ? "träff" : "träffar"}
+                        {resultView === "karta"
+                          ? `Visar ${mappableResultCount} ställen på kartan`
+                          : `Visar ${actionableResultCount} ${actionableResultCount === 1 ? "träff" : "träffar"} i listan`}
                       </span>
                       {availableResults.length > 0 ? (
                         <Button
@@ -999,7 +1089,7 @@ export function PlaceDiscovery({
                     variant="secondary"
                     size="sm"
                     className="min-h-11 w-full sm:w-auto"
-                    disabled={loadingMore || interactionsDisabled}
+                    disabled={loadingMore || mapFilling || interactionsDisabled}
                     onClick={() => void showMoreResults()}
                   >
                     {loadingMore ? (
