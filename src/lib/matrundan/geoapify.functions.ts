@@ -28,6 +28,7 @@ import {
   observeProviderRequest,
   observeSearchWithBudget,
   recordSearchPhaseMs,
+  recordSearchCandidateCounts,
 } from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
 import {
@@ -428,12 +429,20 @@ const multiAreaInputSchema = z.object({
   exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
   providerRequestLimit: z.number().int().min(0).max(25).optional(),
   providerCreditLimit: z.number().int().min(0).max(40).optional(),
-  searchPhase: z.enum(["primary", "complete"]).optional(),
+  searchPhase: z.enum(["primary", "recovery", "complete"]).optional(),
 });
 
 async function searchProviderAreas(
   data: z.infer<typeof multiAreaInputSchema>,
 ): Promise<MultiAreaSearchResponse> {
+  const nameIntent = resolvePlaceSearchIntent(data.text);
+  const expandedRadius =
+    data.searchPhase === "primary" &&
+    nameIntent.kind === "text" &&
+    isSpecificPlaceName(nameIntent.query) &&
+    data.centers.every((center) => center.searchMode !== "boundary")
+      ? expandedNameRadiusKm(data.radiusKm)
+      : null;
   const exhausted = new Set(data.exhaustedAreaIds ?? []);
   const centers = data.centers.filter((center) => !exhausted.has(center.id));
   const offsets = { ...(data.areaOffsets ?? {}) };
@@ -446,7 +455,7 @@ async function searchProviderAreas(
         lng: center.lng,
         searchMode: center.searchMode ?? "point",
         placeId: center.placeId,
-        radiusKm: data.radiusKm,
+        radiusKm: expandedRadius ?? data.radiusKm,
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
         offset: offsets[center.id] ?? data.offset ?? 0,
         allowNameAnchorRecovery: data.searchPhase !== "primary",
@@ -516,9 +525,23 @@ async function searchProviderAreas(
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
   });
-  const results: MultiAreaPlaceSuggestion[] = rankedResults.map(
-    ({ nearestAreaSearchMode, ...result }) =>
-      nearestAreaSearchMode === "boundary" ? { ...result, distanceKm: undefined } : result,
+  const results: MultiAreaPlaceSuggestion[] = rankedResults.flatMap(
+    ({ nearestAreaSearchMode, ...result }) => {
+      if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
+      if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
+      const primaryMemberships = data.centers.filter(
+        (center) => distanceKm(center, result) <= (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+      );
+      if (primaryMemberships.length > 0) {
+        return [{
+          ...result,
+          matchingAreaIds: primaryMemberships.map((center) => center.id),
+          matchingAreaLabels: primaryMemberships.map((center) => center.label),
+        }];
+      }
+      if (!matchesSpecificPlaceName(nameIntent.query, result.name)) return [];
+      return [{ ...result, matchingAreaIds: [], matchingAreaLabels: [], searchAreaGroup: "nearby" as const }];
+    },
   );
 
   return {
@@ -555,7 +578,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       const intent = resolvePlaceSearchIntent(data.text ?? "");
       const explicit = (data.text?.trim().length ?? 0) >= 2;
       const internalPromise = (async () => {
-        if (!explicit || (data.offset ?? 0) > 0)
+        if (!explicit || (data.offset ?? 0) > 0 || data.searchPhase === "recovery")
           return {
             results: [] as import("./places-provider").PlaceSuggestion[],
             incomplete: false,
@@ -630,6 +653,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             }
           }
         }
+        const fuzzyRadius =
+          intent.kind === "text" && data.searchPhase === "primary"
+            ? expandedNameRadiusKm(data.radiusKm)
+            : null;
         const results = rows.flatMap((canonical) => {
           const matching = valid.filter(({ center, boundary }) =>
             boundary
@@ -637,7 +664,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               : placeDistanceKm(canonical, center) <=
                 (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
                   ? 50
-                  : (data.radiusKm ?? 50)),
+                  : fuzzyIds.has(canonical.placeId) && fuzzyRadius != null
+                    ? fuzzyRadius
+                    : (data.radiusKm ?? 50)),
           );
           if (!matching.length) return [];
           const nearest = matching
@@ -670,7 +699,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               searchAreaGroup:
                 !nearest.boundary &&
                 nearest.distance > (data.radiusKm ?? 50) &&
-                matchesSpecificPlaceName(intent.query, canonical.name)
+                (matchesSpecificPlaceName(intent.query, canonical.name) ||
+                  fuzzyIds.has(canonical.placeId))
                   ? ("name-outside" as const)
                   : undefined,
             },
@@ -683,9 +713,22 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       })().catch(() => ({ results: [], incomplete: true }));
       const sourcesStarted = performance.now();
       const [providerOutcome, internal] = await Promise.all([
-        searchProviderAreas(data)
-          .then((value) => ({ ok: true as const, value }))
-          .catch(() => ({ ok: false as const })),
+        data.searchPhase === "recovery"
+          ? Promise.resolve({
+              ok: true as const,
+              value: {
+                results: [] as MultiAreaSearchResponse["results"],
+                failedAreaLabels: [] as string[],
+                failedAreaIds: [] as string[],
+                hasMore: false,
+                nextOffset: 0,
+                areaOffsets: {} as Record<string, number>,
+                exhaustedAreaIds: [] as string[],
+              },
+            })
+          : searchProviderAreas(data)
+              .then((value) => ({ ok: true as const, value }))
+              .catch(() => ({ ok: false as const })),
         internalPromise,
       ]);
       recordSearchPhaseMs("sources", performance.now() - sourcesStarted);
@@ -788,7 +831,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               lng: center.lng,
               searchMode: center.searchMode ?? "point",
               placeId: center.placeId,
-              radiusKm: data.radiusKm,
+              radiusKm:
+                data.centers.every((area) => area.searchMode !== "boundary")
+                  ? (expandedNameRadiusKm(data.radiusKm) ?? data.radiusKm)
+                  : data.radiusKm,
               limit: 50,
               offset: 0,
               allowNameAnchorRecovery: false,
@@ -806,18 +852,30 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               continue;
             seen.add(candidate.externalId);
             const center = data.centers[index];
+            const inside =
+              candidate.lat != null && candidate.lng != null &&
+              distanceKm(center, { lat: candidate.lat, lng: candidate.lng }) <=
+                (data.radiusKm ?? WIDE_AREA_RADIUS_KM);
+            if (!inside && data.centers.some((area) => area.searchMode === "boundary")) continue;
             typoCandidates.push({
               ...candidate,
               nearestAreaLabel: center.label,
               nearestAreaId: center.id,
-              matchingAreaLabels: [center.label],
-              matchingAreaIds: [center.id],
+              matchingAreaLabels: inside ? [center.label] : [],
+              matchingAreaIds: inside ? [center.id] : [],
+              searchAreaGroup: inside ? undefined : "nearby",
               searchMatchType: "tolerant",
             });
           }
         }
       }
       recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
+      recordSearchCandidateCounts({
+        primary: page.results.length,
+        canonical: internal.results.length,
+        nearby: nearbyCandidates.length,
+        typo: typoCandidates.length,
+      });
       const allProviderResults = [
         ...page.results,
         ...nearbyCandidates.slice(0, 3),

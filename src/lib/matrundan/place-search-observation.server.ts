@@ -7,6 +7,7 @@ type Observation = {
   providerFeatures: number;
   providerMs: number;
   phaseMs: { access: number; sources: number; recovery: number; identity: number };
+  candidates: { primary: number; canonical: number; nearby: number; typo: number };
 };
 
 const observation = new AsyncLocalStorage<Observation>();
@@ -22,6 +23,7 @@ export async function observePlaceSearch<T extends object>(
     providerFeatures: 0,
     providerMs: 0,
     phaseMs: { access: 0, sources: 0, recovery: 0, identity: 0 },
+    candidates: { primary: 0, canonical: 0, nearby: 0, typo: 0 },
   };
   const started = performance.now();
   const result = await withPlaceSearchBudget(limits, () => observation.run(counters, run));
@@ -58,4 +60,10 @@ export async function observeProviderRequest<T extends { features?: unknown[] }>
 export function recordSearchPhaseMs(phase: keyof Observation["phaseMs"], milliseconds: number) {
   const counters = observation.getStore();
   if (counters) counters.phaseMs[phase] += Math.round(milliseconds);
+}
+
+/** Aggregate candidate counts for staging diagnostics; no query text or place identifiers. */
+export function recordSearchCandidateCounts(counts: Observation["candidates"]) {
+  const counters = observation.getStore();
+  if (counters) counters.candidates = counts;
 }

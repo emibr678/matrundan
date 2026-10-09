@@ -75,8 +75,11 @@ och blandad punkt/boundary-sökning utökar inte geografin utan verifierat
 medlemskap i hela sökområdesunionen.
 
 Den befintliga **starka kanoniska 50-kilometersregeln** är separat och
-behålls bara för strikt matchade specifika namn. Defensiv stavfelstolerans
-hämtar endast kandidater inom ursprunglig geografi. Den nya kanoniska
+behålls bara för strikt matchade specifika namn. Defensiv stavfelstolerans använder samma begränsade närliggande kandidatgeografi
+som specifik namnsökning för punktområden. En tolerant kandidat utanför vald radie
+visas separat; den blir aldrig en stark kanonisk identitet och ger inte automatisk
+länkning eller sammanslagning. Primär namnfråga får söka inom denna begränsade
+kandidatradie men ska märka de träffar som ligger utanför den valda radien tydligt. Den nya kanoniska
 kandidatfunktionen är en gruppbehörighetskontrollerad read-only-RPC;
 toleranta namn får aldrig påverka identitet, källkoppling eller merge.
 

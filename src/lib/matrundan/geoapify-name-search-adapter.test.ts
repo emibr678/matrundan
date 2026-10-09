@@ -52,7 +52,7 @@ type SearchInput = {
   offset?: number;
   areaOffsets?: Record<string, number>;
   exhaustedAreaIds?: string[];
-  searchPhase?: "primary" | "complete";
+  searchPhase?: "primary" | "recovery" | "complete";
   providerRequestLimit?: number;
   providerCreditLimit?: number;
 };
@@ -582,7 +582,7 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
     text: "Pelikan",
     centers: [area],
     radiusKm: 1,
-    searchPhase: "complete",
+    searchPhase: "recovery",
     providerRequestLimit: 25 - initial.budgetUsage.requests,
     providerCreditLimit: 40 - initial.budgetUsage.reservedCredits,
   });
@@ -642,9 +642,10 @@ test("primära sökresultat behöver inte invänta namnåterhämtning", async ()
   expect(first.results).toEqual([]);
   expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
   expect(a.calls.map((url) => url.pathname)).toEqual(["/v2/places"]);
+  expect(a.calls[0].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,2000");
   const finished = a.discovery({
     ...input,
-    searchPhase: "complete",
+    searchPhase: "recovery",
     providerRequestLimit: 25 - first.budgetUsage.requests,
     providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
   });
@@ -655,4 +656,66 @@ test("primära sökresultat behöver inte invänta namnåterhämtning", async ()
   expect(
     recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits,
   ).toBeLessThanOrEqual(40);
+});
+
+
+test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökning", async () => {
+  const a = adapter(
+    (url) => ({
+      features:
+        url.pathname === "/v2/places" &&
+        url.searchParams.get("name") === "pelika" &&
+        url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-typo-nearby", "Pelikan")]
+          : [],
+    }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+            return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const first = await a.discovery({ text: "Pelikann", centers: [area], radiusKm: 1, searchPhase: "primary" });
+  expect(first.pendingRecovery).toBe(true);
+  const recovered = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  const hit = recovered.results.find((candidate) => candidate.externalId === "pelikan-typo-nearby");
+  expect(hit?.searchMatchType).toBe("tolerant");
+  expect(hit?.searchAreaGroup).toBe("nearby");
+  expect(recovered.observation.candidates.typo).toBe(1);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
+test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallback", async () => {
+  const a = adapter((url) => ({
+    features: url.pathname === "/v2/places" && url.searchParams.get("filter")?.endsWith(",2000")
+      ? [place("pelikan-primary", "Pelikan")]
+      : [],
+  }), {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1") return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1") return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  });
+  const response = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1, searchPhase: "primary" });
+  expect(response.results.find((p) => p.externalId === "pelikan-primary")?.searchAreaGroup).toBe("nearby");
+  expect(response.pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
 });
