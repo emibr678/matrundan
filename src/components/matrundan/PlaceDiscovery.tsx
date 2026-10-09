@@ -603,9 +603,9 @@ export function PlaceDiscovery({
     shownActionableCount,
   ]);
 
-  const sourceMatches = React.useMemo<SourceMatchResult[]>(() => {
+  const allSourceMatches = React.useMemo<SourceMatchResult[]>(() => {
     if (!canLinkSources || isLive) return [];
-    return visibleResults.flatMap((result) => {
+    return filteredResults.flatMap((result) => {
       if (
         addedResultIds.has(result.externalId) ||
         state.places.some((place) => hasActiveProviderSource(place, result)) ||
@@ -615,10 +615,18 @@ export function PlaceDiscovery({
       const match = findManualSourceLinkCandidate(state.places, result);
       return match ? [{ result, place: match.place, reason: match.reason }] : [];
     });
-  }, [addedResultIds, canLinkSources, isLive, localSourceLinks, state.places, visibleResults]);
+  }, [addedResultIds, canLinkSources, filteredResults, isLive, localSourceLinks, state.places]);
+  const visibleResultIds = React.useMemo(
+    () => new Set(visibleResults.map((result) => result.externalId)),
+    [visibleResults],
+  );
+  const sourceMatches = React.useMemo(
+    () => allSourceMatches.filter((match) => visibleResultIds.has(match.result.externalId)),
+    [allSourceMatches, visibleResultIds],
+  );
   const sourceMatchIds = React.useMemo(
-    () => new Set(sourceMatches.map((match) => match.result.externalId)),
-    [sourceMatches],
+    () => new Set(allSourceMatches.map((match) => match.result.externalId)),
+    [allSourceMatches],
   );
 
   const statusForResult = React.useCallback(
@@ -654,13 +662,20 @@ export function PlaceDiscovery({
     [statusForResult, visibleResults],
   );
 
+  // Listpagination is independent of the map's larger, already fetched candidate pool.
+  // Never render an unverified cross-group match: status and visibility still apply.
+  const mapResults = React.useMemo(
+    () =>
+      filteredResults
+        .filter((result) => existingOpen || statusForResult(result) !== "existing")
+        .slice(0, 200),
+    [existingOpen, filteredResults, statusForResult],
+  );
   React.useEffect(() => {
-    const primaryResults = [...sourceMatches.map((match) => match.result), ...availableResults];
-    const visible = existingOpen ? [...primaryResults, ...existingResults] : primaryResults;
-    if (!visible.some((result) => result.externalId === selectedId)) {
+    if (selectedId && !mapResults.some((result) => result.externalId === selectedId)) {
       setSelectedId(null);
     }
-  }, [availableResults, existingOpen, existingResults, selectedId, sourceMatches]);
+  }, [mapResults, selectedId]);
 
   function toggleBulkMode() {
     if (bulkMode) {
@@ -676,8 +691,6 @@ export function PlaceDiscovery({
     setSelectedId(id);
   }
 
-  const mapAvailable = [...sourceMatches.map((match) => match.result), ...availableResults];
-  const mapResults = existingOpen ? [...mapAvailable, ...existingResults] : mapAvailable;
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => {
     const nearestArea = activeAreas.find(
       (area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel,
@@ -747,12 +760,13 @@ export function PlaceDiscovery({
         boundary: area.boundary,
       }))}
       radiusKm={radiusKm}
+      searchContextKey={JSON.stringify([query, radiusKm, activeAreas.map((area) => area.id)])}
       selectedId={selectedId}
       onSelect={handleMapSelect}
       onAction={(item) => {
         const result = mapResults.find((candidate) => candidate.externalId === item.id);
         if (!result) return;
-        const sourceMatch = sourceMatches.find((match) => match.result.externalId === item.id);
+        const sourceMatch = allSourceMatches.find((match) => match.result.externalId === item.id);
         if (sourceMatch) {
           onLinkSource(sourceMatch);
           return;
@@ -767,8 +781,8 @@ export function PlaceDiscovery({
       onToggleBulkSelection={
         bulkMode
           ? (item) => {
-              const result = availableResults.find((candidate) => candidate.externalId === item.id);
-              if (result) onToggleSelected(result);
+              const result = mapResults.find((candidate) => candidate.externalId === item.id);
+              if (result && statusForResult(result) === "available") onToggleSelected(result);
             }
           : undefined
       }
