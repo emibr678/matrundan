@@ -774,3 +774,25 @@ test("Pel hittar Pelikan nära sökområdet medan användaren skriver", async ()
   expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
   expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
 });
+
+
+test("halvfärdigt generiskt ord startar inte dyr namnåterhämtning", async () => {
+  const a = adapter(
+    () => ({ features: [] }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (name === "search_canonical_places_v1") return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const result = await a.discovery({ text: "Restau", centers: [area], radiusKm: 1, searchPhase: "primary" });
+  expect((result as typeof result & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(0);
+  expect(a.calls[0].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,1000");
+});

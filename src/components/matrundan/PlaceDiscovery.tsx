@@ -507,6 +507,24 @@ export function PlaceDiscovery({
       skipInitialSearchRef.current = false;
       return;
     }
+    // A one- or two-letter fragment is not a useful Places query; it would
+    // fetch 50 generic POIs and filter them locally. Keep lightweight category
+    // suggestions available without spending provider credits per keystroke.
+    if (query.trim().length > 0 && query.trim().length < 3) {
+      setResults([]);
+      setResultsForSearchKey(currentSearchKey);
+      setFailedAreas([]);
+      setError(null);
+      setLoading(false);
+      setDisplayLimit(RESULT_PAGE_SIZE);
+      setHasMore(false);
+      setNextOffset(0);
+      setAreaProgress({ offsets: {}, exhaustedIds: [] });
+      setBudgetRemaining(AUTO_SEARCH_BUDGET);
+      setSearchObservation(null);
+      setClientTiming(null);
+      return;
+    }
     if (activeAreas.length === 0) {
       setResults([]);
       setResultsForSearchKey(currentSearchKey);

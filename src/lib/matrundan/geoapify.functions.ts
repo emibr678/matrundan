@@ -17,7 +17,11 @@ import {
   geoapifyNameQueryForPlaceSearchIntent,
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
-import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import {
+  genericPlaceSearchSuggestions,
+  matchesPlaceSearchIntent,
+  resolvePlaceSearchIntent,
+} from "./place-search-intent";
 import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
@@ -448,6 +452,7 @@ async function searchProviderAreas(
     data.searchPhase === "primary" &&
     nameIntent.kind === "text" &&
     nameIntent.query.trim().length >= 3 &&
+    genericPlaceSearchSuggestions(nameIntent.query, 1).length === 0 &&
     data.centers.every((center) => center.searchMode !== "boundary")
       ? expandedNameRadiusKm(data.radiusKm)
       : null;
@@ -776,6 +781,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         !page.failedAreaIds.length &&
         intent.kind === "text" &&
         isSpecificPlaceName(intent.query) &&
+        genericPlaceSearchSuggestions(intent.query, 1).length === 0 &&
         ![...page.results, ...internal.results].some((place) =>
           matchesSpecificPlaceName(intent.query, place.name),
         );
