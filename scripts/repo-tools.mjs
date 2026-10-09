@@ -279,6 +279,7 @@ function formatChanged(checkOnly, explicitBase) {
   const files = classify(collectChangedFiles(explicitBase)).format;
   if (checkOnly) {
     for (const file of [
+      "src/components/matrundan/SearchResultSections.tsx",
       "src/lib/matrundan/geoapify.functions.ts",
       "src/lib/matrundan/place-search-pagination.test.ts",
       "src/lib/matrundan/place-search-pagination.ts",
