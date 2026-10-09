@@ -76,7 +76,9 @@ const searchModeSchema = z.enum(["point", "boundary"]);
 
 export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   nearestAreaLabel: string;
+  nearestAreaId: string;
   matchingAreaLabels: string[];
+  matchingAreaIds: string[];
   searchAreaGroup?: "nearby" | "name-outside";
   searchMatchType?: "tolerant";
 };
@@ -471,6 +473,9 @@ async function searchProviderAreas(
       const matchingAreaLabels = Array.from(
         new Set([...(current?.matchingAreaLabels ?? []), center.label]),
       );
+      const matchingAreaIds = Array.from(
+        new Set([...(current?.matchingAreaIds ?? []), center.id]),
+      );
       const preferNext =
         !current ||
         (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
@@ -480,11 +485,13 @@ async function searchProviderAreas(
         merged.set(key, {
           ...place,
           nearestAreaLabel: center.label,
+          nearestAreaId: center.id,
           matchingAreaLabels,
+          matchingAreaIds,
           nearestAreaSearchMode: centerMode,
         });
       } else {
-        merged.set(key, { ...current, matchingAreaLabels });
+        merged.set(key, { ...current, matchingAreaLabels, matchingAreaIds });
       }
     }
   });
@@ -645,7 +652,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               lat: canonical.lat,
               lng: canonical.lng,
               nearestAreaLabel: nearest.center.label,
+              nearestAreaId: nearest.center.id,
               matchingAreaLabels: matching.map(({ center }) => center.label),
+              matchingAreaIds: matching.map(({ center }) => center.id),
               distanceKm: nearest.boundary ? undefined : nearest.distance,
               searchAreaGroup:
                 !nearest.boundary &&
@@ -719,7 +728,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             typoCandidates.push({
               ...candidate,
               nearestAreaLabel: center.label,
+              nearestAreaId: center.id,
               matchingAreaLabels: [center.label],
+              matchingAreaIds: [center.id],
               searchMatchType: "tolerant",
             });
           }
@@ -774,7 +785,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               ...candidate,
               distanceKm: closest.distance,
               nearestAreaLabel: closest.center.label,
+              nearestAreaId: closest.center.id,
               matchingAreaLabels: [],
+              matchingAreaIds: [],
               searchAreaGroup: "nearby",
             });
           }

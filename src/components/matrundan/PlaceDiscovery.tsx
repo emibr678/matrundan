@@ -49,6 +49,7 @@ import {
   actionableSliceIndex,
   countActionableSuggestions,
   mergePlaceSearchPages,
+  selectMapCandidates,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
 import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
@@ -809,10 +810,11 @@ export function PlaceDiscovery({
   // Never render an unverified cross-group match: status and visibility still apply.
   const mapResults = React.useMemo(
     () =>
-      filteredResults
-        .filter((result) => existingOpen || statusForResult(result) !== "existing")
-        .slice(0, 200),
-    [existingOpen, filteredResults, statusForResult],
+      selectMapCandidates(
+        filteredResults.filter((result) => existingOpen || statusForResult(result) !== "existing"),
+        activeAreas.map((area) => area.id),
+      ),
+    [activeAreas, existingOpen, filteredResults, statusForResult],
   );
   React.useEffect(() => {
     if (selectedId && !mapResults.some((result) => result.externalId === selectedId)) {
@@ -835,9 +837,9 @@ export function PlaceDiscovery({
   }
 
   const mapItems: MultiAreaMapItem[] = mapResults.map((result) => {
-    const nearestArea = activeAreas.find(
-      (area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel,
-    );
+    const nearestArea =
+      activeAreas.find((area) => area.id === result.nearestAreaId) ??
+      activeAreas.find((area) => shortSearchAreaLabel(area.label) === result.nearestAreaLabel);
     const areaContext = nearestArea
       ? searchAreaMode(nearestArea) === "boundary"
         ? ` · i ${shortSearchAreaLabel(nearestArea.label)}`

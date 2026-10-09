@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { hasSingleNameTypo, matchesTypoPlaceName } from "./place-search-typo";
+import {
+  hasSingleNameTypo,
+  matchesTypoPlaceName,
+  typoProviderSearchSeed,
+} from "./place-search-typo";
 
 test("single character mistakes and swapped neighbors", () => {
   expect(hasSingleNameTypo("pharmarim", "pharmarium")).toBe(true);
@@ -18,8 +22,7 @@ test("specific name retrieval tolerates one typo, not generic or double mistakes
 });
 
 test("typo provider recovery uses a narrow anchor, not a category browse", () => {
-  const { typoProviderSearchSeed } = require("./place-search-typo");
-  expect(typoProviderSearchSeed("Efraim bark")).toBe("efraim");
+   expect(typoProviderSearchSeed("Efraim bark")).toBe("efraim");
   expect(typoProviderSearchSeed("Pharmarim")).toBe("pharma");
   expect(typoProviderSearchSeed("bar")).toBeNull();
   expect(typoProviderSearchSeed("restaurang")).toBeNull();

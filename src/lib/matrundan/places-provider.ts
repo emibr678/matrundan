@@ -38,7 +38,9 @@ export interface PlaceSuggestion {
   website?: string;
   raw?: string;
   nearestAreaLabel?: string;
+  nearestAreaId?: string;
   matchingAreaLabels?: string[];
+  matchingAreaIds?: string[];
   searchAreaGroup?: "nearby" | "name-outside";
   searchMatchType?: "tolerant";
 }
