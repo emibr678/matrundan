@@ -1,5 +1,4 @@
-import { isSpecificPlaceName } from "./place-discovery";
-import { normalizePlaceIdentity } from "./place-identity";
+import { isSpecificPlaceName, normalizePlaceIdentity } from "./place-discovery";
 
 /** Exactly one insertion, deletion, substitution, or adjacent swap. */
 export function hasSingleNameTypo(a: string, b: string): boolean {
