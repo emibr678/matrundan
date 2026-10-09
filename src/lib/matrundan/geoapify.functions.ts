@@ -585,7 +585,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           _limit: 200,
         });
         if (found.error) return { results: [], incomplete: true };
-        let rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
+        const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
         const primaryTruncated = rows.length === 200;
         let fuzzyIncomplete = false;
         const fuzzyIds = new Set<string>();
