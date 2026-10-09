@@ -24,6 +24,11 @@ import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import { observePlaceSearch, observeProviderRequest } from "./place-search-observation.server";
 import {
+  budgetProviderRequest,
+  estimatedGeoapifyCredits,
+  withPlaceSearchBudget,
+} from "./place-search-budget.server";
+import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
 } from "./place-discovery.schemas";
@@ -160,7 +165,9 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
   return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
-    observeProviderRequest(() => fetchGeoapify(url)),
+    budgetProviderRequest(estimatedGeoapifyCredits(url), () =>
+      observeProviderRequest(() => fetchGeoapify(url)),
+    ),
   );
 }
 
@@ -407,6 +414,8 @@ const multiAreaInputSchema = z.object({
   offset: z.number().int().min(0).max(10_000).optional(),
   areaOffsets: z.record(z.number().int().min(0).max(10_000)).optional(),
   exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
+  providerRequestLimit: z.number().int().min(0).max(25).optional(),
+  providerCreditLimit: z.number().int().min(0).max(40).optional(),
 });
 
 async function searchProviderAreas(
@@ -516,7 +525,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) =>
-    observePlaceSearch(async () => {
+    withPlaceSearchBudget(
+      { requests: data.providerRequestLimit ?? 25, credits: data.providerCreditLimit ?? 40 },
+      () =>
+        observePlaceSearch(async () => {
       const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
       });
@@ -676,7 +688,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         canonicalIncomplete: internal.incomplete,
         canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
-    }),
+        }),
+    ),
   );
 
 /** Final read-only check at the selected address, never a provider write authority. */
