@@ -88,7 +88,7 @@ $$;
 REVOKE ALL ON FUNCTION private.place_single_typo_v1(text,text),
   private.place_typo_name_matches_v1(text,text) FROM PUBLIC, anon, authenticated;
 
-CREATE FUNCTION public.search_canonical_name_candidates_v1(
+CREATE OR REPLACE FUNCTION public.search_canonical_name_candidates_v1(
   _group_id uuid, _text text, _centers jsonb
 ) RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = '' AS $$
 DECLARE _center jsonb; _result jsonb;
