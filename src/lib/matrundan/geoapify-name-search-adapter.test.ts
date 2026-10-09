@@ -571,7 +571,21 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
           : [],
     };
   }, context);
-  const result = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1 });
+  const initial = await a.discovery({
+    text: "Pelikan",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect((initial as typeof initial & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  const result = await a.discovery({
+    text: "Pelikan",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "complete",
+    providerRequestLimit: 25 - initial.budgetUsage.requests,
+    providerCreditLimit: 40 - initial.budgetUsage.reservedCredits,
+  });
   expect(result.results.find((place) => place.externalId === "pelikan-2km")?.searchAreaGroup).toBe(
     "nearby",
   );
@@ -581,7 +595,10 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
         url.pathname === "/v1/geocode/search" && url.searchParams.get("filter")?.endsWith(",2000"),
     ),
   ).toBe(true);
-  expect(result.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(
+    result.budgetUsage.reservedCredits + initial.budgetUsage.reservedCredits,
+  ).toBeLessThanOrEqual(40);
 });
 
 function seedWithName(name: string) {
@@ -593,25 +610,33 @@ function seedWithName(name: string) {
   });
 }
 
-
 test("primära sökresultat behöver inte invänta namnåterhämtning", async () => {
   let releaseGeocoding: () => void = () => {};
-  const blockedGeocoding = new Promise<void>((resolve) => { releaseGeocoding = resolve; });
+  const blockedGeocoding = new Promise<void>((resolve) => {
+    releaseGeocoding = resolve;
+  });
   const context: FixtureContext = {
-    supabase: { rpc: async (name) => {
-      if (name === "get_place_discovery_context_v1") return { data: { canConfirm: true }, error: null };
-      if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1") return { data: [], error: null };
-      if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
-      throw new Error("Unexpected RPC: " + name);
-    } },
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
   };
-  const a = adapter(async (url) => {
-    if (url.pathname === "/v1/geocode/search") {
-      await blockedGeocoding;
+  const a = adapter(
+    async (url) => {
+      if (url.pathname === "/v1/geocode/search") {
+        await blockedGeocoding;
+        return { features: [] };
+      }
       return { features: [] };
-    }
-    return { features: [] };
-  }, context);
+    },
+    context,
+  );
   const input: SearchInput = { text: "Pelikan", centers: [area], radiusKm: 1 };
   const first = await a.discovery({ ...input, searchPhase: "primary" });
   expect(first.results).toEqual([]);
@@ -623,13 +648,11 @@ test("primära sökresultat behöver inte invänta namnåterhämtning", async ()
     providerRequestLimit: 25 - first.budgetUsage.requests,
     providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
   });
-  try {
-    await Promise.resolve();
-    expect(a.calls.some((url) => url.pathname === "/v1/geocode/search")).toBe(true);
-  } finally {
-    releaseGeocoding();
-  }
+  releaseGeocoding();
   const recovered = await finished;
+  expect(a.calls.some((url) => url.pathname === "/v1/geocode/search")).toBe(true);
   expect(recovered.budgetUsage.requests + first.budgetUsage.requests).toBeLessThanOrEqual(25);
-  expect(recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits).toBeLessThanOrEqual(40);
+  expect(
+    recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits,
+  ).toBeLessThanOrEqual(40);
 });

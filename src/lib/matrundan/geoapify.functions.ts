@@ -608,7 +608,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         let fuzzyIncomplete = false;
         const fuzzyIds = new Set<string>();
         if (
-          data.searchPhase !== "primary" &&
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
           !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
@@ -718,15 +717,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       const mayExpand =
         !primaryOnly &&
         recoveryEligible &&
-        !page.hasMore &&
-        !page.failedAreaIds.length &&
-        intent.kind === "text" &&
-        isSpecificPlaceName(intent.query) &&
         expansionRadius != null &&
-        data.centers.every((center) => center.searchMode !== "boundary") &&
-        ![...page.results, ...internal.results].some((place) =>
-          matchesSpecificPlaceName(intent.query, place.name),
-        );
+        data.centers.every((center) => center.searchMode !== "boundary");
       const nearbyCandidates: typeof page.results = [];
       if (mayExpand && expansionRadius != null) {
         const results = await Promise.allSettled(

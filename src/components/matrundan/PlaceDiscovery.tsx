@@ -1320,13 +1320,15 @@ function PlaceSearchCombobox({
     meta: suggestion.groupLabel,
     searchValue: suggestion.searchValue,
   }));
-  const placeOptions: PlaceSearchOption[] = (resultsAlreadyShown ? [] : placeSuggestions).map((suggestion) => ({
-    kind: "place",
-    key: suggestion.externalId,
-    label: suggestion.name,
-    meta: placeOptionMeta(suggestion),
-    suggestion,
-  }));
+  const placeOptions: PlaceSearchOption[] = (resultsAlreadyShown ? [] : placeSuggestions).map(
+    (suggestion) => ({
+      kind: "place",
+      key: suggestion.externalId,
+      label: suggestion.name,
+      meta: placeOptionMeta(suggestion),
+      suggestion,
+    }),
+  );
   const isInternalOption = (option: PlaceSearchOption) =>
     option.kind === "place" &&
     (option.suggestion.kind === "canonical" ||
