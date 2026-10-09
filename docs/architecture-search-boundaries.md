@@ -56,6 +56,30 @@ paginering. Avstånd för ankrade Places-träffar räknas från ursprungligt cen
 boundary-only-träffar visar fortsatt inget punktavstånd. Sökområdet flyttas eller
 utökas aldrig av namnankaret.
 
+## Gemensam resultatpool, radie och stavfel
+
+Listan behåller 20 handlingsbara träffar per steg. Kartan visar fler av redan
+hämtade kandidater och får fyllas på utan att flytta användarens viewport.
+Providerpaginering förs separat per sökområde så att fel och uttömda sidor
+inte förskjuter andra områden. En automatisk sökomgång begränsas till totalt
+25 cachemiss-anrop och en konservativ reservation på 40 krediter; uttrycklig
+**Visa fler** är en ny användarhandling med egen liten budget. Budgeten är
+inte ett påstående om faktisk providerdebitering.
+
+För ett specifikt verksamhetsnamn utan stark primärträff får ett enda
+begränsat kompletteringssteg söka utanför aktiva punktområdens radie:
+`min(50 km, vald radie + min(vald radie, 2 km))`.
+Namnträffar utanför radien visas separat och ändrar aldrig sparade områden.
+Generiska kategori-/köksfrågor expanderar inte. Boundaries förblir oförändrade
+och blandad punkt/boundary-sökning utökar inte geografin utan verifierat
+medlemskap i hela sökområdesunionen.
+
+Den befintliga **starka kanoniska 50-kilometersregeln** är separat och
+behålls bara för strikt matchade specifika namn. Defensiv stavfelstolerans
+hämtar endast kandidater inom ursprunglig geografi. Den nya kanoniska
+kandidatfunktionen är en gruppbehörighetskontrollerad read-only-RPC;
+toleranta namn får aldrig påverka identitet, källkoppling eller merge.
+
 ## Blandade områden och deduplicering
 
 En och samma sökning får innehålla exempelvis:
