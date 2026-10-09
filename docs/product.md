@@ -160,7 +160,13 @@ gruppers privata uppgifter följer inte med.
 Ett specifikt exakt eller nära exakt namn kan hitta ett befintligt ställe inom
 50 km från ett punktval även när den valda radien är snävare. Adress och ort visas
 alltid. Generiska sökningar respekterar valda områden och tom sökning öppnar ingen
-global katalog. En verifierad adress i manuell fallback får en sista kartkontroll
+global katalog. Listan visar 20 handlingsbara träffar åt gången med **Visa fler**,
+medan kartan kan visa ett större underlag från samma sökning. En tydlig specifik
+namnsökning utan stark primärträff kan visa några relevanta ställen strax utanför
+ett valt punktområde i en separat sektion. Mindre stavfel får ge namnförslag,
+men aldrig automatiskt koppla ihop två verkliga ställen.
+
+En verifierad adress i manuell fallback får en sista kartkontroll
 nära den valda positionen. Kartfel eller utebliven träff blockerar inte fallbacken.
 
 På kartan väljer ett punkttryck stället och visar dess bottenkort. Tillägg eller
