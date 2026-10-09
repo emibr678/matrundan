@@ -26,7 +26,6 @@ import { observePlaceSearch, observeProviderRequest } from "./place-search-obser
 import {
   budgetProviderRequest,
   estimatedGeoapifyCredits,
-  withPlaceSearchBudget,
 } from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
@@ -525,10 +524,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) =>
-    withPlaceSearchBudget(
-      { requests: data.providerRequestLimit ?? 25, credits: data.providerCreditLimit ?? 40 },
-      () =>
-        observePlaceSearch(async () => {
+    observePlaceSearch(async () => {
       const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
       });
@@ -688,8 +684,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         canonicalIncomplete: internal.incomplete,
         canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
-        }),
-    ),
+    }, { requests: data.providerRequestLimit ?? 25, credits: data.providerCreditLimit ?? 40 }),
   );
 
 /** Final read-only check at the selected address, never a provider write authority. */

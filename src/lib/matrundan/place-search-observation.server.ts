@@ -1,4 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
+import { withPlaceSearchBudget } from "./place-search-budget.server";
 
 type Observation = {
   requests: number;
@@ -10,10 +11,13 @@ type Observation = {
 const observation = new AsyncLocalStorage<Observation>();
 
 /** Aggregate counters only: never collect URLs, search terms, identities or payloads. */
-export async function observePlaceSearch<T>(run: () => Promise<T>) {
+export async function observePlaceSearch<T extends object>(
+  run: () => Promise<T>,
+  limits: { requests: number; credits: number } = { requests: 25, credits: 40 },
+) {
   const counters: Observation = { requests: 0, failures: 0, providerFeatures: 0, providerMs: 0 };
   const started = performance.now();
-  const result = await observation.run(counters, run);
+  const result = await withPlaceSearchBudget(limits, () => observation.run(counters, run));
   return {
     ...result,
     observation: { ...counters, elapsedMs: Math.round(performance.now() - started) },
