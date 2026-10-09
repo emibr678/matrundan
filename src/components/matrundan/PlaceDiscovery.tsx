@@ -1124,6 +1124,10 @@ export function PlaceDiscovery({
         query={query}
         onQueryChange={setQuery}
         loading={searchInFlight}
+        error={error}
+        incomplete={failedAreas.length > 0}
+        noAreas={activeAreas.length === 0}
+        onRetry={() => setRetry((value) => value + 1)}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
         focused={searchFocused}
@@ -1400,6 +1404,10 @@ function PlaceSearchCombobox({
   query,
   onQueryChange,
   loading,
+  error,
+  incomplete,
+  noAreas,
+  onRetry,
   genericSuggestions,
   placeSuggestions,
   focused,
@@ -1410,6 +1418,10 @@ function PlaceSearchCombobox({
   query: string;
   onQueryChange: (value: string) => void;
   loading: boolean;
+  error: string | null;
+  incomplete: boolean;
+  noAreas: boolean;
+  onRetry: () => void;
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
   focused: boolean;
@@ -1446,6 +1458,8 @@ function PlaceSearchCombobox({
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = open && hasQuery;
+  const canOfferMissing =
+    !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
 
   React.useEffect(() => {
     setActiveIx(-1);
@@ -1634,6 +1648,7 @@ function PlaceSearchCombobox({
             id="place-search-listbox"
             role="listbox"
             aria-label="Förslag på kök, typer och matställen"
+            aria-busy={loading}
             className={[
               "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
               focused
@@ -1641,13 +1656,25 @@ function PlaceSearchCombobox({
                 : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
             ].join(" ")}
           >
+            {error || incomplete ? (
+              <div className="space-y-2 rounded-lg bg-muted/50 px-2 py-2 text-xs" role="status">
+                <p>{error ?? "Alla ställen kunde inte hämtas. Försök igen."}</p>
+                <Button type="button" size="sm" variant="outline" onClick={onRetry}>
+                  Försök igen
+                </Button>
+              </div>
+            ) : null}
             {options.length === 0 ? (
               <p className="px-2 py-2 text-muted-foreground">
-                {loading
-                  ? "Söker…"
-                  : query.trim().length < 6
-                    ? "Skriv lite mer för att hitta rätt ställe"
-                    : "Inga förslag"}
+                {noAreas
+                  ? "Välj ett sökområde först"
+                  : loading
+                    ? "Söker…"
+                    : query.trim().length < 6
+                      ? "Skriv lite mer för att hitta rätt ställe"
+                      : error || incomplete
+                        ? "Sökningen kunde inte slutföras"
+                        : "Inga förslag"}
               </p>
             ) : (
               <>
@@ -1663,7 +1690,7 @@ function PlaceSearchCombobox({
                 ) : null}
               </>
             )}
-            {options.length === 0 && !loading && query.trim().length >= 6 ? (
+            {options.length === 0 && canOfferMissing ? (
               <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
                 <p className="px-2 pt-1 text-xs text-muted-foreground">
                   Hittar du inte rätt ställe?
