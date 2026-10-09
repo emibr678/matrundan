@@ -22,6 +22,7 @@ import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.s
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
+import { observePlaceSearch, observeProviderRequest } from "./place-search-observation.server";
 import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
@@ -155,7 +156,9 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 }
 
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
-  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () => fetchGeoapify(url));
+  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
+    observeProviderRequest(() => fetchGeoapify(url)),
+  );
 }
 
 function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
@@ -492,159 +495,166 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
 export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
-      _group_id: data.groupId,
-    });
-    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
-    const intent = resolvePlaceSearchIntent(data.text ?? "");
-    const explicit = (data.text?.trim().length ?? 0) >= 2;
-    const internalPromise = (async () => {
-      if (!explicit || (data.offset ?? 0) > 0)
-        return { results: [] as import("./places-provider").PlaceSuggestion[], incomplete: false };
-      const boundaries = await Promise.allSettled(
-        data.centers.map(async (center) => {
-          if (center.searchMode !== "boundary") return { center, boundary: null };
-          const boundary = center.placeId ? await loadBoundary(center.placeId) : null;
-          if (!boundary) throw new Error("Områdesgränsen kunde inte hämtas");
-          return { center, boundary };
-        }),
-      );
-      const valid = boundaries.flatMap((outcome) =>
-        outcome.status === "fulfilled" ? [outcome.value] : [],
-      );
-      if (!valid.length) return { results: [], incomplete: true };
-      const centers = valid.map(({ center, boundary }) => {
-        const points = boundary
-          ? boundary.type === "Polygon"
-            ? boundary.coordinates.flat()
-            : boundary.coordinates.flat(2)
-          : [];
-        return {
-          lat: center.lat,
-          lng: center.lng,
-          radiusKm: data.radiusKm ?? 50,
-          ...(boundary
-            ? {
-                bounds: [
-                  Math.min(...points.map((p) => p[0])),
-                  Math.min(...points.map((p) => p[1])),
-                  Math.max(...points.map((p) => p[0])),
-                  Math.max(...points.map((p) => p[1])),
-                ],
-              }
-            : {}),
-        };
-      });
-      const found = await context.supabase.rpc("search_canonical_places_v1", {
+  .handler(async ({ data, context }) =>
+    observePlaceSearch(async () => {
+      const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
-        _text: intent.kind === "text" ? intent.query : "",
-        _centers: centers,
-        _categories: intent.kind === "category" ? [intent.category] : [],
-        _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
-        _limit: 200,
       });
-      if (found.error) return { results: [], incomplete: true };
-      const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
-      const results = rows.flatMap((canonical) => {
-        const matching = valid.filter(({ center, boundary }) =>
-          boundary
-            ? placeWithinBoundary(canonical, boundary)
-            : placeDistanceKm(canonical, center) <=
-              (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
-                ? 50
-                : (data.radiusKm ?? 50)),
+      if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+      const intent = resolvePlaceSearchIntent(data.text ?? "");
+      const explicit = (data.text?.trim().length ?? 0) >= 2;
+      const internalPromise = (async () => {
+        if (!explicit || (data.offset ?? 0) > 0)
+          return {
+            results: [] as import("./places-provider").PlaceSuggestion[],
+            incomplete: false,
+          };
+        const boundaries = await Promise.allSettled(
+          data.centers.map(async (center) => {
+            if (center.searchMode !== "boundary") return { center, boundary: null };
+            const boundary = center.placeId ? await loadBoundary(center.placeId) : null;
+            if (!boundary) throw new Error("Områdesgränsen kunde inte hämtas");
+            return { center, boundary };
+          }),
         );
-        if (!matching.length) return [];
-        const nearest = matching
-          .map(({ center, boundary }) => ({
-            center,
-            boundary,
-            distance: placeDistanceKm(canonical, center),
-          }))
-          .sort((a, b) => a.distance - b.distance)[0];
-        return [
-          {
-            kind: "canonical" as const,
-            resultKey: `canonical:${canonical.placeId}`,
-            externalId: `canonical:${canonical.placeId}`,
-            canonical,
-            name: canonical.name,
-            category: canonical.category,
-            cuisines: canonical.cuisines,
-            address: canonical.address,
-            city: canonical.city,
-            area: canonical.area ?? undefined,
-            lat: canonical.lat,
-            lng: canonical.lng,
-            nearestAreaLabel: nearest.center.label,
-            matchingAreaLabels: matching.map(({ center }) => center.label),
-            distanceKm: nearest.boundary ? undefined : nearest.distance,
-          },
-        ];
-      });
-      return { results, incomplete: rows.length === 200 || valid.length < data.centers.length };
-    })().catch(() => ({ results: [], incomplete: true }));
-    const [providerOutcome, internal] = await Promise.all([
-      searchProviderAreas(data)
-        .then((value) => ({ ok: true as const, value }))
-        .catch(() => ({ ok: false as const })),
-      internalPromise,
-    ]);
-    const page = providerOutcome.ok
-      ? providerOutcome.value
-      : {
-          results: [],
-          failedAreaLabels: data.centers.map((c) => c.label),
-          hasMore: false,
-          nextOffset: data.offset ?? 0,
-        };
-    const items = page.results.map((place) => {
-      const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
-      return {
-        externalId: place.externalId,
-        name: place.name,
-        category: place.category,
-        cuisines: place.cuisines,
-        address: place.address,
-        area: place.area ?? null,
-        city: place.city,
-        lat: place.lat ?? null,
-        lng: place.lng ?? null,
-        osmType: source.osmType ?? null,
-        osmId: source.osmId ?? null,
-      };
-    });
-    const matches = items.length
-      ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
+        const valid = boundaries.flatMap((outcome) =>
+          outcome.status === "fulfilled" ? [outcome.value] : [],
+        );
+        if (!valid.length) return { results: [], incomplete: true };
+        const centers = valid.map(({ center, boundary }) => {
+          const points = boundary
+            ? boundary.type === "Polygon"
+              ? boundary.coordinates.flat()
+              : boundary.coordinates.flat(2)
+            : [];
+          return {
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: data.radiusKm ?? 50,
+            ...(boundary
+              ? {
+                  bounds: [
+                    Math.min(...points.map((p) => p[0])),
+                    Math.min(...points.map((p) => p[1])),
+                    Math.max(...points.map((p) => p[0])),
+                    Math.max(...points.map((p) => p[1])),
+                  ],
+                }
+              : {}),
+          };
+        });
+        const found = await context.supabase.rpc("search_canonical_places_v1", {
           _group_id: data.groupId,
-          _items: items,
-        })
-      : { data: [], error: null };
-    const reviews = matches.error ? [] : z.array(providerIdentityReviewSchema).parse(matches.data);
-    const results: import("./places-provider").PlaceSuggestion[] = [
-      ...internal.results,
-      ...page.results.map(({ raw: _raw, ...place }) => ({
-        ...place,
-        kind: "provider" as const,
-        resultKey: `provider:geoapify:${place.externalId}`,
-        identity: reviews.find((review) => review.providerPlaceId === place.externalId) ?? {
-          providerPlaceId: place.externalId,
-          providerVersion: "",
-          knownPlace: null,
-          candidates: [],
-          reviewRequired: true,
-          identityConflict: false,
-        },
-      })),
-    ];
-    return {
-      ...page,
-      results,
-      canonicalIncomplete: internal.incomplete,
-      canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
-    };
-  });
+          _text: intent.kind === "text" ? intent.query : "",
+          _centers: centers,
+          _categories: intent.kind === "category" ? [intent.category] : [],
+          _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
+          _limit: 200,
+        });
+        if (found.error) return { results: [], incomplete: true };
+        const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
+        const results = rows.flatMap((canonical) => {
+          const matching = valid.filter(({ center, boundary }) =>
+            boundary
+              ? placeWithinBoundary(canonical, boundary)
+              : placeDistanceKm(canonical, center) <=
+                (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
+                  ? 50
+                  : (data.radiusKm ?? 50)),
+          );
+          if (!matching.length) return [];
+          const nearest = matching
+            .map(({ center, boundary }) => ({
+              center,
+              boundary,
+              distance: placeDistanceKm(canonical, center),
+            }))
+            .sort((a, b) => a.distance - b.distance)[0];
+          return [
+            {
+              kind: "canonical" as const,
+              resultKey: `canonical:${canonical.placeId}`,
+              externalId: `canonical:${canonical.placeId}`,
+              canonical,
+              name: canonical.name,
+              category: canonical.category,
+              cuisines: canonical.cuisines,
+              address: canonical.address,
+              city: canonical.city,
+              area: canonical.area ?? undefined,
+              lat: canonical.lat,
+              lng: canonical.lng,
+              nearestAreaLabel: nearest.center.label,
+              matchingAreaLabels: matching.map(({ center }) => center.label),
+              distanceKm: nearest.boundary ? undefined : nearest.distance,
+            },
+          ];
+        });
+        return { results, incomplete: rows.length === 200 || valid.length < data.centers.length };
+      })().catch(() => ({ results: [], incomplete: true }));
+      const [providerOutcome, internal] = await Promise.all([
+        searchProviderAreas(data)
+          .then((value) => ({ ok: true as const, value }))
+          .catch(() => ({ ok: false as const })),
+        internalPromise,
+      ]);
+      const page = providerOutcome.ok
+        ? providerOutcome.value
+        : {
+            results: [],
+            failedAreaLabels: data.centers.map((c) => c.label),
+            hasMore: false,
+            nextOffset: data.offset ?? 0,
+          };
+      const items = page.results.map((place) => {
+        const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+        return {
+          externalId: place.externalId,
+          name: place.name,
+          category: place.category,
+          cuisines: place.cuisines,
+          address: place.address,
+          area: place.area ?? null,
+          city: place.city,
+          lat: place.lat ?? null,
+          lng: place.lng ?? null,
+          osmType: source.osmType ?? null,
+          osmId: source.osmId ?? null,
+        };
+      });
+      const matches = items.length
+        ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
+            _group_id: data.groupId,
+            _items: items,
+          })
+        : { data: [], error: null };
+      const reviews = matches.error
+        ? []
+        : z.array(providerIdentityReviewSchema).parse(matches.data);
+      const results: import("./places-provider").PlaceSuggestion[] = [
+        ...internal.results,
+        ...page.results.map(({ raw: _raw, ...place }) => ({
+          ...place,
+          kind: "provider" as const,
+          resultKey: `provider:geoapify:${place.externalId}`,
+          identity: reviews.find((review) => review.providerPlaceId === place.externalId) ?? {
+            providerPlaceId: place.externalId,
+            providerVersion: "",
+            knownPlace: null,
+            candidates: [],
+            reviewRequired: true,
+            identityConflict: false,
+          },
+        })),
+      ];
+      return {
+        ...page,
+        results,
+        canonicalIncomplete: internal.incomplete,
+        canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
+      };
+    }),
+  );
 
 /** Final read-only check at the selected address, never a provider write authority. */
 export const findNearbyPlacesForManualFallback = createServerFn({ method: "POST" })

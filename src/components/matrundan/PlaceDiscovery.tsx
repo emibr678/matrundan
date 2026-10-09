@@ -136,6 +136,7 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
+  const [searchObservation, setSearchObservation] = React.useState<unknown>(null);
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(
     snapshot?.selectedAreaIds ?? savedAreas.map((area) => area.id),
   );
@@ -368,6 +369,7 @@ export function PlaceDiscovery({
       let offset = startOffset;
       let moreAvailable = false;
       let pages = 0;
+      const observations: unknown[] = [];
 
       while (pages < MAX_PROVIDER_PAGES_PER_ACTION) {
         const response = await searchPlaceDiscovery({
@@ -388,6 +390,8 @@ export function PlaceDiscovery({
           },
         });
         if (isStale()) return null;
+        observations.push(response.observation);
+        setSearchObservation(observations);
         pages += 1;
         canonicalIncomplete ||= response.canonicalIncomplete;
         collected = mergePlaceSearchPages(collected, response.results);
@@ -786,7 +790,7 @@ export function PlaceDiscovery({
     existingResults.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-search-observation={JSON.stringify(searchObservation)}>
       <SearchAreaControls
         heading="Sök i"
         addAreaActionLabel="Lägg till område eller adress"
