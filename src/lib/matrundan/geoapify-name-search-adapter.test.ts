@@ -493,8 +493,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
           return { data: { canConfirm: true }, error: null };
         if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
           return { data: [], error: null };
-        if (name === "match_place_discovery_candidates_v1")
-          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
         throw new Error("Unexpected RPC: " + name);
       },
     },
@@ -517,9 +516,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
       "/v1/geocode/search",
       "/v2/places",
     ]);
-    expect(a.calls[2].searchParams.get("filter")).toBe(
-      "circle:18.0710935,59.3251172,2000",
-    );
+    expect(a.calls[2].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,2000");
     expect(result.budgetUsage.requests).toBe(3);
   });
 
@@ -527,14 +524,14 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     const a = adapter((url) => {
       if (url.pathname === "/v1/geocode/search") return { features: [] };
       return {
-        features: url.searchParams.get("name") === "pharma"
-          ? [place("pharmarium-typo", "Pharmarium")]
-          : [],
+        features:
+          url.searchParams.get("name") === "pharma" ? [place("pharmarium-typo", "Pharmarium")] : [],
       };
     }, context);
     const result = await a.discovery({ text: "Pharmarim", centers: [area], radiusKm: 5 });
-    expect(result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType)
-      .toBe("tolerant");
+    expect(
+      result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
+    ).toBe("tolerant");
     expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
     expect(result.budgetUsage.requests).toBe(4);
   });
