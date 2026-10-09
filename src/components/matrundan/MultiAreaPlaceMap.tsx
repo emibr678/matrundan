@@ -488,10 +488,10 @@ export function MultiAreaPlaceMap({
       ...mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]),
     ];
     if (points.length === 0) return;
-    lastFitContextRef.current = fitContextKey;
     let cancelled = false;
     void waitForMapLibre().then((mapLibre) => {
       if (cancelled || mapRef.current !== map) return;
+      lastFitContextRef.current = fitContextKey;
       map.resize();
       if (points.length === 1) {
         map.jumpTo({ center: points[0], zoom: 14 });
