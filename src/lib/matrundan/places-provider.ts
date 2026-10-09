@@ -40,6 +40,7 @@ export interface PlaceSuggestion {
   nearestAreaLabel?: string;
   matchingAreaLabels?: string[];
   searchAreaGroup?: "nearby" | "name-outside";
+  searchMatchType?: "tolerant";
 }
 
 export interface PlacesSearchOpts {

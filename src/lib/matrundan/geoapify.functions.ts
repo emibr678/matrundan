@@ -22,6 +22,7 @@ import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.s
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { expandedNameRadiusKm } from "./place-search-expansion";
+import { matchesTypoPlaceName } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import { observeProviderRequest, observeSearchWithBudget } from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
@@ -77,6 +78,7 @@ export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   nearestAreaLabel: string;
   matchingAreaLabels: string[];
   searchAreaGroup?: "nearby" | "name-outside";
+  searchMatchType?: "tolerant";
 };
 
 type RankedMultiAreaPlaceSuggestion = MultiAreaPlaceSuggestion & {
@@ -586,6 +588,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         let rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
         const primaryTruncated = rows.length === 200;
         let fuzzyIncomplete = false;
+        const fuzzyIds = new Set<string>();
         if (
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
@@ -604,6 +607,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             for (const row of z.array(canonicalPlaceCandidateSchema).parse(fuzzy.data)) {
               if (seen.has(row.placeId)) continue;
               seen.add(row.placeId);
+              fuzzyIds.add(row.placeId);
               rows.push(row);
             }
           }
@@ -628,6 +632,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           return [
             {
               kind: "canonical" as const,
+              searchMatchType: fuzzyIds.has(canonical.placeId) ? ("tolerant" as const) : undefined,
               resultKey: `canonical:${canonical.placeId}`,
               externalId: `canonical:${canonical.placeId}`,
               canonical,
@@ -673,6 +678,48 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             exhaustedAreaIds: data.exhaustedAreaIds ?? [],
             failedAreaIds: data.centers.map((c) => c.id),
           };
+      const typoCandidates: typeof page.results = [];
+      const mayTryTypo =
+        (data.offset ?? 0) === 0 &&
+        !page.hasMore &&
+        !page.failedAreaIds.length &&
+        intent.kind === "text" &&
+        isSpecificPlaceName(intent.query) &&
+        ![...page.results, ...internal.results].some((place) =>
+          matchesSpecificPlaceName(intent.query, place.name),
+        );
+      if (mayTryTypo && intent.kind === "text") {
+        const seen = new Set(page.results.map((place) => place.externalId));
+        const outcomes = await Promise.allSettled(
+          data.centers.map((center) =>
+            searchPlacesAtArea({
+              lat: center.lat,
+              lng: center.lng,
+              searchMode: center.searchMode ?? "point",
+              placeId: center.placeId,
+              radiusKm: data.radiusKm,
+              limit: 50,
+              offset: 0,
+            }),
+          ),
+        );
+        for (let index = 0; index < outcomes.length; index++) {
+          const outcome = outcomes[index];
+          if (outcome.status !== "fulfilled") continue;
+          for (const candidate of outcome.value.results) {
+            if (seen.has(candidate.externalId) || !matchesTypoPlaceName(intent.query, candidate.name))
+              continue;
+            seen.add(candidate.externalId);
+            const center = data.centers[index];
+            typoCandidates.push({
+              ...candidate,
+              nearestAreaLabel: center.label,
+              matchingAreaLabels: [center.label],
+              searchMatchType: "tolerant",
+            });
+          }
+        }
+      }
       // One bounded external recovery after an exhausted primary name search.
       // Strong canonical 50-km results remain available without external expansion.
       const expansionRadius = expandedNameRadiusKm(data.radiusKm);
@@ -729,7 +776,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           }
         }
       }
-      const allProviderResults = [...page.results, ...nearbyCandidates.slice(0, 3)];
+      const allProviderResults = [
+        ...page.results,
+        ...typoCandidates.slice(0, 5),
+        ...nearbyCandidates.slice(0, 3),
+      ];
       const items = allProviderResults.map((place) => {
         const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
         return {
