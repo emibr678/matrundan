@@ -543,15 +543,23 @@ async function searchProviderAreas(
       if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
       if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
       if (!data.centers.some((center) => distanceKm(center, result) <= expandedRadius)) return [];
-      const primaryMemberships = data.centers.filter(
-        (center) => distanceKm(center, result) <= (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+      const distances = data.centers
+        .map((center) => ({ center, km: distanceKm(center, result) }))
+        .sort((left, right) => left.km - right.km);
+      const nearest = distances[0];
+      const primaryMemberships = distances.filter(
+        ({ km }) => km <= (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
       );
       if (primaryMemberships.length > 0) {
+        const nearestInside = primaryMemberships[0];
         return [
           {
             ...result,
-            matchingAreaIds: primaryMemberships.map((center) => center.id),
-            matchingAreaLabels: primaryMemberships.map((center) => center.label),
+            nearestAreaId: nearestInside.center.id,
+            nearestAreaLabel: nearestInside.center.label,
+            distanceKm: nearestInside.km,
+            matchingAreaIds: primaryMemberships.map(({ center }) => center.id),
+            matchingAreaLabels: primaryMemberships.map(({ center }) => center.label),
           },
         ];
       }
@@ -565,6 +573,9 @@ async function searchProviderAreas(
       return [
         {
           ...result,
+          nearestAreaId: nearest.center.id,
+          nearestAreaLabel: nearest.center.label,
+          distanceKm: nearest.km,
           matchingAreaIds: [],
           matchingAreaLabels: [],
           searchAreaGroup: "nearby" as const,
