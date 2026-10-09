@@ -22,7 +22,7 @@ import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.s
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
-import { observePlaceSearch, observeProviderRequest } from "./place-search-observation.server";
+import { observeProviderRequest, observeSearchWithBudget } from "./place-search-observation.server";
 import {
   budgetProviderRequest,
   estimatedGeoapifyCredits,
@@ -524,7 +524,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) =>
-    observePlaceSearch(async () => {
+    observeSearchWithBudget({
+      requests: data.providerRequestLimit ?? 25,
+      credits: data.providerCreditLimit ?? 40,
+    })(async () => {
       const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
       });
@@ -684,7 +687,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         canonicalIncomplete: internal.incomplete,
         canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
-    }, { requests: data.providerRequestLimit ?? 25, credits: data.providerCreditLimit ?? 40 }),
+    }),
   );
 
 /** Final read-only check at the selected address, never a provider write authority. */

@@ -24,6 +24,10 @@ export async function observePlaceSearch<T extends object>(
   };
 }
 
+export function observeSearchWithBudget(limits: { requests: number; credits: number }) {
+  return <T extends object>(run: () => Promise<T>) => observePlaceSearch(run, limits);
+}
+
 export async function observeProviderRequest<T extends { features?: unknown[] }>(
   run: () => Promise<T>,
 ): Promise<T> {

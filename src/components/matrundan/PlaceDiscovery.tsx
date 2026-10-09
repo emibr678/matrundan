@@ -677,8 +677,7 @@ export function PlaceDiscovery({
       budgetRemaining.credits <= 0
     )
       return;
-    const mapVisible =
-      resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
+    const mapVisible = resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
     if (!mapVisible) return;
 
     const searchKey = JSON.stringify([
