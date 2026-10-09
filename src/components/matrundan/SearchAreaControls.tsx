@@ -135,7 +135,7 @@ function InlineSearchRadius({
       <SelectContent>
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
-            {`Inom ${value} km från punktval`}
+            {`Inom ${value} km`}
           </SelectItem>
         ))}
       </SelectContent>
@@ -260,14 +260,14 @@ export function SearchAreaControls({
 
       {pointCount > 0 && boundaryCount === 0 ? (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Avståndet gäller runt varje vald punkt. En ort utan verifierad gräns används som
-          sökcentrum.
+          Söker inom valt avstånd från varje plats. Ort utan verifierad gräns används som
+          utgångspunkt.
         </p>
       ) : null}
 
       {boundaryCount > 0 && pointCount > 0 ? (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.
+          Områden söks inom sin gräns. Avståndet gäller runt valda platser utan områdesgräns.
         </p>
       ) : null}
     </section>

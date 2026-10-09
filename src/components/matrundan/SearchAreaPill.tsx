@@ -20,9 +20,6 @@ export function SearchAreaPill({
       <span className="min-w-0 max-w-[min(14rem,calc(100vw-6rem))] truncate whitespace-nowrap">
         {shortSearchAreaLabel(area.label)}
       </span>
-      <span className="shrink-0 text-[10px] text-muted-foreground">
-        {area.searchMode === "boundary" ? "område" : "punkt"}
-      </span>
       <button
         type="button"
         className="relative grid h-8 w-8 shrink-0 place-items-center rounded-full hover:bg-background/70 after:absolute after:-inset-1.5 after:content-['']"
