@@ -557,21 +557,25 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
     const expanded = url.searchParams.get("filter")?.endsWith(",2000");
     if (url.pathname === "/v1/geocode/search")
       return {
-        features: expanded
-          ? [seedWithName("Pelikan")]
-          : [],
+        features: expanded ? [seedWithName("Pelikan")] : [],
       };
     return {
-      features: expanded && url.searchParams.get("bias") === oxBias
-        ? [place("pelikan-2km", "Pelikan")]
-        : [],
+      features:
+        expanded && url.searchParams.get("bias") === oxBias
+          ? [place("pelikan-2km", "Pelikan")]
+          : [],
     };
   }, context);
   const result = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1 });
-  expect(result.results.find((place) => place.externalId === "pelikan-2km")?.searchAreaGroup)
-    .toBe("nearby");
-  expect(a.calls.some((url) => url.pathname === "/v1/geocode/search" &&
-    url.searchParams.get("filter")?.endsWith(",2000"))).toBe(true);
+  expect(result.results.find((place) => place.externalId === "pelikan-2km")?.searchAreaGroup).toBe(
+    "nearby",
+  );
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v1/geocode/search" && url.searchParams.get("filter")?.endsWith(",2000"),
+    ),
+  ).toBe(true);
   expect(result.budgetUsage.requests).toBeLessThanOrEqual(25);
 });
 

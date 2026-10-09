@@ -160,13 +160,7 @@ export function PlaceDiscovery({
     savedAreas
       .filter((area) => selectedAreaIds.includes(area.id))
       .map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
-    temporaryAreas.map((area) => [
-      area.id,
-      area.lat,
-      area.lng,
-      searchAreaMode(area),
-      area.placeId,
-    ]),
+    temporaryAreas.map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
   ]);
   const [resultsForSearchKey, setResultsForSearchKey] = React.useState(
     snapshot?.resultsForSearchKey ?? currentSearchKey,
@@ -604,7 +598,16 @@ export function PlaceDiscovery({
       window.clearTimeout(timer);
       requestRef.current++;
     };
-  }, [activeAreas, currentSearchKey, fillProviderPages, hiddenLoading, isLive, query, radiusKm, retry]);
+  }, [
+    activeAreas,
+    currentSearchKey,
+    fillProviderPages,
+    hiddenLoading,
+    isLive,
+    query,
+    radiusKm,
+    retry,
+  ]);
 
   const filteredResults = React.useMemo(
     () =>
