@@ -52,6 +52,9 @@ type SearchInput = {
   offset?: number;
   areaOffsets?: Record<string, number>;
   exhaustedAreaIds?: string[];
+  searchPhase?: "primary" | "complete";
+  providerRequestLimit?: number;
+  providerCreditLimit?: number;
 };
 
 /** Execute the actual server handlers with only framework/auth and HTTP stubs.
@@ -589,3 +592,44 @@ function seedWithName(name: string) {
     datasource: { raw: { cuisine: "coffee" } },
   });
 }
+
+
+test("primära sökresultat behöver inte invänta namnåterhämtning", async () => {
+  let releaseGeocoding: () => void = () => {};
+  const blockedGeocoding = new Promise<void>((resolve) => { releaseGeocoding = resolve; });
+  const context: FixtureContext = {
+    supabase: { rpc: async (name) => {
+      if (name === "get_place_discovery_context_v1") return { data: { canConfirm: true }, error: null };
+      if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1") return { data: [], error: null };
+      if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+      throw new Error("Unexpected RPC: " + name);
+    } },
+  };
+  const a = adapter(async (url) => {
+    if (url.pathname === "/v1/geocode/search") {
+      await blockedGeocoding;
+      return { features: [] };
+    }
+    return { features: [] };
+  }, context);
+  const input: SearchInput = { text: "Pelikan", centers: [area], radiusKm: 1 };
+  const first = await a.discovery({ ...input, searchPhase: "primary" });
+  expect(first.results).toEqual([]);
+  expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  expect(a.calls.map((url) => url.pathname)).toEqual(["/v2/places"]);
+  const finished = a.discovery({
+    ...input,
+    searchPhase: "complete",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  try {
+    await Promise.resolve();
+    expect(a.calls.some((url) => url.pathname === "/v1/geocode/search")).toBe(true);
+  } finally {
+    releaseGeocoding();
+  }
+  const recovered = await finished;
+  expect(recovered.budgetUsage.requests + first.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits).toBeLessThanOrEqual(40);
+});

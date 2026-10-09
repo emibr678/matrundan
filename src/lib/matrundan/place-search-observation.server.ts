@@ -6,6 +6,7 @@ type Observation = {
   failures: number;
   providerFeatures: number;
   providerMs: number;
+  phaseMs: { access: number; sources: number; recovery: number; identity: number };
 };
 
 const observation = new AsyncLocalStorage<Observation>();
@@ -15,7 +16,13 @@ export async function observePlaceSearch<T extends object>(
   run: () => Promise<T>,
   limits: { requests: number; credits: number } = { requests: 25, credits: 40 },
 ) {
-  const counters: Observation = { requests: 0, failures: 0, providerFeatures: 0, providerMs: 0 };
+  const counters: Observation = {
+    requests: 0,
+    failures: 0,
+    providerFeatures: 0,
+    providerMs: 0,
+    phaseMs: { access: 0, sources: 0, recovery: 0, identity: 0 },
+  };
   const started = performance.now();
   const result = await withPlaceSearchBudget(limits, () => observation.run(counters, run));
   return {
@@ -45,4 +52,10 @@ export async function observeProviderRequest<T extends { features?: unknown[] }>
   } finally {
     counters.providerMs += Math.round(performance.now() - started);
   }
+}
+
+/** Aggregate phase times only; never record search terms, URLs, identities or group data. */
+export function recordSearchPhaseMs(phase: keyof Observation["phaseMs"], milliseconds: number) {
+  const counters = observation.getStore();
+  if (counters) counters.phaseMs[phase] += Math.round(milliseconds);
 }

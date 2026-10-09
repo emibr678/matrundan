@@ -24,7 +24,11 @@ import { isBoundaryEligibleResultType } from "./search-areas";
 import { expandedNameRadiusKm } from "./place-search-expansion";
 import { matchesTypoPlaceName, typoProviderSearchSeed } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
-import { observeProviderRequest, observeSearchWithBudget } from "./place-search-observation.server";
+import {
+  observeProviderRequest,
+  observeSearchWithBudget,
+  recordSearchPhaseMs,
+} from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
@@ -424,6 +428,7 @@ const multiAreaInputSchema = z.object({
   exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
   providerRequestLimit: z.number().int().min(0).max(25).optional(),
   providerCreditLimit: z.number().int().min(0).max(40).optional(),
+  searchPhase: z.enum(["primary", "complete"]).optional(),
 });
 
 async function searchProviderAreas(
@@ -444,6 +449,7 @@ async function searchProviderAreas(
         radiusKm: data.radiusKm,
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
         offset: offsets[center.id] ?? data.offset ?? 0,
+        allowNameAnchorRecovery: data.searchPhase !== "primary",
       }),
     })),
   );
@@ -540,9 +546,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       requests: data.providerRequestLimit ?? 25,
       credits: data.providerCreditLimit ?? 40,
     })(async () => {
+      const accessStarted = performance.now();
       const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
       });
+      recordSearchPhaseMs("access", performance.now() - accessStarted);
       if (access.error) throw new Error("Gruppen kunde inte verifieras.");
       const intent = resolvePlaceSearchIntent(data.text ?? "");
       const explicit = (data.text?.trim().length ?? 0) >= 2;
@@ -600,6 +608,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         let fuzzyIncomplete = false;
         const fuzzyIds = new Set<string>();
         if (
+          data.searchPhase !== "primary" &&
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
           !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
@@ -673,12 +682,14 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           incomplete: primaryTruncated || fuzzyIncomplete || valid.length < data.centers.length,
         };
       })().catch(() => ({ results: [], incomplete: true }));
+      const sourcesStarted = performance.now();
       const [providerOutcome, internal] = await Promise.all([
         searchProviderAreas(data)
           .then((value) => ({ ok: true as const, value }))
           .catch(() => ({ ok: false as const })),
         internalPromise,
       ]);
+      recordSearchPhaseMs("sources", performance.now() - sourcesStarted);
       const page = providerOutcome.ok
         ? providerOutcome.value
         : {
@@ -693,8 +704,20 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       // One bounded external recovery after an exhausted primary name search.
       // Strong canonical 50-km results remain available without external expansion.
       const expansionRadius = expandedNameRadiusKm(data.radiusKm);
-      const mayExpand =
+      const primaryOnly = data.searchPhase === "primary";
+      const recoveryEligible =
         (data.offset ?? 0) === 0 &&
+        !page.hasMore &&
+        !page.failedAreaIds.length &&
+        intent.kind === "text" &&
+        isSpecificPlaceName(intent.query) &&
+        ![...page.results, ...internal.results].some((place) =>
+          matchesSpecificPlaceName(intent.query, place.name),
+        );
+      const recoveryStarted = performance.now();
+      const mayExpand =
+        !primaryOnly &&
+        recoveryEligible &&
         !page.hasMore &&
         !page.failedAreaIds.length &&
         intent.kind === "text" &&
@@ -752,6 +775,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       }
       const typoCandidates: typeof page.results = [];
       const mayTryTypo =
+        !primaryOnly &&
         (data.offset ?? 0) === 0 &&
         !page.hasMore &&
         !page.failedAreaIds.length &&
@@ -801,6 +825,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           }
         }
       }
+      recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
       const allProviderResults = [
         ...page.results,
         ...nearbyCandidates.slice(0, 3),
@@ -822,12 +847,14 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           osmId: source.osmId ?? null,
         };
       });
+      const identityStarted = performance.now();
       const matches = items.length
         ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
             _group_id: data.groupId,
             _items: items,
           })
         : { data: [], error: null };
+      recordSearchPhaseMs("identity", performance.now() - identityStarted);
       const reviews = matches.error
         ? []
         : z.array(providerIdentityReviewSchema).parse(matches.data);
@@ -851,6 +878,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         ...page,
         results,
         canonicalIncomplete: internal.incomplete,
+        pendingRecovery: primaryOnly && recoveryEligible,
         canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
     }),

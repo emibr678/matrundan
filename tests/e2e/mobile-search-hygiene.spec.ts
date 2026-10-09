@@ -154,9 +154,8 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   const heading = dialog.getByRole("heading", { name: "Ställen att lägga till" }).first();
   const listY = (await heading.boundingBox())!.y;
   await input.focus();
-  await expect(
-    dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" }),
-  ).toBeVisible();
+  // Full results already exist; the same place must not cover them in autocomplete.
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
   expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
 
   await input.evaluate((element) => (element as HTMLInputElement).blur());

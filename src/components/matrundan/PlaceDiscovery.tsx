@@ -417,9 +417,13 @@ export function PlaceDiscovery({
       let moreAvailable = false;
       let remaining: SearchBudget = { ...startBudget };
       let pages = 0;
+      let recoveryPending = false;
       const observations: unknown[] = [];
 
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
+        const isRecoveryPass = recoveryPending;
+        const isFastFirstPage =
+          pages === 0 && startOffset === 0 && seed.length === 0 && query.trim().length >= 2;
         const response = await searchPlaceDiscovery({
           data: {
             groupId: groupId!,
@@ -434,9 +438,10 @@ export function PlaceDiscovery({
             })),
             radiusKm,
             limit: RESULT_PAGE_SIZE,
-            offset,
-            areaOffsets: progress.offsets,
-            exhaustedAreaIds: progress.exhaustedIds,
+            searchPhase: isFastFirstPage ? "primary" : "complete",
+            offset: isRecoveryPass ? startOffset : offset,
+            areaOffsets: isRecoveryPass ? startProgress.offsets : progress.offsets,
+            exhaustedAreaIds: isRecoveryPass ? startProgress.exhaustedIds : progress.exhaustedIds,
             providerRequestLimit: remaining.requests,
             providerCreditLimit: remaining.credits,
           },
@@ -457,9 +462,12 @@ export function PlaceDiscovery({
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
         progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
+        recoveryPending = !isRecoveryPass && response.pendingRecovery;
         // Stop if providers were limited or an area failed; never spin through its cursor.
-        if (response.budgetUsage.limited || response.failedAreaIds.length > 0 || !moreAvailable)
-          break;
+        if (response.budgetUsage.limited || response.failedAreaIds.length > 0) break;
+        // Display verified primary hits first; recovery uses the same remaining budget.
+        if (recoveryPending) continue;
+        if (!moreAvailable) break;
         if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable)
           break;
       }
@@ -1027,6 +1035,7 @@ export function PlaceDiscovery({
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
         suppressEmptyState={suppressEmptyAutocomplete}
+        resultsAlreadyShown={visibleResults.length > 0}
         onSelectPlace={(suggestion) => setSelectedId(suggestion.externalId)}
         onMissingPlace={onMissingPlace}
       />
@@ -1288,6 +1297,7 @@ function PlaceSearchCombobox({
   genericSuggestions,
   placeSuggestions,
   suppressEmptyState = false,
+  resultsAlreadyShown = false,
   onSelectPlace,
   onMissingPlace,
 }: {
@@ -1297,6 +1307,7 @@ function PlaceSearchCombobox({
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
   suppressEmptyState?: boolean;
+  resultsAlreadyShown?: boolean;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
   onMissingPlace: () => void;
 }) {
@@ -1309,7 +1320,7 @@ function PlaceSearchCombobox({
     meta: suggestion.groupLabel,
     searchValue: suggestion.searchValue,
   }));
-  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
+  const placeOptions: PlaceSearchOption[] = (resultsAlreadyShown ? [] : placeSuggestions).map((suggestion) => ({
     kind: "place",
     key: suggestion.externalId,
     label: suggestion.name,
@@ -1325,11 +1336,26 @@ function PlaceSearchCombobox({
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList = open && hasQuery && (options.length > 0 || !suppressEmptyState);
+  const showList =
+    open && hasQuery && (options.length > 0 || (!suppressEmptyState && !resultsAlreadyShown));
 
   React.useEffect(() => {
     setActiveIx(-1);
   }, [query]);
+
+  React.useEffect(() => {
+    const viewport = window.visualViewport;
+    if (!viewport) return;
+    let previousHeight = viewport.height;
+    const onResize = () => {
+      const nextHeight = viewport.height;
+      // Android keyboard dismissal may resize the viewport without blurring the input.
+      if (nextHeight - previousHeight > 120) setOpen(false);
+      previousHeight = nextHeight;
+    };
+    viewport.addEventListener("resize", onResize);
+    return () => viewport.removeEventListener("resize", onResize);
+  }, []);
 
   function select(option: PlaceSearchOption) {
     if (option.kind === "generic") onQueryChange(option.label);
