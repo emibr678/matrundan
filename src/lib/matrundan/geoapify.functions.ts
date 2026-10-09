@@ -41,6 +41,7 @@ import {
   matchesSpecificPlaceName,
   isSpecificPlaceName,
   manualFallbackProviderCandidates,
+  normalizePlaceIdentity,
 } from "./place-discovery";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
@@ -439,7 +440,7 @@ async function searchProviderAreas(
   const expandedRadius =
     data.searchPhase === "primary" &&
     nameIntent.kind === "text" &&
-    isSpecificPlaceName(nameIntent.query) &&
+    nameIntent.query.trim().length >= 3 &&
     data.centers.every((center) => center.searchMode !== "boundary")
       ? expandedNameRadiusKm(data.radiusKm)
       : null;
@@ -542,7 +543,10 @@ async function searchProviderAreas(
           },
         ];
       }
-      if (!matchesSpecificPlaceName(nameIntent.query, result.name)) return [];
+      const fullName = normalizePlaceIdentity(result.name);
+      const inputName = normalizePlaceIdentity(nameIntent.query);
+      if (!fullName.startsWith(inputName) && !matchesSpecificPlaceName(nameIntent.query, result.name))
+        return [];
       return [
         { ...result, matchingAreaIds: [], matchingAreaLabels: [], searchAreaGroup: "nearby" as const },
       ];
@@ -782,7 +786,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         const seen = new Set(page.results.map((place) => place.externalId));
 
         const recordCandidate = (
-          candidate: (typeof page.results)[number],
+          candidate: NormalizedPlaceSuggestion,
           centerIndex: number,
           tolerant: boolean,
         ) => {

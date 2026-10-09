@@ -451,7 +451,13 @@ export function PlaceDiscovery({
           },
         });
         if (isStale()) return null;
-        observations.push(response.observation);
+        observations.push({
+          stage: isRecoveryPass ? "recovery" : "primary",
+          ...response.observation,
+          budgetUsage: response.budgetUsage,
+          resultsReturned: response.results.length,
+          pendingRecovery: response.pendingRecovery,
+        });
         setSearchObservation(observations);
         pages += 1;
         remaining = {
@@ -1024,6 +1030,9 @@ export function PlaceDiscovery({
         : visibleResults.slice(0, 6),
     [query, visibleResults],
   );
+  const debugEnabled =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("searchDebug") === "1";
   const searchAreaSummary =
     activeAreas.length === 1
       ? shortSearchAreaLabel(activeAreas[0].label)
@@ -1104,6 +1113,18 @@ export function PlaceDiscovery({
         onSelectPlace={activateSearchSuggestion}
         onMissingPlace={onMissingPlace}
       />
+
+      {debugEnabled ? (
+        <details
+          data-testid="place-search-debug"
+          className="rounded-xl border border-border/70 bg-muted/20 p-2 text-xs"
+        >
+          <summary className="cursor-pointer font-medium">Sökdiagnostik · antal och tider</summary>
+          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all text-[11px]">
+            {JSON.stringify({ server: searchObservation, client: clientTiming }, null, 2)}
+          </pre>
+        </details>
+      ) : null}
 
       <div className={searchFocused ? "hidden lg:block" : ""}>
       {activeAreas.length === 0 ? (
@@ -1582,7 +1603,11 @@ function PlaceSearchCombobox({
           >
             {options.length === 0 ? (
               <p className="px-2 py-2 text-muted-foreground">
-                {loading ? "Söker…" : "Inga förslag"}
+                {loading
+                  ? "Söker…"
+                  : query.trim().length < 6
+                    ? "Skriv lite mer för att hitta rätt ställe"
+                    : "Inga förslag"}
               </p>
             ) : (
               <>
@@ -1598,7 +1623,7 @@ function PlaceSearchCombobox({
                 ) : null}
               </>
             )}
-            {options.length === 0 && !loading ? (
+            {options.length === 0 && !loading && query.trim().length >= 6 ? (
               <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
                 <p className="px-2 pt-1 text-xs text-muted-foreground">
                   Hittar du inte rätt ställe?

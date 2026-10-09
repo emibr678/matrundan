@@ -738,3 +738,39 @@ test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallbac
   expect((response as typeof response & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
   expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
 });
+
+
+test("Pel hittar Pelikan nära sökområdet medan användaren skriver", async () => {
+  const a = adapter(
+    (url) => ({
+      features:
+        url.pathname === "/v2/places" &&
+        url.searchParams.get("name") === "Pel" &&
+        url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-prefix", "Pelikan")]
+          : [],
+    }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (name === "search_canonical_places_v1") return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const first = await a.discovery({
+    text: "Pel",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect(first.results.find((item) => item.externalId === "pelikan-prefix")?.searchAreaGroup).toBe(
+    "nearby",
+  );
+  expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
+});
