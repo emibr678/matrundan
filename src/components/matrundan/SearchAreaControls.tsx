@@ -260,7 +260,8 @@ export function SearchAreaControls({
 
       {pointCount > 0 && boundaryCount === 0 ? (
         <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Avståndet gäller runt varje vald punkt. En ort utan verifierad gräns används som sökcentrum.
+          Avståndet gäller runt varje vald punkt. En ort utan verifierad gräns används som
+          sökcentrum.
         </p>
       ) : null}
 

@@ -647,12 +647,12 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               nearestAreaLabel: nearest.center.label,
               matchingAreaLabels: matching.map(({ center }) => center.label),
               distanceKm: nearest.boundary ? undefined : nearest.distance,
-            searchAreaGroup:
-              !nearest.boundary &&
-              nearest.distance > (data.radiusKm ?? 50) &&
-              matchesSpecificPlaceName(intent.query, canonical.name)
-                ? ("name-outside" as const)
-                : undefined,
+              searchAreaGroup:
+                !nearest.boundary &&
+                nearest.distance > (data.radiusKm ?? 50) &&
+                matchesSpecificPlaceName(intent.query, canonical.name)
+                  ? ("name-outside" as const)
+                  : undefined,
             },
           ];
         });
@@ -707,7 +707,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           const outcome = outcomes[index];
           if (outcome.status !== "fulfilled") continue;
           for (const candidate of outcome.value.results) {
-            if (seen.has(candidate.externalId) || !matchesTypoPlaceName(intent.query, candidate.name))
+            if (
+              seen.has(candidate.externalId) ||
+              !matchesTypoPlaceName(intent.query, candidate.name)
+            )
               continue;
             seen.add(candidate.externalId);
             const center = data.centers[index];
@@ -761,8 +764,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               center,
               distance: distanceKm(center, coordinates),
             }));
-            if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50)))
-              continue;
+            if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50))) continue;
             const closest = memberships.sort((left, right) => left.distance - right.distance)[0];
             if (!closest || closest.distance > expansionRadius) continue;
             seen.add(candidate.externalId);

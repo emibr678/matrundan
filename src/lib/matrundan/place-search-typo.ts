@@ -10,7 +10,8 @@ export function hasSingleNameTypo(a: string, b: string): boolean {
       a.length === b.length &&
       a.slice(0, i) === b.slice(0, i) &&
       a.slice(i + 1) === b.slice(i + 1)
-    ) return true;
+    )
+      return true;
     if (
       a.length === b.length &&
       i + 1 < a.length &&
@@ -18,17 +19,20 @@ export function hasSingleNameTypo(a: string, b: string): boolean {
       a[i] === b[i + 1] &&
       a[i + 1] === b[i] &&
       a.slice(i + 2) === b.slice(i + 2)
-    ) return true;
+    )
+      return true;
     if (
       a.length === b.length + 1 &&
       a.slice(0, i) === b.slice(0, i) &&
       a.slice(i + 1) === b.slice(i)
-    ) return true;
+    )
+      return true;
     if (
       b.length === a.length + 1 &&
       a.slice(0, i) === b.slice(0, i) &&
       a.slice(i) === b.slice(i + 1)
-    ) return true;
+    )
+      return true;
   }
   return false;
 }

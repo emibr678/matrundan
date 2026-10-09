@@ -277,18 +277,6 @@ function guardTooling(explicitBase) {
 
 function formatChanged(checkOnly, explicitBase) {
   const files = classify(collectChangedFiles(explicitBase)).format;
-  if (checkOnly) {
-    for (const file of [
-      "src/components/matrundan/SearchAreaControls.tsx",
-      "src/lib/matrundan/geoapify.functions.ts",
-      "src/lib/matrundan/place-search-typo.ts",
-    ]) {
-      const rendered = run("bunx", ["prettier", file], { capture: true });
-      console.log("FORMAT_BEGIN:" + file);
-      process.stdout.write(rendered.stdout);
-      console.log("FORMAT_END:" + file);
-    }
-  }
   runForFiles(
     "bunx",
     ["prettier", checkOnly ? "--check" : "--write"],
