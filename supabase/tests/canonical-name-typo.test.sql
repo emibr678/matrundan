@@ -18,7 +18,7 @@ INSERT INTO public.memberships(group_id,user_id,role,status) VALUES
 INSERT INTO public.places(id,name,category,address,city,lat,lng,added_by) VALUES
  ('46520000-0000-4000-8000-000000000001','Efraim Barbits Pub','pub','Gatan 1','Stockholm',59.325,18.071,'46500000-0000-4000-8000-000000000001'),
  ('46520000-0000-4000-8000-000000000002','Efraim Park','pub','Gatan 2','Stockholm',59.3251,18.0711,'46500000-0000-4000-8000-000000000001'),
- ('46520000-0000-4000-8000-000000000003','Efraim Barbits Pub','pub','Gatan 3','Uppsala',59.859,17.638,'46500000-0000-4000-8000-000000000001');
+ ('46520000-0000-4000-8000-000000000003','Efraim Barbits Pub','pub','Gatan 3','Solna',59.356,18.03,'46500000-0000-4000-8000-000000000001');
 INSERT INTO public.place_improvement_candidates(group_id,place_id,reason,status,created_by) VALUES
  ('46510000-0000-4000-8000-000000000002','46520000-0000-4000-8000-000000000001','unmatched_verified_manual','open','46500000-0000-4000-8000-000000000001'),
  ('46510000-0000-4000-8000-000000000002','46520000-0000-4000-8000-000000000002','unmatched_verified_manual','open','46500000-0000-4000-8000-000000000001'),

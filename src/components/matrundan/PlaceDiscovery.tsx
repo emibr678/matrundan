@@ -699,7 +699,7 @@ export function PlaceDiscovery({
       startOffset: nextOffset,
       startProgress: areaProgress,
       startBudget: budget,
-      maxPages: 2,
+      maxPages: 8,
       targetActionable: 200,
       isStale: () => requestRef.current !== requestId,
     })

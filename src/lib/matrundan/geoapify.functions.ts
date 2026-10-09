@@ -22,7 +22,7 @@ import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.s
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
 import { expandedNameRadiusKm } from "./place-search-expansion";
-import { matchesTypoPlaceName } from "./place-search-typo";
+import { matchesTypoPlaceName, typoProviderSearchSeed } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import { observeProviderRequest, observeSearchWithBudget } from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
@@ -690,9 +690,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         );
       if (mayTryTypo && intent.kind === "text") {
         const seen = new Set(page.results.map((place) => place.externalId));
+        const typoSeed = typoProviderSearchSeed(intent.query);
         const outcomes = await Promise.allSettled(
           data.centers.map((center) =>
             searchPlacesAtArea({
+              text: typoSeed ?? undefined,
               lat: center.lat,
               lng: center.lng,
               searchMode: center.searchMode ?? "point",

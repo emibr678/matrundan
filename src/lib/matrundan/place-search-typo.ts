@@ -67,3 +67,12 @@ export function matchesTypoPlaceName(query: string, name: string): boolean {
   }
   return fuzzy === 1 && (queries.length === 1 || exactAnchor);
 }
+
+/** Use one strong name anchor instead of a broad first-50 category browse. */
+export function typoProviderSearchSeed(query: string): string | null {
+  if (!isSpecificPlaceName(query)) return null;
+  const tokens = normalizePlaceIdentity(query).split(" ").filter(Boolean);
+  const anchor = tokens.find((token) => token.length >= 5);
+  if (!anchor) return null;
+  return tokens.length > 1 ? anchor : anchor.slice(0, Math.min(anchor.length - 2, 6));
+}

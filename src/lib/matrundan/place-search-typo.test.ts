@@ -16,3 +16,11 @@ test("specific name retrieval tolerates one typo, not generic or double mistakes
   expect(matchesTypoPlaceName("bar", "Barbits Pub")).toBe(false);
   expect(matchesTypoPlaceName("restaurang", "Restaurangen")).toBe(false);
 });
+
+test("typo provider recovery uses a narrow anchor, not a category browse", () => {
+  const { typoProviderSearchSeed } = require("./place-search-typo");
+  expect(typoProviderSearchSeed("Efraim bark")).toBe("efraim");
+  expect(typoProviderSearchSeed("Pharmarim")).toBe("pharma");
+  expect(typoProviderSearchSeed("bar")).toBeNull();
+  expect(typoProviderSearchSeed("restaurang")).toBeNull();
+});
