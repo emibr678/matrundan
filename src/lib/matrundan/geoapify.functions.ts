@@ -682,9 +682,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             if (seen.has(candidate.externalId)) continue;
             if (!matchesSpecificPlaceName(intent.query, candidate.name)) continue;
             if (candidate.lat == null || candidate.lng == null) continue;
+            const coordinates = { lat: candidate.lat, lng: candidate.lng };
             const memberships = data.centers.map((center) => ({
               center,
-              distance: distanceKm(center, { lat: candidate.lat, lng: candidate.lng }),
+              distance: distanceKm(center, coordinates),
             }));
             if (memberships.some(({ distance }) => distance <= (data.radiusKm ?? 50)))
               continue;
