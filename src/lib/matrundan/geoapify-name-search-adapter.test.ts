@@ -601,8 +601,8 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
     ),
   ).toBe(true);
   expect(
-    a.calls.some((url) =>
-      url.pathname === "/v2/places" && url.searchParams.get("name") === "pelika",
+    a.calls.some(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "pelika",
     ),
   ).toBe(false);
   expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBe(3);
@@ -676,7 +676,9 @@ test("Falloumi hittas på 1,9 km när name+circle saknar kandidater", async () =
   ).toBe(true);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBe(3);
   expect(
-    a.calls.some((url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "fallou"),
+    a.calls.some(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "fallou",
+    ),
   ).toBe(false);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
   expect(

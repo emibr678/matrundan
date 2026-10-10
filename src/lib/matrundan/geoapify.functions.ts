@@ -1045,7 +1045,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             }
           });
         }
-
       }
       recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
       recordSearchCandidateCounts({
