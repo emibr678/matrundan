@@ -238,7 +238,7 @@ export function SearchResultSections({
               ...(firstExternal && orderedAvailable.some(isInternal)
                 ? [
                     <h4 key="map-heading" className="pt-2 text-sm font-medium">
-                      Hittat i kartan
+                      Fler matställen
                     </h4>,
                   ]
                 : []),
