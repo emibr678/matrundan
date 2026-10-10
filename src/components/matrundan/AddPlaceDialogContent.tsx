@@ -71,6 +71,7 @@ export function AddPlaceDialogContent({
   const { mode, activeGroupId, exampleMode } = useSession();
   const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
+  const [mobileSearchExpanded, setMobileSearchExpanded] = React.useState(false);
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
@@ -126,6 +127,7 @@ export function AddPlaceDialogContent({
     setDiscoverySnapshot(null);
     setResolutions({});
     setManualSnapshot(null);
+    setMobileSearchExpanded(false);
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -137,6 +139,7 @@ export function AddPlaceDialogContent({
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
       setView("search");
+      setMobileSearchExpanded(false);
       searchScrollTopRef.current = 0;
       returningToSearchRef.current = false;
     }
@@ -149,11 +152,13 @@ export function AddPlaceDialogContent({
   }
 
   function beginAdd(suggestion: PlaceSuggestion) {
+    setMobileSearchExpanded(false);
     rememberSearchPosition();
     setPending(suggestion);
   }
 
   function beginSourceMatch(match: SourceMatchResult) {
+    setMobileSearchExpanded(false);
     rememberSearchPosition();
     setPendingSourceMatch(match);
   }
@@ -353,6 +358,31 @@ export function AddPlaceDialogContent({
 
   const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
 
+  // Mobile keyboards resize the visual viewport, not necessarily the layout viewport.
+  // Only resize the suggestions surface; never collapse or reset the active search.
+  React.useLayoutEffect(() => {
+    if (!searchDialogOpen || !mobileSearchExpanded) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      const dialog = searchDialogRef.current;
+      if (!dialog) return;
+      dialog.style.setProperty(
+        "--search-viewport-height",
+        `${Math.max(200, viewport?.height ?? window.innerHeight)}px`,
+      );
+      dialog.style.setProperty("--search-viewport-top", `${viewport?.offsetTop ?? 0}px`);
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [mobileSearchExpanded, searchDialogOpen]);
+
   React.useLayoutEffect(() => {
     if (!searchDialogOpen || !returningToSearchRef.current) return;
 
@@ -384,6 +414,12 @@ export function AddPlaceDialogContent({
         <DialogContent
           ref={searchDialogRef}
           onEscapeKeyDown={(event) => {
+            if (mobileSearchExpanded) {
+              event.preventDefault();
+              setMobileSearchExpanded(false);
+              document.getElementById("place-query")?.blur();
+              return;
+            }
             // The first Escape dismisses the suggestions; a second closes the dialog.
             if (
               event.target instanceof Element &&
@@ -397,11 +433,55 @@ export function AddPlaceDialogContent({
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
-          className="max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
+          data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
+          className={[
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
+            mobileSearchExpanded && view === "search"
+              ? "max-lg:left-0 max-lg:top-[var(--search-viewport-top,0px)] max-lg:h-[var(--search-viewport-height,100dvh)] max-lg:max-h-none max-lg:w-screen max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:flex max-lg:flex-col max-lg:gap-2 max-lg:overflow-hidden max-lg:rounded-none max-lg:border-0 max-lg:p-3 max-lg:duration-0"
+              : "",
+          ].join(" ")}
         >
-          <DialogHeader>
-            <DialogTitle className="font-display text-2xl">
-              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
+          <DialogHeader
+            className={
+              mobileSearchExpanded && view === "search"
+                ? "max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:space-y-0 max-lg:pr-9 max-lg:shrink-0"
+                : undefined
+            }
+          >
+            {mobileSearchExpanded && view === "search" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="min-h-11 min-w-11 lg:hidden"
+                aria-label="Tillbaka till resultaten"
+                onClick={() => {
+                  setMobileSearchExpanded(false);
+                  document.getElementById("place-query")?.blur();
+                }}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            ) : null}
+            <DialogTitle
+              className={
+                mobileSearchExpanded && view === "search"
+                  ? "font-display text-lg lg:text-2xl"
+                  : "font-display text-2xl"
+              }
+            >
+              {view === "search" ? (
+                mobileSearchExpanded ? (
+                  <>
+                    <span className="lg:hidden">Sök matställe</span>
+                    <span className="hidden lg:inline">Lägg till matställe</span>
+                  </>
+                ) : (
+                  "Lägg till matställe"
+                )
+              ) : (
+                "Stället saknas i sökningen"
+              )}
             </DialogTitle>
             <DialogDescription className={view === "search" ? "sr-only" : undefined}>
               {view === "search"
@@ -419,6 +499,8 @@ export function AddPlaceDialogContent({
               bulkBusy={bulkBusy || sourceLinkBusy}
               snapshot={discoverySnapshot}
               onSnapshotChange={setDiscoverySnapshot}
+              mobileSearchExpanded={mobileSearchExpanded}
+              onMobileSearchExpandedChange={setMobileSearchExpanded}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
@@ -426,7 +508,10 @@ export function AddPlaceDialogContent({
               onAddSelected={() => void addSelectedResults()}
               onBeginAdd={beginAdd}
               onLinkSource={beginSourceMatch}
-              onMissingPlace={() => setView("fallback")}
+              onMissingPlace={() => {
+                setMobileSearchExpanded(false);
+                setView("fallback");
+              }}
               onClose={() => handleOpenChange(false)}
             />
           ) : (
