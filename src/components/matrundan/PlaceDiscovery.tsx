@@ -431,28 +431,29 @@ export function PlaceDiscovery({
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const isRecoveryPass: boolean = recoveryPending;
         const textSearch = query.trim().length >= 2;
-        const response: Awaited<ReturnType<typeof searchPlaceDiscovery>> = await searchPlaceDiscovery({
-          data: {
-            groupId: groupId!,
-            text: query.trim() || undefined,
-            centers: activeAreas.map((area) => ({
-              id: area.id,
-              label: shortSearchAreaLabel(area.label),
-              lat: area.lat,
-              lng: area.lng,
-              searchMode: searchAreaMode(area),
-              placeId: area.placeId,
-            })),
-            radiusKm,
-            limit: RESULT_PAGE_SIZE,
-            searchPhase: isRecoveryPass ? "recovery" : textSearch ? "primary" : "complete",
-            offset: isRecoveryPass ? startOffset : offset,
-            areaOffsets: isRecoveryPass ? startProgress.offsets : progress.offsets,
-            exhaustedAreaIds: isRecoveryPass ? startProgress.exhaustedIds : progress.exhaustedIds,
-            providerRequestLimit: remaining.requests,
-            providerCreditLimit: remaining.credits,
-          },
-        });
+        const response: Awaited<ReturnType<typeof searchPlaceDiscovery>> =
+          await searchPlaceDiscovery({
+            data: {
+              groupId: groupId!,
+              text: query.trim() || undefined,
+              centers: activeAreas.map((area) => ({
+                id: area.id,
+                label: shortSearchAreaLabel(area.label),
+                lat: area.lat,
+                lng: area.lng,
+                searchMode: searchAreaMode(area),
+                placeId: area.placeId,
+              })),
+              radiusKm,
+              limit: RESULT_PAGE_SIZE,
+              searchPhase: isRecoveryPass ? "recovery" : textSearch ? "primary" : "complete",
+              offset: isRecoveryPass ? startOffset : offset,
+              areaOffsets: isRecoveryPass ? startProgress.offsets : progress.offsets,
+              exhaustedAreaIds: isRecoveryPass ? startProgress.exhaustedIds : progress.exhaustedIds,
+              providerRequestLimit: remaining.requests,
+              providerCreditLimit: remaining.credits,
+            },
+          });
         if (isStale()) return null;
         observations.push({
           stage: isRecoveryPass ? "recovery" : "primary",
