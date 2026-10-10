@@ -1119,7 +1119,7 @@ export function PlaceDiscovery({
       >
         <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
-        {includesPointArea ? (
+        {includesPointArea && !editingMobileAreas ? (
           <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
         ) : null}
         <ChevronDown

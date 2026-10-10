@@ -20,6 +20,8 @@ test("capture focused and browse mobile UX for visual inspection", async ({ page
   await expect(dialog.getByRole("listbox")).toBeVisible();
   await page.setViewportSize({ width: 360, height: 460 });
   await capture("focused-light");
+  await expect(dialog.getByRole("listbox").getByRole("option").first()).toBeVisible();
+  await capture("focused-results-light");
   await page.setViewportSize({ width: 360, height: 690 });
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeVisible();
@@ -27,4 +29,7 @@ test("capture focused and browse mobile UX for visual inspection", async ({ page
   await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
   await page.evaluate(() => document.documentElement.classList.add("dark"));
   await capture("browse-dark");
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.evaluate(() => document.documentElement.classList.remove("dark"));
+  await capture("desktop-light");
 });
