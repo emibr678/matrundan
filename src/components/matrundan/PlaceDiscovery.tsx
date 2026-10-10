@@ -1137,9 +1137,7 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
         />
       </div>
-      <div
-        className="min-w-0 shrink-0"
-      >
+      <div className="min-w-0 shrink-0">
         <PlaceSearchCombobox
           query={query}
           onQueryChange={setQuery}
