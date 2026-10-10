@@ -20,9 +20,7 @@ test.describe("v1.31 sökområdesgränser", () => {
     await expect(dialog.getByText("Värmdö kommun", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Skärgårdsvägen 8", { exact: true })).toBeVisible();
     await expect(
-      dialog.getByText(
-        "Avståndet gäller bara platser utan områdesgräns.",
-      ),
+      dialog.getByText("Avståndet gäller bara platser utan områdesgräns."),
     ).toBeVisible();
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),

@@ -193,9 +193,7 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   await expectNoHorizontalOverflow(page, "Sökförslag och nedfällt tangentbord");
 });
 
-test("fokuserade mobila förslag är korta med väg till hela resultatlistan", async ({
-  page,
-}) => {
+test("fokuserade mobila förslag är korta med väg till hela resultatlistan", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen?demo=1");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -444,9 +442,9 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
 
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
-  expect(
-    await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius),
-  ).toBe(browseCorner);
+  expect(await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius)).toBe(
+    browseCorner,
+  );
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toHaveCount(0);
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();

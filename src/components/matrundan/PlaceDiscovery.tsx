@@ -1083,8 +1083,7 @@ export function PlaceDiscovery({
         suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
     )
     .slice(0, 2).length;
-  const showFullResultsLink =
-    filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
+  const showFullResultsLink = filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileModeChange("browse");
@@ -1554,9 +1553,7 @@ function PlaceSearchCombobox({
       return;
     }
     const measure = () => {
-      setCanScrollSuggestions(
-        listbox.scrollTop + listbox.clientHeight < listbox.scrollHeight - 2,
-      );
+      setCanScrollSuggestions(listbox.scrollTop + listbox.clientHeight < listbox.scrollHeight - 2);
     };
     measure();
     const observer = new ResizeObserver(measure);
@@ -1817,7 +1814,9 @@ function PlaceSearchCombobox({
                     genericOptions.length + internalOptions.length,
                   )}
                   {loading ? (
-                    <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
+                    <p className="px-2 py-2 text-xs text-muted-foreground">
+                      Söker fler matställen…
+                    </p>
                   ) : null}
                 </>
               )}
