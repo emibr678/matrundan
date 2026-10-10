@@ -193,6 +193,33 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   await expectNoHorizontalOverflow(page, "Sökförslag och nedfällt tangentbord");
 });
 
+test("fokuserade mobila förslag är korta med väg till hela resultatlistan", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("restaurang");
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+
+  const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await expect(listbox).toBeVisible();
+  await expect.poll(() => listbox.getByRole("option").count()).toBeGreaterThan(1);
+  expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(3);
+  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
+  await expectInsideViewport(page, listbox, "Korta mobila förslag");
+
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, input, "Sökfält vid litet synligt viewport");
+  await expectInsideViewport(page, listbox, "Förslagslista vid litet synligt viewport");
+  await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(input).toHaveValue("restaurang");
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeVisible();
+});
+
 test("samma ställe behåller detaljidentiteten före och efter tillägg på desktop", async ({
   page,
 }) => {

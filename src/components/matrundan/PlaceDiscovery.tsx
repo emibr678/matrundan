@@ -1084,7 +1084,7 @@ export function PlaceDiscovery({
     )
     .slice(0, 2).length;
   const showFullResultsLink =
-    filteredResults.length > 5 - visibleGenericSuggestionCount || hasMore;
+    filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileModeChange("browse");
@@ -1510,6 +1510,8 @@ function PlaceSearchCombobox({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const blurTimeoutRef = React.useRef<number | null>(null);
   const touchedOptionRef = React.useRef(false);
+  const listboxRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollSuggestions, setCanScrollSuggestions] = React.useState(false);
   const genericOptions: PlaceSearchOption[] = genericSuggestions
     .filter(
       (suggestion) =>
@@ -1523,8 +1525,9 @@ function PlaceSearchCombobox({
       meta: suggestion.groupLabel,
       searchValue: suggestion.searchValue,
     }));
+  // Keep mobile suggestions concise; all results remain available in browse mode.
   const placeOptions: PlaceSearchOption[] = placeSuggestions
-    .slice(0, 5 - genericOptions.length)
+    .slice(0, (focused ? 3 : 5) - genericOptions.length)
     .map((suggestion) => ({
       kind: "place",
       key: suggestion.externalId,
@@ -1543,6 +1546,29 @@ function PlaceSearchCombobox({
   const hasQuery = query.trim().length >= 2;
   const showList = (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
+
+  React.useLayoutEffect(() => {
+    const listbox = listboxRef.current;
+    if (!focused || !showList || !listbox) {
+      setCanScrollSuggestions(false);
+      return;
+    }
+    const measure = () => {
+      setCanScrollSuggestions(
+        listbox.scrollTop + listbox.clientHeight < listbox.scrollHeight - 2,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(listbox);
+    for (const child of listbox.children) observer.observe(child);
+    const viewport = window.visualViewport;
+    viewport?.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      viewport?.removeEventListener("resize", measure);
+    };
+  }, [focused, showList, query, options.length, loading, error, incomplete]);
 
   React.useEffect(() => {
     setActiveIx(-1);
@@ -1736,65 +1762,88 @@ function PlaceSearchCombobox({
           </button>
         ) : null}
         {showList ? (
-          <div
-            id="place-search-listbox"
-            role="listbox"
-            aria-label="Förslag på kök, typer och matställen"
-            aria-busy={loading}
-            className={[
-              "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
-              focused
-                ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)_-_12rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
-                : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
-            ].join(" ")}
-          >
-            {error || incomplete ? (
-              <div className="space-y-2 rounded-lg bg-muted/50 px-2 py-2 text-xs" role="status">
-                <p>{error ?? "Alla ställen kunde inte hämtas. Försök igen."}</p>
-                <Button type="button" size="sm" variant="outline" onClick={onRetry}>
-                  Försök igen
-                </Button>
-              </div>
-            ) : null}
-            {options.length === 0 ? (
-              <p className="px-2 py-2 text-muted-foreground">
-                {noAreas
-                  ? "Välj ett sökområde först"
-                  : loading
-                    ? "Söker…"
-                    : query.trim().length < 6
-                      ? "Skriv lite mer för att hitta rätt ställe"
-                      : error || incomplete
-                        ? "Sökningen kunde inte slutföras"
-                        : "Inga förslag"}
-              </p>
-            ) : (
-              <>
-                {renderGroup("Kök och typer", genericOptions, 0)}
-                {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
-                {renderGroup(
-                  "Matställen",
-                  externalOptions,
-                  genericOptions.length + internalOptions.length,
-                )}
-                {loading ? (
-                  <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
-                ) : null}
-              </>
-            )}
-            {options.length === 0 && canOfferMissing && !focused ? (
-              <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
-                <p className="px-2 pt-1 text-xs text-muted-foreground">
-                  Hittar du inte rätt ställe?
+          <>
+            <div
+              ref={listboxRef}
+              onScroll={() => {
+                const listbox = listboxRef.current;
+                if (listbox) {
+                  setCanScrollSuggestions(
+                    listbox.scrollTop + listbox.clientHeight < listbox.scrollHeight - 2,
+                  );
+                }
+              }}
+              id="place-search-listbox"
+              role="listbox"
+              aria-label="Förslag på kök, typer och matställen"
+                aria-busy={loading}
+                aria-describedby={
+                  focused && canScrollSuggestions ? "place-search-scroll-hint" : undefined
+                }
+                className={[
+                "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
+                focused
+                  ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)_-_12rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                  : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
+              ].join(" ")}
+            >
+              {error || incomplete ? (
+                <div className="space-y-2 rounded-lg bg-muted/50 px-2 py-2 text-xs" role="status">
+                  <p>{error ?? "Alla ställen kunde inte hämtas. Försök igen."}</p>
+                  <Button type="button" size="sm" variant="outline" onClick={onRetry}>
+                    Försök igen
+                  </Button>
+                </div>
+              ) : null}
+              {options.length === 0 ? (
+                <p className="px-2 py-2 text-muted-foreground">
+                  {noAreas
+                    ? "Välj ett sökområde först"
+                    : loading
+                      ? "Söker…"
+                      : query.trim().length < 6
+                        ? "Skriv lite mer för att hitta rätt ställe"
+                        : error || incomplete
+                          ? "Sökningen kunde inte slutföras"
+                          : "Inga förslag"}
                 </p>
-                <MissingPlaceButton
-                  className="mt-1 w-full justify-start"
-                  disabled={loading}
-                  onActivate={activateMissingPlace}
-                />
-              </div>
+              ) : (
+                <>
+                  {renderGroup("Kök och typer", genericOptions, 0)}
+                  {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
+                  {renderGroup(
+                    "Matställen",
+                    externalOptions,
+                    genericOptions.length + internalOptions.length,
+                  )}
+                  {loading ? (
+                    <p className="px-2 py-2 text-xs text-muted-foreground">Söker fler matställen…</p>
+                  ) : null}
+                </>
+              )}
+              {options.length === 0 && canOfferMissing && !focused ? (
+                <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
+                  <p className="px-2 pt-1 text-xs text-muted-foreground">
+                    Hittar du inte rätt ställe?
+                  </p>
+                  <MissingPlaceButton
+                    className="mt-1 w-full justify-start"
+                    disabled={loading}
+                    onActivate={activateMissingPlace}
+                  />
+                </div>
+              ) : null}
+            </div>
+            {focused && canScrollSuggestions ? (
+              <p
+                id="place-search-scroll-hint"
+                className="mt-1 flex items-center justify-center gap-1 text-xs text-muted-foreground lg:hidden"
+              >
+                Scrolla för fler förslag
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
+              </p>
             ) : null}
-          </div>
+          </>
         ) : null}
       </div>
     </div>
