@@ -67,7 +67,7 @@ async function openPlaceSearch(page: Page) {
   });
   await expect(searchInput).toBeVisible();
   await searchInput.fill(PLACE_NAME);
-  await searchInput.evaluate((node) => (node as HTMLInputElement).blur());
+  await searchDialog.getByRole("button", { name: "Visa alla resultat" }).click();
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
@@ -155,22 +155,36 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   const heading = dialog.getByRole("heading", { name: "Ställen att lägga till" }).first();
   const listY = (await heading.boundingBox())!.y;
   await input.focus();
-  // Mobile typing has one inline result surface and a compact search-area summary.
-  await expect(dialog.getByRole("listbox")).toBeVisible();
+  // An explicit search mode must survive keyboard dismissal and viewport resizing.
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  const listbox = dialog.getByRole("listbox");
+  await expect(listbox).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Ändra", exact: true })).toBeVisible();
   await expect(heading).toBeHidden();
-  await expect(dialog.getByRole("listbox").getByText(PLACE_NAME, { exact: true })).toBeVisible();
+  await expect(listbox.getByText(PLACE_NAME, { exact: true })).toBeVisible();
+  expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(5);
   await expectNoHorizontalOverflow(page, "Fokuserad sökyta");
 
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expectInsideViewport(page, dialog, "Hel sökyta vid simulerat mobilt tangentbord");
+  await expectInsideViewport(page, input, "Sökfält ovanför tangentbord");
+  await expectInsideViewport(page, listbox, "Scrollbara förslag ovanför tangentbord");
   await input.evaluate((element) => (element as HTMLInputElement).blur());
-  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expect(listbox).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 690 });
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expect(listbox).toHaveCount(0);
   await expect(heading).toBeVisible();
   expect((await heading.boundingBox())!.y).toBeCloseTo(listY, 0);
 
   await input.fill("Totalt osannolikt påhittat namn");
-  await expect(dialog.getByRole("listbox").getByText(PLACE_NAME, { exact: true })).toHaveCount(0);
-  await input.evaluate((element) => (element as HTMLInputElement).blur());
-  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  await expect(listbox.getByText(PLACE_NAME, { exact: true })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
   await expectNoHorizontalOverflow(page, "Sökförslag och nedfällt tangentbord");
 });
 
@@ -289,6 +303,7 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
   await expect(listbox).toBeVisible();
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeHidden();
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
   await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
   await listbox.getByRole("option").filter({ hasText: PLACE_NAME }).getByRole("button").click();
   await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
