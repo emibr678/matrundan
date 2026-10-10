@@ -320,7 +320,7 @@ test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
-  const expectedTop = 0;
+  const expectedTop = 8;
   await expect
     .poll(async () => Math.abs((await dialog.boundingBox())!.y - expectedTop))
     .toBeLessThanOrEqual(3);
@@ -361,10 +361,12 @@ test("sökområde och radie ändras i samma mobila sökvy utan att förlora sök
     "data-search-area-editing",
     "true",
   );
-  await expect(input).toBeHidden();
+  await expect(input).toBeVisible();
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toBeVisible();
   expect((await dialog.boundingBox())!.y).toBeCloseTo(top, 0);
+  const areaEditor = dialog.locator("#mobile-search-area-editor");
+  expect((await areaEditor.boundingBox())!.height).toBeLessThanOrEqual(290);
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",

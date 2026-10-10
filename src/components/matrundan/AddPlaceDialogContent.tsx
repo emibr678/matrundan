@@ -443,32 +443,23 @@ export function AddPlaceDialogContent({
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
             view === "search"
-              ? "max-lg:left-0 max-lg:top-[var(--search-viewport-top,0px)] max-lg:h-[var(--search-viewport-height,100dvh)] max-lg:max-h-none max-lg:w-screen max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:flex max-lg:flex-col max-lg:gap-2 max-lg:overflow-hidden max-lg:rounded-none max-lg:border-0 max-lg:p-3 max-lg:duration-0"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)+0.5rem)] max-lg:h-auto max-lg:max-h-[calc(var(--search-viewport-height,100dvh)-1rem)] max-lg:w-[calc(100vw-1rem)] max-lg:translate-y-0 max-lg:flex max-lg:min-h-0 max-lg:flex-col max-lg:gap-3 max-lg:overflow-hidden max-lg:rounded-2xl max-lg:border max-lg:bg-card max-lg:p-4 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
               view === "search"
-                ? "max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:space-y-0 max-lg:pr-9 max-lg:shrink-0"
+                ? "max-lg:items-start max-lg:gap-0 max-lg:space-y-0 max-lg:pr-9 max-lg:shrink-0 max-lg:text-left"
                 : undefined
             }
           >
             <DialogTitle
               className={
-                view === "search" ? "font-display text-lg lg:text-2xl" : "font-display text-2xl"
+                view === "search" ? "font-display text-xl lg:text-2xl" : "font-display text-2xl"
               }
             >
-              {view === "search" ? (
-                <>
-                  <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
-                  <span aria-hidden="true" className="lg:hidden">
-                    Sök matställe
-                  </span>
-                </>
-              ) : (
-                "Stället saknas i sökningen"
-              )}
+              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
             </DialogTitle>
             <DialogDescription className={view === "search" ? "sr-only" : undefined}>
               {view === "search"
