@@ -63,6 +63,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await radius.click();
   await page.getByRole("option", { name: "10 km" }).click();
   await expect(radius).toContainText("10 km");
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   const firstRow = suggestionRow(dialog, "Päronträdets Trattoria");
   await expect(firstRow).toBeVisible();
   await expect(firstRow.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
@@ -150,6 +151,7 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
     .getByRole("combobox", { name: "Avstånd runt adresser och platser", exact: true })
     .click();
   await page.getByRole("option", { name: "10 km" }).click();
+  await reopened.getByRole("button", { name: "Klar", exact: true }).click();
 
   const reopenedExisting = existingSection(reopened, initialExistingCount + 2);
   await expect(reopenedExisting).toHaveAttribute("data-state", "closed");
