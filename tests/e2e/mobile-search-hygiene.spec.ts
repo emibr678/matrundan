@@ -320,6 +320,10 @@ test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const expectedTop = 690 * 0.06;
+  await expect
+    .poll(async () => Math.abs((await dialog.boundingBox())!.y - expectedTop))
+    .toBeLessThanOrEqual(3);
   const normalY = (await dialog.boundingBox())!.y;
   await input.fill("Italien");
   await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
@@ -333,6 +337,9 @@ test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad
   await expectNoHorizontalOverflow(page, "Inriktning vald i mobil sökyta");
   await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
   await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expect
+    .poll(async () => Math.abs((await dialog.boundingBox())!.y - expectedTop))
+    .toBeLessThanOrEqual(3);
   const afterY = (await dialog.boundingBox())!.y;
   expect(Math.abs(afterY - normalY)).toBeLessThanOrEqual(2);
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
