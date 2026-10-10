@@ -1776,11 +1776,11 @@ function PlaceSearchCombobox({
               id="place-search-listbox"
               role="listbox"
               aria-label="Förslag på kök, typer och matställen"
-                aria-busy={loading}
-                aria-describedby={
-                  focused && canScrollSuggestions ? "place-search-scroll-hint" : undefined
-                }
-                className={[
+              aria-busy={loading}
+              aria-describedby={
+                focused && canScrollSuggestions ? "place-search-scroll-hint" : undefined
+              }
+              className={[
                 "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
                 focused
                   ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)_-_12rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
