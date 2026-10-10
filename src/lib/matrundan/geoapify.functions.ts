@@ -895,36 +895,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           else nearbyCandidates.push(normalized);
         };
 
-        const prefix = typoProviderSearchSeed(intent.query);
-        if (prefix) {
-          const candidatePages = await Promise.allSettled(
-            data.centers.map((center) =>
-              searchPlacesAtArea({
-                text: prefix,
-                lat: center.lat,
-                lng: center.lng,
-                searchMode: center.searchMode ?? "point",
-                placeId: center.placeId,
-                radiusKm: retrievalRadius,
-                limit: 50,
-                offset: 0,
-                allowNameAnchorRecovery: false,
-              }),
-            ),
-          );
-          candidatePages.forEach((outcome, centerIndex) => {
-            if (outcome.status !== "fulfilled") return;
-            for (const candidate of outcome.value.results) {
-              recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
-              const exact = matchesSpecificPlaceName(intent.query, candidate.name);
-              const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
-              if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
-            }
-          });
-        }
-
-        // Geocoding can correct a business name that Places would otherwise
-        // reject as an exact-name filter. Geocoding is NEVER a venue identity;
+        // Prefer the documented Geocoding name lookup for specific venues.
+        // Trying a 50-result Places prefix first delays a correctly spelled
+        // venue even when the provider's Places name index omits that venue.
+        // Geocoding is NEVER a venue identity;
         // every selected result must be independently retrieved from Places.
         if (nearbyCandidates.length === 0 && typoCandidates.length === 0) {
           await Promise.allSettled(
@@ -1040,6 +1014,38 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             }),
           );
         }
+
+        const prefix = typoProviderSearchSeed(intent.query);
+        // Only try a broader (and higher-credit) Places prefix if Geocoding
+        // did not yield a verified Places venue. It remains useful for
+        // incomplete or misspelled names that Geocoding cannot resolve.
+        if (prefix && nearbyCandidates.length === 0 && typoCandidates.length === 0) {
+          const candidatePages = await Promise.allSettled(
+            data.centers.map((center) =>
+              searchPlacesAtArea({
+                text: prefix,
+                lat: center.lat,
+                lng: center.lng,
+                searchMode: center.searchMode ?? "point",
+                placeId: center.placeId,
+                radiusKm: retrievalRadius,
+                limit: 50,
+                offset: 0,
+                allowNameAnchorRecovery: false,
+              }),
+            ),
+          );
+          candidatePages.forEach((outcome, centerIndex) => {
+            if (outcome.status !== "fulfilled") return;
+            for (const candidate of outcome.value.results) {
+              recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
+              const exact = matchesSpecificPlaceName(intent.query, candidate.name);
+              const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
+              if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
+            }
+          });
+        }
+
       }
       recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
       recordSearchCandidateCounts({

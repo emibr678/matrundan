@@ -503,7 +503,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     },
   };
 
-  test("1 km -> 2 km kräver inte en extra Geocoding-kedja", async () => {
+  test("prefixsökning används som reserv när Geocoding saknar kandidater", async () => {
     const a = adapter((url) => {
       if (url.pathname === "/v1/geocode/search") return { features: [] };
       return {
@@ -524,7 +524,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     expect(result.budgetUsage.requests).toBe(3);
   });
 
-  test("stavfelsförslag använder namnankare utan ytterligare Geocoding", async () => {
+  test("stavfelsförslag behåller prefix som reserv efter tom Geocoding", async () => {
     const a = adapter((url) => {
       if (url.pathname === "/v1/geocode/search") return { features: [] };
       return {
@@ -536,7 +536,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     expect(
       result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
     ).toBe("tolerant");
-    // A single prefix candidate request avoids repeating Geocoding for an obvious typo.
+    // One inexpensive Geocoding probe precedes the single prefix request.
     expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
     expect(result.budgetUsage.requests).toBe(3);
   });
@@ -600,6 +600,12 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
         url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
     ),
   ).toBe(true);
+  expect(
+    a.calls.some((url) =>
+      url.pathname === "/v2/places" && url.searchParams.get("name") === "pelika",
+    ),
+  ).toBe(false);
+  expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBe(3);
   expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBeLessThanOrEqual(25);
   expect(
     result.budgetUsage.reservedCredits + initial.budgetUsage.reservedCredits,
@@ -668,6 +674,10 @@ test("Falloumi hittas på 1,9 km när name+circle saknar kandidater", async () =
         url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
     ),
   ).toBe(true);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBe(3);
+  expect(
+    a.calls.some((url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "fallou"),
+  ).toBe(false);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
   expect(
     first.budgetUsage.reservedCredits + recovered.budgetUsage.reservedCredits,
@@ -1014,7 +1024,7 @@ test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökn
       .candidates.typo,
   ).toBe(1);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
-  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(0);
+  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
 });
 
 test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallback", async () => {
