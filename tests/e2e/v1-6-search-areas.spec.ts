@@ -42,6 +42,10 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("ArrowDown");
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Stavsnäs");
+  await areaInput.fill("Stavsnäs");
+  await expect(
+    page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: /Ta bort Stavsnäs.*från sökningen/i }).click();
 
   await areaInput.fill("Värmdö kommun");
