@@ -372,10 +372,9 @@ export function AddPlaceDialogContent({
 
   const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
 
-  // Mobile keyboards resize the visual viewport, not necessarily the layout viewport.
-  // Only resize the suggestions surface; never collapse or reset the active search.
+  // Keep the active mobile editor inside the visual viewport, including with Android IME.
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen || view !== "search" || mobileMode !== "search") return;
+    if (!searchDialogOpen || view !== "search" || mobileMode === "browse") return;
     const viewport = window.visualViewport;
     const update = () => {
       const dialog = searchDialogRef.current;
@@ -385,7 +384,14 @@ export function AddPlaceDialogContent({
         `${Math.max(200, viewport?.height ?? window.innerHeight)}px`,
       );
       dialog.style.setProperty("--search-viewport-top", `${viewport?.offsetTop ?? 0}px`);
-      dialog.scrollTop = 0;
+      if (mobileMode === "search") {
+        dialog.scrollTop = 0;
+      } else if (document.activeElement?.id === "search-area-query") {
+        const input = document.activeElement as HTMLElement;
+        const visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight);
+        const hiddenByKeyboard = input.getBoundingClientRect().bottom - (visibleBottom - 16);
+        if (hiddenByKeyboard > 0) dialog.scrollTop += hiddenByKeyboard;
+      }
     };
     update();
     viewport?.addEventListener("resize", update);
@@ -442,6 +448,15 @@ export function AddPlaceDialogContent({
         <DialogContent
           ref={searchDialogRef}
           onEscapeKeyDown={(event) => {
+            if (mobileMode === "areas" && view === "search") {
+              event.preventDefault();
+              if (document.activeElement?.id === "search-area-query") {
+                (document.activeElement as HTMLElement).blur();
+              } else {
+                setMobileMode("browse");
+              }
+              return;
+            }
             if (mobileMode === "search" && view === "search") {
               event.preventDefault();
               setMobileMode("browse");
@@ -470,7 +485,7 @@ export function AddPlaceDialogContent({
           data-search-shell={mobileMode === "search" && view === "search" ? "focused" : "browse"}
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-5xl sm:rounded-lg",
-            mobileMode === "search" && view === "search"
+            mobileMode !== "browse" && view === "search"
               ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
