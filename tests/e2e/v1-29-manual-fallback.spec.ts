@@ -36,6 +36,7 @@ test("sista sökområdes-pillen kan tas bort på mobil utan att fallbackformulä
 
   await expect(fallbackButton(page)).toBeVisible();
   await expect(manualForm(page)).toHaveCount(0);
+  await page.getByRole("button", { name: "Ändra sökområden" }).click();
 
   const pills = page.getByRole("list", { name: "Valda sökområden" }).getByRole("listitem");
   while ((await pills.count()) > 0) {
@@ -49,6 +50,8 @@ test("sista sökområdes-pillen kan tas bort på mobil utan att fallbackformulä
     await page.waitForTimeout(80);
   }
 
+  await expect(page.getByRole("combobox", { name: "Lägg till område eller adress" })).toBeVisible();
+  await page.getByRole("button", { name: "Klar", exact: true }).click();
   await expect(page.getByText("Sök och välj minst ett sökområde.")).toBeVisible();
 });
 

@@ -284,6 +284,11 @@ async function setup(
         canConfirm: !options.member,
         hasMore: false,
         nextOffset: 20,
+        areaOffsets: { "area-1": 20 },
+        exhaustedAreaIds: ["area-1"],
+        failedAreaIds: [],
+        budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+        observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
@@ -432,12 +437,18 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await query.fill("Astrom");
 
-  await expect(search.getByRole("group", { name: "Finns i Matrundan", exact: true })).toHaveCount(
-    0,
-  );
+  // Focused mobile search can show existing places as navigation suggestions,
+  // but they must never be offered as a new group addition.
+  const suggestions = search.getByRole("listbox", {
+    name: "Förslag på kök, typer och matställen",
+    exact: true,
+  });
+  await expect(suggestions).toBeVisible();
   await expect(
-    search.getByRole("listbox", { name: "Förslag på kök, typer och matställen", exact: true }),
-  ).toHaveCount(0);
+    suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+  ).toBeVisible();
+  await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(suggestions).toHaveCount(0);
   await expect(
     search.getByRole("button", { name: "Redan i gruppen (1)", exact: true }),
   ).toBeVisible();

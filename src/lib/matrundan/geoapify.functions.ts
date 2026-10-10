@@ -14,14 +14,29 @@ import {
 } from "./geoapify-normalize";
 import {
   geoapifyCategoriesForPlaceSearchIntent,
+  GEOAPIFY_DISCOVERY_CATEGORIES,
   geoapifyNameQueryForPlaceSearchIntent,
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
-import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import {
+  genericPlaceSearchSuggestions,
+  matchesPlaceSearchIntent,
+  resolvePlaceSearchIntent,
+} from "./place-search-intent";
 import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
+import { expandedNameRadiusKm } from "./place-search-expansion";
+import { matchesTypoPlaceName, typoProviderSearchSeed } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
+import {
+  observeProviderRequest,
+  observeSearchWithBudget,
+  recordSearchPhaseMs,
+  recordSearchCandidateCounts,
+  recordSearchCandidateFlow,
+} from "./place-search-observation.server";
+import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
@@ -30,7 +45,9 @@ import {
   placeWithinBoundary,
   placeDistanceKm,
   matchesSpecificPlaceName,
+  isSpecificPlaceName,
   manualFallbackProviderCandidates,
+  normalizePlaceIdentity,
 } from "./place-discovery";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 
@@ -71,7 +88,11 @@ const searchModeSchema = z.enum(["point", "boundary"]);
 
 export type MultiAreaPlaceSuggestion = NormalizedPlaceSuggestion & {
   nearestAreaLabel: string;
+  nearestAreaId: string;
   matchingAreaLabels: string[];
+  matchingAreaIds: string[];
+  searchAreaGroup?: "nearby" | "name-outside";
+  searchMatchType?: "tolerant";
 };
 
 type RankedMultiAreaPlaceSuggestion = MultiAreaPlaceSuggestion & {
@@ -83,6 +104,9 @@ export interface MultiAreaSearchResponse {
   failedAreaLabels: string[];
   hasMore: boolean;
   nextOffset: number;
+  areaOffsets: Record<string, number>;
+  exhaustedAreaIds: string[];
+  failedAreaIds: string[];
 }
 
 export interface SearchAreaBoundaryResponse {
@@ -99,7 +123,7 @@ type PlaceSearchPage = {
 type SearchAreaInput = {
   lat: number;
   lng: number;
-  radiusKm: 1 | 2 | 3 | 5 | 10 | 25 | 50 | null;
+  radiusKm: number | null;
   searchMode?: SearchAreaMode;
   placeId?: string;
 };
@@ -155,7 +179,18 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 }
 
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
-  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () => fetchGeoapify(url));
+  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
+    budgetProviderRequest(estimatedGeoapifyCredits(url), () =>
+      observeProviderRequest(
+        () => fetchGeoapify(url),
+        url.pathname === "/v2/places"
+          ? "places"
+          : url.pathname.includes("/geocode/")
+            ? "geocoding"
+            : "other",
+      ),
+    ),
+  );
 }
 
 function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
@@ -208,6 +243,10 @@ async function searchPlacesAtArea(
     text?: string;
     limit?: number;
     offset?: number;
+    /** The original #464 name recovery is used only for the primary search. */
+    allowNameAnchorRecovery?: boolean;
+    /** Verified Geocoding bias; the original spatial filter is unchanged. */
+    nameBias?: { lat: number; lng: number };
   },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
@@ -235,27 +274,37 @@ async function searchPlacesAtArea(
       ? `place:${input.placeId!.trim()}`
       : `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`,
   );
-  url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
+  url.searchParams.set(
+    "bias",
+    `proximity:${input.nameBias?.lng ?? input.lng},${input.nameBias?.lat ?? input.lat}`,
+  );
   url.searchParams.set("lang", "sv");
   url.searchParams.set("limit", String(providerLimit));
   if (offset > 0) url.searchParams.set("offset", String(offset));
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
 
-  const anchor = nameQuery ? await resolveNameSearchAnchor(url, intent) : null;
+  const anchor =
+    nameQuery && input.allowNameAnchorRecovery !== false
+      ? await resolveNameSearchAnchor(url, intent)
+      : null;
   if (anchor) url.searchParams.set("bias", `proximity:${anchor.lng},${anchor.lat}`);
 
   const json = await callGeoapify(url);
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
   const normalized: NormalizedPlaceSuggestion[] = [];
+  let rejectedByIntent = 0;
   for (const feature of json.features ?? []) {
     const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
 
-    if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
-    if (anchor) {
+    if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) {
+      rejectedByIntent++;
+      continue;
+    }
+    if (anchor || input.nameBias) {
       // Provider distance now refers to the anchor, not the user's search point.
       place.distanceKm =
         typeof place.lat === "number" &&
@@ -272,6 +321,11 @@ async function searchPlacesAtArea(
     const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
+  });
+  recordSearchCandidateFlow({
+    rawPlaces: rawFeatureCount,
+    acceptedPlaces: normalized.length,
+    rejectedByIntent,
   });
 
   return {
@@ -399,13 +453,30 @@ const multiAreaInputSchema = z.object({
   radiusKm: radiusSchema,
   limit: z.number().int().min(1).max(50).optional(),
   offset: z.number().int().min(0).max(10_000).optional(),
+  areaOffsets: z.record(z.number().int().min(0).max(10_000)).optional(),
+  exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
+  providerRequestLimit: z.number().int().min(0).max(25).optional(),
+  providerCreditLimit: z.number().int().min(0).max(40).optional(),
+  searchPhase: z.enum(["primary", "recovery", "complete"]).optional(),
 });
 
 async function searchProviderAreas(
   data: z.infer<typeof multiAreaInputSchema>,
 ): Promise<MultiAreaSearchResponse> {
+  const nameIntent = resolvePlaceSearchIntent(data.text);
+  const expandedRadius =
+    data.searchPhase === "primary" &&
+    nameIntent.kind === "text" &&
+    nameIntent.query.trim().length >= 3 &&
+    genericPlaceSearchSuggestions(nameIntent.query, 1).length === 0 &&
+    data.centers.every((center) => center.searchMode !== "boundary")
+      ? expandedNameRadiusKm(data.radiusKm)
+      : null;
+  const exhausted = new Set(data.exhaustedAreaIds ?? []);
+  const centers = data.centers.filter((center) => !exhausted.has(center.id));
+  const offsets = { ...(data.areaOffsets ?? {}) };
   const settled = await Promise.allSettled(
-    data.centers.map(async (center) => ({
+    centers.map(async (center) => ({
       center,
       page: await searchPlacesAtArea({
         text: data.text,
@@ -413,28 +484,33 @@ async function searchProviderAreas(
         lng: center.lng,
         searchMode: center.searchMode ?? "point",
         placeId: center.placeId,
-        radiusKm: data.radiusKm,
+        radiusKm: expandedRadius ?? data.radiusKm,
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
-        offset: data.offset ?? 0,
+        offset: offsets[center.id] ?? data.offset ?? 0,
+        allowNameAnchorRecovery: data.searchPhase !== "primary",
       }),
     })),
   );
 
   const failedAreaLabels: string[] = [];
+  const failedAreaIds: string[] = [];
   const merged = new Map<string, RankedMultiAreaPlaceSuggestion>();
   let firstFailure: unknown = null;
   let hasMore = false;
   let nextOffset = data.offset ?? 0;
 
   settled.forEach((outcome, index) => {
-    const center = data.centers[index];
+    const center = centers[index];
     if (outcome.status === "rejected") {
       firstFailure ??= outcome.reason;
       failedAreaLabels.push(center.label);
+      failedAreaIds.push(center.id);
       return;
     }
 
-    hasMore ||= outcome.value.page.hasMore;
+    if (outcome.value.page.hasMore) hasMore = true;
+    else exhausted.add(center.id);
+    offsets[center.id] = outcome.value.page.nextOffset;
     nextOffset = Math.max(nextOffset, outcome.value.page.nextOffset);
     const centerMode: SearchAreaMode = center.searchMode === "boundary" ? "boundary" : "point";
 
@@ -446,6 +522,7 @@ async function searchProviderAreas(
       const matchingAreaLabels = Array.from(
         new Set([...(current?.matchingAreaLabels ?? []), center.label]),
       );
+      const matchingAreaIds = Array.from(new Set([...(current?.matchingAreaIds ?? []), center.id]));
       const preferNext =
         !current ||
         (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
@@ -455,16 +532,18 @@ async function searchProviderAreas(
         merged.set(key, {
           ...place,
           nearestAreaLabel: center.label,
+          nearestAreaId: center.id,
           matchingAreaLabels,
+          matchingAreaIds,
           nearestAreaSearchMode: centerMode,
         });
       } else {
-        merged.set(key, { ...current, matchingAreaLabels });
+        merged.set(key, { ...current, matchingAreaLabels, matchingAreaIds });
       }
     }
   });
 
-  if (merged.size === 0 && failedAreaLabels.length === data.centers.length) {
+  if (centers.length > 0 && merged.size === 0 && failedAreaIds.length === centers.length) {
     throw firstFailure instanceof Error
       ? firstFailure
       : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
@@ -475,12 +554,70 @@ async function searchProviderAreas(
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
   });
-  const results: MultiAreaPlaceSuggestion[] = rankedResults.map(
-    ({ nearestAreaSearchMode, ...result }) =>
-      nearestAreaSearchMode === "boundary" ? { ...result, distanceKm: undefined } : result,
+  let rejectedByNearbyDistance = 0;
+  let rejectedByNearbyName = 0;
+  const results: MultiAreaPlaceSuggestion[] = rankedResults.flatMap(
+    ({ nearestAreaSearchMode, ...result }) => {
+      if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
+      if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
+      const position = { lat: result.lat, lng: result.lng };
+      if (!data.centers.some((center) => distanceKm(center, position) <= expandedRadius)) {
+        rejectedByNearbyDistance++;
+        return [];
+      }
+      const distances = data.centers
+        .map((center) => ({ center, km: distanceKm(center, position) }))
+        .sort((left, right) => left.km - right.km);
+      const nearest = distances[0];
+      const primaryMemberships = distances.filter(
+        ({ km }) => km <= (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+      );
+      if (primaryMemberships.length > 0) {
+        const nearestInside = primaryMemberships[0];
+        return [
+          {
+            ...result,
+            nearestAreaId: nearestInside.center.id,
+            nearestAreaLabel: nearestInside.center.label,
+            distanceKm: nearestInside.km,
+            matchingAreaIds: primaryMemberships.map(({ center }) => center.id),
+            matchingAreaLabels: primaryMemberships.map(({ center }) => center.label),
+          },
+        ];
+      }
+      const fullName = normalizePlaceIdentity(result.name);
+      const inputName = normalizePlaceIdentity(nameIntent.query);
+      if (
+        !fullName.startsWith(inputName) &&
+        !matchesSpecificPlaceName(nameIntent.query, result.name)
+      ) {
+        rejectedByNearbyName++;
+        return [];
+      }
+      return [
+        {
+          ...result,
+          nearestAreaId: nearest.center.id,
+          nearestAreaLabel: nearest.center.label,
+          distanceKm: nearest.km,
+          matchingAreaIds: [],
+          matchingAreaLabels: [],
+          searchAreaGroup: "nearby" as const,
+        },
+      ];
+    },
   );
 
-  return { results, failedAreaLabels, hasMore, nextOffset };
+  recordSearchCandidateFlow({ rejectedByNearbyDistance, rejectedByNearbyName });
+  return {
+    results,
+    failedAreaLabels,
+    failedAreaIds,
+    hasMore: hasMore || failedAreaIds.length > 0,
+    nextOffset,
+    areaOffsets: offsets,
+    exhaustedAreaIds: [...exhausted],
+  };
 }
 
 export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
@@ -492,159 +629,487 @@ export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
 export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
-  .handler(async ({ data, context }) => {
-    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
-      _group_id: data.groupId,
-    });
-    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
-    const intent = resolvePlaceSearchIntent(data.text ?? "");
-    const explicit = (data.text?.trim().length ?? 0) >= 2;
-    const internalPromise = (async () => {
-      if (!explicit || (data.offset ?? 0) > 0)
-        return { results: [] as import("./places-provider").PlaceSuggestion[], incomplete: false };
-      const boundaries = await Promise.allSettled(
-        data.centers.map(async (center) => {
-          if (center.searchMode !== "boundary") return { center, boundary: null };
-          const boundary = center.placeId ? await loadBoundary(center.placeId) : null;
-          if (!boundary) throw new Error("Områdesgränsen kunde inte hämtas");
-          return { center, boundary };
-        }),
-      );
-      const valid = boundaries.flatMap((outcome) =>
-        outcome.status === "fulfilled" ? [outcome.value] : [],
-      );
-      if (!valid.length) return { results: [], incomplete: true };
-      const centers = valid.map(({ center, boundary }) => {
-        const points = boundary
-          ? boundary.type === "Polygon"
-            ? boundary.coordinates.flat()
-            : boundary.coordinates.flat(2)
-          : [];
-        return {
-          lat: center.lat,
-          lng: center.lng,
-          radiusKm: data.radiusKm ?? 50,
-          ...(boundary
-            ? {
-                bounds: [
-                  Math.min(...points.map((p) => p[0])),
-                  Math.min(...points.map((p) => p[1])),
-                  Math.max(...points.map((p) => p[0])),
-                  Math.max(...points.map((p) => p[1])),
-                ],
-              }
-            : {}),
-        };
-      });
-      const found = await context.supabase.rpc("search_canonical_places_v1", {
+  .handler(async ({ data, context }) =>
+    observeSearchWithBudget({
+      requests: data.providerRequestLimit ?? 25,
+      credits: data.providerCreditLimit ?? 40,
+    })(async () => {
+      const accessStarted = performance.now();
+      const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
-        _text: intent.kind === "text" ? intent.query : "",
-        _centers: centers,
-        _categories: intent.kind === "category" ? [intent.category] : [],
-        _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
-        _limit: 200,
       });
-      if (found.error) return { results: [], incomplete: true };
-      const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
-      const results = rows.flatMap((canonical) => {
-        const matching = valid.filter(({ center, boundary }) =>
-          boundary
-            ? placeWithinBoundary(canonical, boundary)
-            : placeDistanceKm(canonical, center) <=
-              (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
-                ? 50
-                : (data.radiusKm ?? 50)),
+      recordSearchPhaseMs("access", performance.now() - accessStarted);
+      if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+      const intent = resolvePlaceSearchIntent(data.text ?? "");
+      const explicit = (data.text?.trim().length ?? 0) >= 2;
+      const internalPromise = (async () => {
+        if (!explicit || (data.offset ?? 0) > 0)
+          return {
+            results: [] as import("./places-provider").PlaceSuggestion[],
+            incomplete: false,
+          };
+        const boundaries = await Promise.allSettled(
+          data.centers.map(async (center) => {
+            if (center.searchMode !== "boundary") return { center, boundary: null };
+            const boundary = center.placeId ? await loadBoundary(center.placeId) : null;
+            if (!boundary) throw new Error("Områdesgränsen kunde inte hämtas");
+            return { center, boundary };
+          }),
         );
-        if (!matching.length) return [];
-        const nearest = matching
-          .map(({ center, boundary }) => ({
-            center,
-            boundary,
-            distance: placeDistanceKm(canonical, center),
-          }))
-          .sort((a, b) => a.distance - b.distance)[0];
-        return [
-          {
-            kind: "canonical" as const,
-            resultKey: `canonical:${canonical.placeId}`,
-            externalId: `canonical:${canonical.placeId}`,
-            canonical,
-            name: canonical.name,
-            category: canonical.category,
-            cuisines: canonical.cuisines,
-            address: canonical.address,
-            city: canonical.city,
-            area: canonical.area ?? undefined,
-            lat: canonical.lat,
-            lng: canonical.lng,
-            nearestAreaLabel: nearest.center.label,
-            matchingAreaLabels: matching.map(({ center }) => center.label),
-            distanceKm: nearest.boundary ? undefined : nearest.distance,
-          },
-        ];
-      });
-      return { results, incomplete: rows.length === 200 || valid.length < data.centers.length };
-    })().catch(() => ({ results: [], incomplete: true }));
-    const [providerOutcome, internal] = await Promise.all([
-      searchProviderAreas(data)
-        .then((value) => ({ ok: true as const, value }))
-        .catch(() => ({ ok: false as const })),
-      internalPromise,
-    ]);
-    const page = providerOutcome.ok
-      ? providerOutcome.value
-      : {
-          results: [],
-          failedAreaLabels: data.centers.map((c) => c.label),
-          hasMore: false,
-          nextOffset: data.offset ?? 0,
+        const valid = boundaries.flatMap((outcome) =>
+          outcome.status === "fulfilled" ? [outcome.value] : [],
+        );
+        if (!valid.length) return { results: [], incomplete: true };
+        const centers = valid.map(({ center, boundary }) => {
+          const points = boundary
+            ? boundary.type === "Polygon"
+              ? boundary.coordinates.flat()
+              : boundary.coordinates.flat(2)
+            : [];
+          return {
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: data.radiusKm ?? 50,
+            ...(boundary
+              ? {
+                  bounds: [
+                    Math.min(...points.map((p) => p[0])),
+                    Math.min(...points.map((p) => p[1])),
+                    Math.max(...points.map((p) => p[0])),
+                    Math.max(...points.map((p) => p[1])),
+                  ],
+                }
+              : {}),
+          };
+        });
+        const found =
+          data.searchPhase === "recovery"
+            ? { data: [], error: null }
+            : await context.supabase.rpc("search_canonical_places_v1", {
+                _group_id: data.groupId,
+                _text: intent.kind === "text" ? intent.query : "",
+                _centers: centers,
+                _categories: intent.kind === "category" ? [intent.category] : [],
+                _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
+                _limit: 200,
+              });
+        if (found.error) return { results: [], incomplete: true };
+        const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
+        const primaryTruncated = rows.length === 200;
+        let fuzzyIncomplete = false;
+        const fuzzyIds = new Set<string>();
+        const fuzzyRadius =
+          data.searchPhase !== "complete" &&
+          data.centers.every((center) => center.searchMode !== "boundary")
+            ? expandedNameRadiusKm(data.radiusKm)
+            : null;
+        if (
+          data.searchPhase !== "primary" &&
+          intent.kind === "text" &&
+          isSpecificPlaceName(intent.query) &&
+          !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
+        ) {
+          const fuzzy = await context.supabase.rpc("search_canonical_name_candidates_v1", {
+            _group_id: data.groupId,
+            _text: intent.query,
+            _centers:
+              fuzzyRadius == null
+                ? centers
+                : centers.map((center) => ({ ...center, radiusKm: fuzzyRadius })),
+          });
+          if (fuzzy.error) {
+            // Missing migration or a provider/database fault is never a confirmed zero-result.
+            fuzzyIncomplete = true;
+          } else {
+            const seen = new Set(rows.map((row) => row.placeId));
+            for (const row of z.array(canonicalPlaceCandidateSchema).parse(fuzzy.data)) {
+              if (seen.has(row.placeId)) continue;
+              seen.add(row.placeId);
+              fuzzyIds.add(row.placeId);
+              rows.push(row);
+            }
+          }
+        }
+        const results = rows.flatMap((canonical) => {
+          const matching = valid.filter(({ center, boundary }) =>
+            boundary
+              ? placeWithinBoundary(canonical, boundary)
+              : placeDistanceKm(canonical, center) <=
+                (intent.kind === "text" && matchesSpecificPlaceName(intent.query, canonical.name)
+                  ? 50
+                  : fuzzyIds.has(canonical.placeId) && fuzzyRadius != null
+                    ? fuzzyRadius
+                    : (data.radiusKm ?? 50)),
+          );
+          if (!matching.length) return [];
+          const nearest = matching
+            .map(({ center, boundary }) => ({
+              center,
+              boundary,
+              distance: placeDistanceKm(canonical, center),
+            }))
+            .sort((a, b) => a.distance - b.distance)[0];
+          return [
+            {
+              kind: "canonical" as const,
+              searchMatchType: fuzzyIds.has(canonical.placeId) ? ("tolerant" as const) : undefined,
+              resultKey: `canonical:${canonical.placeId}`,
+              externalId: `canonical:${canonical.placeId}`,
+              canonical,
+              name: canonical.name,
+              category: canonical.category,
+              cuisines: canonical.cuisines,
+              address: canonical.address,
+              city: canonical.city,
+              area: canonical.area ?? undefined,
+              lat: canonical.lat,
+              lng: canonical.lng,
+              nearestAreaLabel: nearest.center.label,
+              nearestAreaId: nearest.center.id,
+              matchingAreaLabels: matching.map(({ center }) => center.label),
+              matchingAreaIds: matching.map(({ center }) => center.id),
+              distanceKm: nearest.boundary ? undefined : nearest.distance,
+              searchAreaGroup:
+                !nearest.boundary &&
+                nearest.distance > (data.radiusKm ?? 50) &&
+                (matchesSpecificPlaceName(intent.query, canonical.name) ||
+                  fuzzyIds.has(canonical.placeId))
+                  ? ("name-outside" as const)
+                  : undefined,
+            },
+          ];
+        });
+        return {
+          results,
+          incomplete: primaryTruncated || fuzzyIncomplete || valid.length < data.centers.length,
         };
-    const items = page.results.map((place) => {
-      const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+      })().catch(() => ({ results: [], incomplete: true }));
+      const sourcesStarted = performance.now();
+      const [providerOutcome, internal] = await Promise.all([
+        data.searchPhase === "recovery"
+          ? Promise.resolve({
+              ok: true as const,
+              value: {
+                results: [] as MultiAreaSearchResponse["results"],
+                failedAreaLabels: [] as string[],
+                failedAreaIds: [] as string[],
+                hasMore: false,
+                nextOffset: 0,
+                areaOffsets: {} as Record<string, number>,
+                exhaustedAreaIds: [] as string[],
+              },
+            })
+          : searchProviderAreas(data)
+              .then((value) => ({ ok: true as const, value }))
+              .catch(() => ({ ok: false as const })),
+        internalPromise,
+      ]);
+      recordSearchPhaseMs("sources", performance.now() - sourcesStarted);
+      const page = providerOutcome.ok
+        ? providerOutcome.value
+        : {
+            results: [],
+            failedAreaLabels: data.centers.map((c) => c.label),
+            hasMore: false,
+            nextOffset: data.offset ?? 0,
+            areaOffsets: data.areaOffsets ?? {},
+            exhaustedAreaIds: data.exhaustedAreaIds ?? [],
+            failedAreaIds: data.centers.map((c) => c.id),
+          };
+      // One bounded external recovery after an exhausted primary name search.
+      // Strong canonical 50-km results remain available without external expansion.
+      const expansionRadius = expandedNameRadiusKm(data.radiusKm);
+      const primaryOnly = data.searchPhase === "primary";
+      const recoveryEligible =
+        (data.offset ?? 0) === 0 &&
+        (!page.hasMore || page.results.length === 0) &&
+        !page.failedAreaIds.length &&
+        intent.kind === "text" &&
+        isSpecificPlaceName(intent.query) &&
+        genericPlaceSearchSuggestions(intent.query, 1).length === 0 &&
+        ![...page.results, ...internal.results].some((place) =>
+          matchesSpecificPlaceName(intent.query, place.name),
+        );
+      const recoveryStarted = performance.now();
+      const nearbyCandidates: typeof page.results = [];
+      const typoCandidates: typeof page.results = [];
+      // One bounded candidate stage: try a broad-enough name prefix before
+      // spending time on Geocoding -> Places verification. All returned
+      // identities still come exclusively from Places and the group-scoped RPC.
+      if (!primaryOnly && recoveryEligible && intent.kind === "text") {
+        const allPoints = data.centers.every((center) => center.searchMode !== "boundary");
+        const retrievalRadius = allPoints
+          ? (expandedNameRadiusKm(data.radiusKm) ?? data.radiusKm)
+          : data.radiusKm;
+        const seen = new Set(page.results.map((place) => place.externalId));
+
+        const recordCandidate = (
+          candidate: NormalizedPlaceSuggestion,
+          centerIndex: number,
+          tolerant: boolean,
+        ) => {
+          if (seen.has(candidate.externalId)) return;
+          const center = data.centers[centerIndex];
+          const isPointCenter = center.searchMode !== "boundary";
+          const distances =
+            allPoints && candidate.lat != null && candidate.lng != null
+              ? data.centers.map((area) => ({
+                  area,
+                  km: distanceKm(area, { lat: candidate.lat!, lng: candidate.lng! }),
+                }))
+              : [];
+          const selectedRadius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
+          const maxRadius = retrievalRadius ?? WIDE_AREA_RADIUS_KM;
+          if (allPoints && (!distances.length || distances.every(({ km }) => km > maxRadius)))
+            return;
+          // In a mixed boundary+point search, the point still uses its selected
+          // radius and actual coordinates, not the boundary's provider filter.
+          const mixedPointDistance =
+            !allPoints && isPointCenter && candidate.lat != null && candidate.lng != null
+              ? distanceKm(center, { lat: candidate.lat, lng: candidate.lng })
+              : null;
+          if (
+            !allPoints &&
+            isPointCenter &&
+            (mixedPointDistance == null || mixedPointDistance > selectedRadius)
+          )
+            return;
+          const primary = allPoints
+            ? distances.filter(({ km }) => km <= selectedRadius).map(({ area }) => area)
+            : [center];
+          const nearest = allPoints
+            ? [...distances].sort((left, right) => left.km - right.km)[0]
+            : null;
+          seen.add(candidate.externalId);
+          const normalized = {
+            ...candidate,
+            nearestAreaLabel: nearest?.area.label ?? center.label,
+            nearestAreaId: nearest?.area.id ?? center.id,
+            distanceKm: nearest?.km ?? mixedPointDistance ?? candidate.distanceKm,
+            matchingAreaLabels: primary.map((area) => area.label),
+            matchingAreaIds: primary.map((area) => area.id),
+            searchAreaGroup: primary.length ? undefined : ("nearby" as const),
+            searchMatchType: tolerant ? ("tolerant" as const) : undefined,
+          };
+          if (tolerant) typoCandidates.push(normalized);
+          else nearbyCandidates.push(normalized);
+        };
+
+        // Prefer the documented Geocoding name lookup for specific venues.
+        // Trying a 50-result Places prefix first delays a correctly spelled
+        // venue even when the provider's Places name index omits that venue.
+        // Geocoding is NEVER a venue identity;
+        // every selected result must be independently retrieved from Places.
+        if (nearbyCandidates.length === 0 && typoCandidates.length === 0) {
+          await Promise.allSettled(
+            data.centers.map(async (center, centerIndex) => {
+              const isPointCenter = center.searchMode !== "boundary";
+              const url = new URL("https://api.geoapify.com/v1/geocode/search");
+              if (isPointCenter) {
+                // Search by name with a coordinate bias: the area label may be
+                // an address, neighbourhood or a legacy point rather than a city.
+                // Geocoding's circle filter can exclude genuine nearby venues;
+                // the verified result radius is enforced below instead.
+                url.searchParams.set("text", intent.query);
+              } else {
+                // Verified boundary selections retain their existing lookup.
+                url.searchParams.set("name", intent.query);
+                url.searchParams.set("filter", "place:" + center.placeId);
+              }
+              url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
+              url.searchParams.set("lang", "sv");
+              url.searchParams.set("type", "amenity");
+              url.searchParams.set("format", "geojson");
+              url.searchParams.set("limit", "10");
+              url.searchParams.set("apiKey", readKey());
+              const response = await callGeoapify(url);
+              let attempts = 0;
+              const seenAnchors = new Set<string>();
+              for (const feature of (response.features ?? []).slice(0, 10)) {
+                if (!feature || typeof feature !== "object") continue;
+                const props = (feature as GeoapifyFeature).properties;
+                const category = props?.category;
+                const lat = props?.lat;
+                const lng = props?.lon;
+                if (
+                  props?.result_type !== "amenity" ||
+                  typeof category !== "string" ||
+                  !GEOAPIFY_DISCOVERY_CATEGORIES.some(
+                    (value) => category === value || category.startsWith(value + "."),
+                  ) ||
+                  typeof lat !== "number" ||
+                  !Number.isFinite(lat) ||
+                  typeof lng !== "number" ||
+                  !Number.isFinite(lng)
+                )
+                  continue;
+                const seed = normalizePlaceFeature(
+                  feature as Parameters<typeof normalizePlaceFeature>[0],
+                );
+                if (!seed) continue;
+                const exactSeed = matchesSpecificPlaceName(intent.query, seed.name);
+                const typoSeed = !exactSeed && matchesTypoPlaceName(intent.query, seed.name);
+                if (!exactSeed && !typoSeed) continue;
+                if (
+                  isPointCenter &&
+                  distanceKm(center, { lat, lng }) > (retrievalRadius ?? WIDE_AREA_RADIUS_KM)
+                )
+                  continue;
+                const anchorKey = `${lat.toFixed(6)}:${lng.toFixed(6)}`;
+                if (seenAnchors.has(anchorKey)) continue;
+                seenAnchors.add(anchorKey);
+                const before = nearbyCandidates.length + typoCandidates.length;
+                const verifyPage = (page: PlaceSearchPage) => {
+                  for (const place of page.results) {
+                    if (
+                      isPointCenter &&
+                      (place.lat == null ||
+                        place.lng == null ||
+                        distanceKm({ lat, lng }, { lat: place.lat, lng: place.lng }) > 0.15)
+                    )
+                      continue;
+                    recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
+                    const exact = matchesSpecificPlaceName(intent.query, place.name);
+                    const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
+                    if (exact || typo) recordCandidate(place, centerIndex, typo);
+                  }
+                };
+                const searchAtAnchor = (offset: number) =>
+                  searchPlacesAtArea({
+                    // Geocoding supplies a position, never a venue identity.
+                    // Point verification must omit the broken provider name filter.
+                    text: isPointCenter ? undefined : seed.name,
+                    lat: isPointCenter ? lat : center.lat,
+                    lng: isPointCenter ? lng : center.lng,
+                    searchMode: center.searchMode ?? "point",
+                    placeId: center.placeId,
+                    radiusKm: isPointCenter ? 0.15 : retrievalRadius,
+                    limit: 20,
+                    offset,
+                    allowNameAnchorRecovery: false,
+                    nameBias: isPointCenter ? undefined : { lat, lng },
+                  });
+                attempts++;
+                const firstPage = await searchAtAnchor(0);
+                verifyPage(firstPage);
+                // Dense blocks can push the exact venue off page one. Fetch at
+                // most one continuation, shared with the second-anchor budget.
+                if (
+                  isPointCenter &&
+                  firstPage.hasMore &&
+                  nearbyCandidates.length + typoCandidates.length === before &&
+                  attempts < 2
+                ) {
+                  attempts++;
+                  verifyPage(await searchAtAnchor(firstPage.nextOffset));
+                }
+                // At most two Places calls per point centre; either page two
+                // or a second plausible anchor, not an unbounded combination.
+                if (
+                  nearbyCandidates.length + typoCandidates.length > before ||
+                  attempts >= (isPointCenter ? 2 : 3)
+                )
+                  break;
+              }
+            }),
+          );
+        }
+
+        const prefix = typoProviderSearchSeed(intent.query);
+        // Only try a broader (and higher-credit) Places prefix if Geocoding
+        // did not yield a verified Places venue. It remains useful for
+        // incomplete or misspelled names that Geocoding cannot resolve.
+        if (prefix && nearbyCandidates.length === 0 && typoCandidates.length === 0) {
+          const candidatePages = await Promise.allSettled(
+            data.centers.map((center) =>
+              searchPlacesAtArea({
+                text: prefix,
+                lat: center.lat,
+                lng: center.lng,
+                searchMode: center.searchMode ?? "point",
+                placeId: center.placeId,
+                radiusKm: retrievalRadius,
+                limit: 50,
+                offset: 0,
+                allowNameAnchorRecovery: false,
+              }),
+            ),
+          );
+          candidatePages.forEach((outcome, centerIndex) => {
+            if (outcome.status !== "fulfilled") return;
+            for (const candidate of outcome.value.results) {
+              recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
+              const exact = matchesSpecificPlaceName(intent.query, candidate.name);
+              const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
+              if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
+            }
+          });
+        }
+      }
+      recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
+      recordSearchCandidateCounts({
+        primary: page.results.length,
+        canonical: internal.results.length,
+        nearby: nearbyCandidates.length,
+        typo: typoCandidates.length,
+      });
+      const allProviderResults = [
+        ...page.results,
+        ...nearbyCandidates.slice(0, 3),
+        ...typoCandidates.slice(0, 5),
+      ];
+      const items = allProviderResults.map((place) => {
+        const source = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+        return {
+          externalId: place.externalId,
+          name: place.name,
+          category: place.category,
+          cuisines: place.cuisines,
+          address: place.address,
+          area: place.area ?? null,
+          city: place.city,
+          lat: place.lat ?? null,
+          lng: place.lng ?? null,
+          osmType: source.osmType ?? null,
+          osmId: source.osmId ?? null,
+        };
+      });
+      const identityStarted = performance.now();
+      const matches = items.length
+        ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
+            _group_id: data.groupId,
+            _items: items,
+          })
+        : { data: [], error: null };
+      recordSearchPhaseMs("identity", performance.now() - identityStarted);
+      const reviews = matches.error
+        ? []
+        : z.array(providerIdentityReviewSchema).parse(matches.data);
+      const results: import("./places-provider").PlaceSuggestion[] = [
+        ...internal.results,
+        ...allProviderResults.map(({ raw: _raw, ...place }) => ({
+          ...place,
+          kind: "provider" as const,
+          resultKey: `provider:geoapify:${place.externalId}`,
+          identity: reviews.find((review) => review.providerPlaceId === place.externalId) ?? {
+            providerPlaceId: place.externalId,
+            providerVersion: "",
+            knownPlace: null,
+            candidates: [],
+            reviewRequired: true,
+            identityConflict: false,
+          },
+        })),
+      ];
       return {
-        externalId: place.externalId,
-        name: place.name,
-        category: place.category,
-        cuisines: place.cuisines,
-        address: place.address,
-        area: place.area ?? null,
-        city: place.city,
-        lat: place.lat ?? null,
-        lng: place.lng ?? null,
-        osmType: source.osmType ?? null,
-        osmId: source.osmId ?? null,
+        ...page,
+        results,
+        canonicalIncomplete: internal.incomplete,
+        pendingRecovery: primaryOnly && recoveryEligible,
+        canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
-    });
-    const matches = items.length
-      ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
-          _group_id: data.groupId,
-          _items: items,
-        })
-      : { data: [], error: null };
-    const reviews = matches.error ? [] : z.array(providerIdentityReviewSchema).parse(matches.data);
-    const results: import("./places-provider").PlaceSuggestion[] = [
-      ...internal.results,
-      ...page.results.map(({ raw: _raw, ...place }) => ({
-        ...place,
-        kind: "provider" as const,
-        resultKey: `provider:geoapify:${place.externalId}`,
-        identity: reviews.find((review) => review.providerPlaceId === place.externalId) ?? {
-          providerPlaceId: place.externalId,
-          providerVersion: "",
-          knownPlace: null,
-          candidates: [],
-          reviewRequired: true,
-          identityConflict: false,
-        },
-      })),
-    ];
-    return {
-      ...page,
-      results,
-      canonicalIncomplete: internal.incomplete,
-      canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
-    };
-  });
+    }),
+  );
 
 /** Final read-only check at the selected address, never a provider write authority. */
 export const findNearbyPlacesForManualFallback = createServerFn({ method: "POST" })

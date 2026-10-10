@@ -67,6 +67,11 @@ async function openPlaceSearch(page: Page) {
   });
   await expect(searchInput).toBeVisible();
   await searchInput.fill(PLACE_NAME);
+  if ((page.viewportSize()?.width ?? 360) < 1024) {
+    await searchDialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  } else {
+    await searchInput.evaluate((element) => (element as HTMLInputElement).blur());
+  }
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }
@@ -143,6 +148,74 @@ test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy"
   await expectNoHorizontalOverflow(page, "Typ av upplevelse-hjälpen");
   await guideDialog.getByRole("button", { name: "Stäng", exact: true }).first().click();
   await expect(guideDialog).toBeHidden();
+});
+
+test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för ny text", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  const dialog = await openPlaceSearch(page);
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const heading = dialog.getByRole("heading", { name: "Ställen att lägga till" }).first();
+  await input.focus();
+  // An explicit search mode must survive keyboard dismissal and viewport resizing.
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  const listbox = dialog.getByRole("listbox");
+  await expect(listbox).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toBeVisible();
+  await expect(heading).toBeHidden();
+  await expect(listbox.getByText(PLACE_NAME, { exact: true })).toBeVisible();
+  await expect(listbox.getByRole("group", { name: "Matställen" })).toBeVisible();
+  expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(5);
+  await expectNoHorizontalOverflow(page, "Fokuserad sökyta");
+
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expectInsideViewport(page, dialog, "Hel sökyta vid simulerat mobilt tangentbord");
+  await expectInsideViewport(page, input, "Sökfält ovanför tangentbord");
+  await expectInsideViewport(page, listbox, "Scrollbara förslag ovanför tangentbord");
+  await input.evaluate((element) => (element as HTMLInputElement).blur());
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expect(listbox).toBeVisible();
+  await page.setViewportSize({ width: 360, height: 690 });
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expect(listbox).toHaveCount(0);
+  await expect(heading).toBeVisible();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expectInsideViewport(page, dialog, "Återgång till Matrundans vanliga dialog");
+
+  await input.fill("Totalt osannolikt påhittat namn");
+  await expect(listbox.getByText(PLACE_NAME, { exact: true })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expectNoHorizontalOverflow(page, "Sökförslag och nedfällt tangentbord");
+});
+
+test("fokuserade mobila förslag är korta med väg till hela resultatlistan", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("restaurang");
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+
+  const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await expect(listbox).toBeVisible();
+  await expect.poll(() => listbox.getByRole("option").count()).toBeGreaterThan(1);
+  expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(3);
+  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
+  await expectInsideViewport(page, listbox, "Korta mobila förslag");
+
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, input, "Sökfält vid litet synligt viewport");
+  await expectInsideViewport(page, listbox, "Förslagslista vid litet synligt viewport");
+  await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(input).toHaveValue("restaurang");
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeVisible();
 });
 
 test("samma ställe behåller detaljidentiteten före och efter tillägg på desktop", async ({
@@ -249,4 +322,146 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
 
   await openPlaceSearch(page);
   await expect(placeSuggestionButton(page)).toBeVisible();
+});
+
+test("mobil sökträff väljs med touch utan oavsiktlig Google Maps-navigering", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 620 });
+  const dialog = await openPlaceSearch(page);
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.focus();
+  const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await expect(listbox).toBeVisible();
+  await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeHidden();
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
+  const unexpectedPopups: Page[] = [];
+  page.on("popup", (popup) => unexpectedPopups.push(popup));
+  await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).tap();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details).toBeVisible();
+  await expect(
+    details.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await page.waitForTimeout(200);
+  expect(unexpectedPopups, "Touch på förslag får inte aktivera Google Maps-länken").toHaveLength(0);
+  await expect(page).toHaveURL(/\/matstallen/);
+});
+
+test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await input.fill("Italien");
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  const listbox = dialog.getByRole("listbox");
+  const cuisine = listbox.getByRole("button", { name: /Italienskt/ });
+  await expect(cuisine).toBeVisible();
+  await cuisine.click();
+  await expect(input).toHaveValue("Italienskt");
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Inriktning vald i mobil sökyta");
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expectInsideViewport(page, dialog, "Resultatdialog efter inriktningsval");
+  await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
+});
+
+test("sökområde och radie ändras med expander utan att förlora söktext", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  const dialog = await openPlaceSearch(page);
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Pelikan");
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "true",
+  );
+  await expect(input).toBeHidden();
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
+  await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeVisible();
+  await expect(dialog.getByRole("region", { name: "Valda områden" })).toBeVisible();
+  await expect(dialog.getByText("Sökradie")).toBeVisible();
+  await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
+  await page.getByRole("option", { name: "2 km" }).click();
+  await expect(dialog.getByText(/Ort utan verifierad gräns/)).toHaveCount(0);
+  const areaEditor = dialog.locator("#mobile-search-area-editor");
+  expect((await areaEditor.boundingBox())!.height).toBeLessThanOrEqual(310);
+  await expect(dialog.getByRole("button", { name: "Dölj sökområden" })).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "false",
+  );
+  await expect(input).toHaveValue("Pelikan");
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+
+  // Android regression: typing again must collapse the area editor before showing suggestions.
+  await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+  await expect(areaEditor).toBeVisible();
+  const areaInput = dialog.getByRole("combobox", { name: "Lägg till område eller adress" });
+  await areaInput.fill("Enskede");
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, areaInput, "Områdessökfält med tangentbord");
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
+  await expect(input).toBeHidden();
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+  await input.focus();
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "false",
+  );
+  await expect(areaEditor).toBeHidden();
+  await expect(input).toHaveValue("Pelikan");
+  await expectInsideViewport(page, input, "Sökfält efter utfällt sökområde");
+  await expectInsideViewport(page, dialog.getByRole("listbox"), "Förslag efter områdesbyte");
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText("Inom 2 km");
+  await expectNoHorizontalOverflow(page, "Sökning efter kompakt sökområdesexpander");
+});
+
+test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas först vid tryck", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(dialog.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toBeVisible();
+  await expectInsideViewport(page, dialog, "Vanlig dialog före sökning");
+  const browseCorner = await dialog.evaluate(
+    (element) => getComputedStyle(element).borderTopLeftRadius,
+  );
+  expect(browseCorner).not.toBe("0px");
+  await expectNoHorizontalOverflow(page, "Vanlig dialog");
+
+  await input.focus();
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  expect(await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius)).toBe(
+    browseCorner,
+  );
+  await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toHaveCount(0);
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
+  await expectInsideViewport(page, input, "Fokuserat sökfält");
+
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, dialog, "Sökning ovanför tangentbord");
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expectNoHorizontalOverflow(page, "Återgång från sökning");
 });

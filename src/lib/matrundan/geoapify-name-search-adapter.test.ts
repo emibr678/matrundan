@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
@@ -49,6 +50,11 @@ type SearchInput = {
   radiusKm: 1 | 2 | 5 | 25 | null;
   limit?: number;
   offset?: number;
+  areaOffsets?: Record<string, number>;
+  exhaustedAreaIds?: string[];
+  searchPhase?: "primary" | "recovery" | "complete";
+  providerRequestLimit?: number;
+  providerCreditLimit?: number;
 };
 
 /** Execute the actual server handlers with only framework/auth and HTTP stubs.
@@ -84,6 +90,7 @@ function adapter(
         URL,
         AbortController,
         DOMException,
+        performance,
         setTimeout,
         clearTimeout,
         process: { env: { GEOAPIFY_API_KEY: "fixture-only-secret" } },
@@ -97,6 +104,7 @@ function adapter(
           return { status, ok: status === 200, json: async () => ({ features: result.features }) };
         },
         require: (specifier: string) => {
+          if (specifier === "node:async_hooks") return { AsyncLocalStorage };
           if (specifier === "zod") return { z };
           if (specifier === "@/integrations/supabase/auth-middleware")
             return { requireSupabaseAuth: {} };
@@ -144,6 +152,7 @@ function adapter(
           Omit<MultiAreaSearchResponse, "results"> & {
             results: PlaceSuggestion[];
             canConfirm: boolean;
+            budgetUsage: { requests: number; reservedCredits: number; limited: boolean };
           }
         >
       )({ data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" } }),
@@ -447,4 +456,758 @@ describe("namn-fallback tillsammans med kanonisk discovery (#389 + #464)", () =>
     ).toBe(true);
     expect(db.calls.some((c) => c.name === "match_place_discovery_candidates_v1")).toBe(false);
   });
+});
+
+test("multi-area continuation skips exhausted areas and preserves independent offsets", async () => {
+  const other = { ...area, id: "other", label: "Norr", lat: 59.4 };
+  const input: SearchInput = { text: "", centers: [area, other], radiusKm: 1 };
+  const a = adapter((url) => {
+    if (url.searchParams.get("filter")?.includes("59.4")) {
+      return { features: [place("other-place", "Norrs restaurang")] };
+    }
+    return {
+      features:
+        url.searchParams.get("offset") === "20"
+          ? [place("later-place", "Senare restaurang")]
+          : Array.from({ length: 20 }, (_, i) => place("first-" + i, "Restaurang " + i)),
+    };
+  });
+  const first = await a.multi(input);
+  expect(first.results).toHaveLength(21);
+  expect(first.exhaustedAreaIds).toContain("other");
+  expect(first.areaOffsets[area.id]).toBe(20);
+  const second = await a.multi({
+    ...input,
+    areaOffsets: first.areaOffsets,
+    exhaustedAreaIds: first.exhaustedAreaIds,
+  });
+  expect(second.results.map((row) => row.externalId)).toEqual(["later-place"]);
+  expect(second.exhaustedAreaIds).toEqual(expect.arrayContaining(["other", area.id]));
+  expect(a.calls.filter((url) => url.searchParams.get("filter")?.includes("59.4"))).toHaveLength(1);
+  expect(
+    a.calls.find((url) => url.searchParams.get("offset") === "20")?.searchParams.get("filter"),
+  ).toBe("circle:18.0710935,59.3251172,1000");
+});
+
+describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+
+  test("prefixsökning används som reserv när Geocoding saknar kandidater", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") return { features: [] };
+      return {
+        features:
+          url.searchParams.get("name") === "pelik" &&
+          url.searchParams.get("filter")?.endsWith(",2000")
+            ? [place("pelikan-nearby", "Pelikan")]
+            : [],
+      };
+    }, context);
+    const primary = await a.discovery({
+      text: "Pelikan",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "primary",
+    });
+    expect(primary.results).toHaveLength(0);
+    const result = await a.discovery({
+      text: "Pelikan",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "recovery",
+      providerRequestLimit: 25 - primary.budgetUsage.requests,
+      providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
+    });
+    expect(result.results.find((row) => row.externalId === "pelikan-nearby")?.searchAreaGroup).toBe(
+      "nearby",
+    );
+    expect(a.calls.map((url) => url.pathname)).toEqual([
+      "/v2/places",
+      "/v1/geocode/search",
+      "/v2/places",
+    ]);
+    expect(a.calls[2].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,2000");
+    expect(primary.budgetUsage.requests + result.budgetUsage.requests).toBe(3);
+  });
+
+  test("stavfelsförslag behåller prefix som reserv efter tom Geocoding", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") return { features: [] };
+      return {
+        features:
+          url.searchParams.get("name") === "pharma" ? [place("pharmarium-typo", "Pharmarium")] : [],
+      };
+    }, context);
+    const primary = await a.discovery({
+      text: "Pharmarim",
+      centers: [area],
+      radiusKm: 5,
+      searchPhase: "primary",
+    });
+    expect(primary.results).toHaveLength(0);
+    const result = await a.discovery({
+      text: "Pharmarim",
+      centers: [area],
+      radiusKm: 5,
+      searchPhase: "recovery",
+      providerRequestLimit: 25 - primary.budgetUsage.requests,
+      providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
+    });
+    expect(
+      result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
+    ).toBe("tolerant");
+    // One Geocoding attempt, then the bounded Places prefix fallback.
+    expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
+    expect(primary.budgetUsage.requests + result.budgetUsage.requests).toBe(3);
+  });
+});
+
+// Geoapify may omit a known business in its first 2-km Places-name response.
+// The expanded area must retain the narrow #464 Geocoding -> Places recovery.
+test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search") return { features: [seedWithName("Pelikan")] };
+    return {
+      features:
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`
+          ? [place("pelikan-2km", "Pelikan")]
+          : [],
+    };
+  }, context);
+  const initial = await a.discovery({
+    text: "Pelikan",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect((initial as typeof initial & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  const result = await a.discovery({
+    text: "Pelikan",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - initial.budgetUsage.requests,
+    providerCreditLimit: 40 - initial.budgetUsage.reservedCredits,
+  });
+  expect(result.results.find((place) => place.externalId === "pelikan-2km")?.searchAreaGroup).toBe(
+    "nearby",
+  );
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v1/geocode/search" &&
+        url.searchParams.get("text") === "Pelikan" &&
+        !url.searchParams.has("filter"),
+    ),
+  ).toBe(true);
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v2/places" &&
+        !url.searchParams.has("name") &&
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
+    ),
+  ).toBe(true);
+  expect(
+    a.calls.some(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "pelika",
+    ),
+  ).toBe(false);
+  expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBe(3);
+  expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(
+    result.budgetUsage.reservedCredits + initial.budgetUsage.reservedCredits,
+  ).toBeLessThanOrEqual(40);
+});
+
+function seedWithName(name: string) {
+  return place("pelikan-geocoding-anchor", name, {
+    result_type: "amenity",
+    category: "catering.restaurant",
+    categories: [],
+    datasource: { raw: { cuisine: "coffee" } },
+  });
+}
+
+test("Falloumi hittas på 1,9 km när name+circle saknar kandidater", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search")
+      return {
+        features: url.searchParams.get("text") === "Falloumi" ? [seedWithName("Falloumi")] : [],
+      };
+    if (url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)
+      return { features: [place("places-falloumi", "Falloumi")] };
+    return { features: [] };
+  }, context);
+  const first = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect(first.results).toHaveLength(0);
+  const recovered = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  const found = recovered.results.find((item) => item.externalId === "places-falloumi");
+  expect(found?.searchAreaGroup).toBe("nearby");
+  expect(found?.distanceKm).toBeGreaterThan(1);
+  expect(found?.distanceKm).toBeLessThan(2);
+  expect(JSON.stringify(recovered)).not.toContain("pelikan-geocoding-anchor");
+  expect(
+    a.calls.some((url) => url.pathname === "/v1/geocode/search" && !url.searchParams.has("filter")),
+  ).toBe(true);
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v2/places" &&
+        !url.searchParams.has("name") &&
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
+    ),
+  ).toBe(true);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBe(3);
+  expect(
+    a.calls.some(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "fallou",
+    ),
+  ).toBe(false);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(
+    first.budgetUsage.reservedCredits + recovered.budgetUsage.reservedCredits,
+  ).toBeLessThanOrEqual(40);
+});
+
+test("en tät Places-förstasida får en begränsad andra sida för att hitta rätt ställe", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search") return { features: [seedWithName("Falloumi")] };
+    if (url.searchParams.get("filter") !== `circle:${oxLan.lng},${oxLan.lat},150`)
+      return { features: [] };
+    if (url.searchParams.get("offset") === "20")
+      return { features: [place("verified-falloumi-page2", "Falloumi")] };
+    return {
+      features: Array.from({ length: 20 }, (_, i) => place(`other-venue-${i}`, "Annan restaurang")),
+    };
+  }, context);
+  const first = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  const recovered = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  expect(recovered.results.map((r) => r.externalId)).toContain("verified-falloumi-page2");
+  const verification = a.calls.filter(
+    (url) =>
+      url.pathname === "/v2/places" &&
+      url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
+  );
+  expect(verification).toHaveLength(2);
+  expect(verification[1].searchParams.get("offset")).toBe("20");
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
+test("två relevanta geoankare kan provas när det första saknar Places-matchning", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const firstPoint = { lat: oxLan.lat + 0.001, lng: oxLan.lng + 0.001 };
+  const secondPoint = oxLan;
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search") {
+      const firstSeed = seedWithName("Falloumi");
+      return {
+        features: [
+          {
+            ...firstSeed,
+            properties: { ...firstSeed.properties, lat: firstPoint.lat, lon: firstPoint.lng },
+          },
+          seedWithName("Falloumi"),
+        ],
+      };
+    }
+    if (url.searchParams.get("filter") === `circle:${secondPoint.lng},${secondPoint.lat},150`)
+      return { features: [place("verified-falloumi-second-anchor", "Falloumi")] };
+    return { features: [] };
+  }, context);
+  const first = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  const recovered = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  expect(recovered.results.map((r) => r.externalId)).toContain("verified-falloumi-second-anchor");
+  expect(
+    a.calls.filter(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("filter")?.endsWith(",150"),
+    ),
+  ).toHaveLength(2);
+});
+
+test("geografisk sökledtråd styrs av koordinat, inte sökområdets visningsnamn", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter(
+    (url) =>
+      url.pathname === "/v1/geocode/search"
+        ? { features: [seedWithName("Falloumi")] }
+        : { features: [] },
+    context,
+  );
+  await a.discovery({
+    text: "Falloumi",
+    centers: [{ ...area, label: "En sökadress, okänd ort" }],
+    radiusKm: 1,
+    searchPhase: "recovery",
+  });
+  const geocoding = a.calls.find(
+    (url) => url.pathname === "/v1/geocode/search" && !url.searchParams.has("filter"),
+  );
+  expect(geocoding?.searchParams.get("text")).toBe("Falloumi");
+  expect(geocoding?.searchParams.get("bias")).toBe(centerBias);
+});
+
+test("blandade punkt- och boundaryområden håller point-recovery inom radie utan place:undefined", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC " + name);
+      },
+    },
+  };
+  const boundary = {
+    ...area,
+    id: "boundary",
+    label: "Stockholms kommun",
+    searchMode: "boundary" as const,
+    placeId: "verified-boundary",
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search")
+      return {
+        features: url.searchParams.get("text") === "Falloumi" ? [seedWithName("Falloumi")] : [],
+      };
+    if (url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)
+      return { features: [place("mixed-area-falloumi", "Falloumi")] };
+    return { features: [] };
+  }, context);
+  const recovered = await a.discovery({
+    text: "Falloumi",
+    centers: [area, boundary],
+    radiusKm: 2,
+    searchPhase: "recovery",
+  });
+  const match = recovered.results.find((result) => result.externalId === "mixed-area-falloumi");
+  expect(match?.nearestAreaId).toBe(area.id);
+  expect(match?.distanceKm).toBeGreaterThan(1);
+  expect(match?.distanceKm).toBeLessThan(2);
+  expect(a.calls.some((url) => url.searchParams.get("filter") === "place:undefined")).toBe(false);
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v1/geocode/search" &&
+        url.searchParams.get("text") === "Falloumi" &&
+        !url.searchParams.has("filter"),
+    ),
+  ).toBe(true);
+  expect(recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
+test("geokodningsledtråd kan inte ge träff utanför utökad radie eller utan verifierat Places-namn", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  for (const variant of ["far", "wrong-name", "wrong-location"] as const) {
+    const outside = { lat: 59.415, lng: 18.08 };
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") {
+        const seedFeature = seedWithName("Falloumi");
+        return {
+          features: [
+            variant === "far"
+              ? {
+                  ...seedFeature,
+                  properties: { ...seedFeature.properties, ...outside, lon: outside.lng },
+                }
+              : seedFeature,
+          ],
+        };
+      }
+      if (url.searchParams.get("filter")?.endsWith(",150"))
+        return {
+          features: [
+            place(
+              "unverified",
+              variant === "wrong-name" ? "Annan restaurang" : "Falloumi",
+              variant === "wrong-location" ? { lat: stockholm.lat, lon: stockholm.lng } : {},
+            ),
+          ],
+        };
+      return { features: [] };
+    }, context);
+    const first = await a.discovery({
+      text: "Falloumi",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "primary",
+    });
+    const recovered = await a.discovery({
+      text: "Falloumi",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "recovery",
+      providerRequestLimit: 25 - first.budgetUsage.requests,
+      providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+    });
+    expect(recovered.results).toHaveLength(0);
+    expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  }
+});
+
+test("primära sökresultat behöver inte invänta namnåterhämtning", async () => {
+  let releaseGeocoding: () => void = () => {};
+  const blockedGeocoding = new Promise<void>((resolve) => {
+    releaseGeocoding = resolve;
+  });
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter(async (url) => {
+    if (url.pathname === "/v1/geocode/search") {
+      await blockedGeocoding;
+      return { features: [] };
+    }
+    return { features: [] };
+  }, context);
+  const input: SearchInput = { text: "Pelikan", centers: [area], radiusKm: 1 };
+  const first = await a.discovery({ ...input, searchPhase: "primary" });
+  expect(first.results).toEqual([]);
+  expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  expect(a.calls.map((url) => url.pathname)).toEqual(["/v2/places"]);
+  expect(a.calls[0].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,2000");
+  const finished = a.discovery({
+    ...input,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  releaseGeocoding();
+  const recovered = await finished;
+  expect(a.calls.some((url) => url.pathname === "/v1/geocode/search")).toBe(true);
+  expect(recovered.budgetUsage.requests + first.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(
+    recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits,
+  ).toBeLessThanOrEqual(40);
+});
+
+test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökning", async () => {
+  const a = adapter(
+    (url) => ({
+      features:
+        url.pathname === "/v2/places" &&
+        url.searchParams.get("name") === "pelika" &&
+        url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-typo-nearby", "Pelikan")]
+          : [],
+    }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (
+            name === "search_canonical_places_v1" ||
+            name === "search_canonical_name_candidates_v1"
+          )
+            return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const first = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  const recovered = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  const hit = recovered.results.find((candidate) => candidate.externalId === "pelikan-typo-nearby");
+  expect(hit?.searchMatchType).toBe("tolerant");
+  expect(hit?.searchAreaGroup).toBe("nearby");
+  expect(
+    (recovered as typeof recovered & { observation: { candidates: { typo: number } } }).observation
+      .candidates.typo,
+  ).toBe(1);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
+});
+
+test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallback", async () => {
+  const a = adapter(
+    (url) => ({
+      features:
+        url.pathname === "/v2/places" && url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-primary", "Pelikan")]
+          : [],
+    }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (
+            name === "search_canonical_places_v1" ||
+            name === "search_canonical_name_candidates_v1"
+          )
+            return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const response = await a.discovery({
+    text: "Pelikan",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect(response.results.find((p) => p.externalId === "pelikan-primary")?.searchAreaGroup).toBe(
+    "nearby",
+  );
+  expect((response as typeof response & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
+});
+
+test("Pel hittar Pelikan nära sökområdet medan användaren skriver", async () => {
+  const a = adapter(
+    (url) => ({
+      features:
+        url.pathname === "/v2/places" &&
+        url.searchParams.get("name") === "Pel" &&
+        url.searchParams.get("filter")?.endsWith(",2000")
+          ? [place("pelikan-prefix", "Pelikan")]
+          : [],
+    }),
+    {
+      supabase: {
+        rpc: async (name) => {
+          if (name === "get_place_discovery_context_v1")
+            return { data: { canConfirm: true }, error: null };
+          if (name === "search_canonical_places_v1") return { data: [], error: null };
+          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+          throw new Error("Unexpected RPC: " + name);
+        },
+      },
+    },
+  );
+  const first = await a.discovery({
+    text: "Pel",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect(first.results.find((item) => item.externalId === "pelikan-prefix")?.searchAreaGroup).toBe(
+    "nearby",
+  );
+  expect((first as typeof first & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
+});
+
+test("halvfärdigt generiskt ord startar inte dyr namnåterhämtning", async () => {
+  const a = adapter(() => ({ features: [] }), {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1") return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  });
+  const result = await a.discovery({
+    text: "Restau",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect((result as typeof result & { pendingRecovery: boolean }).pendingRecovery).toBe(false);
+  expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(0);
+  expect(a.calls[0].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,1000");
+});
+
+test("geokodad korrigering av Pelikann måste verifieras med Places innan den visas", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search") return { features: [seedWithName("Pelikan")] };
+    if (
+      url.pathname === "/v2/places" &&
+      !url.searchParams.has("name") &&
+      url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`
+    )
+      return { features: [place("verified-pelikan", "Pelikan")] };
+    return { features: [] };
+  }, context);
+  const primary = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
+  expect((primary as typeof primary & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
+  const recovery = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
+    providerRequestLimit: 25 - primary.budgetUsage.requests,
+    providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
+  });
+  const verified = recovery.results.find(
+    (candidate) => candidate.externalId === "verified-pelikan",
+  );
+  expect(verified?.searchMatchType).toBe("tolerant");
+  expect(verified?.searchAreaGroup).toBe("nearby");
+  expect(
+    recovery.results.find((candidate) => candidate.externalId === "pelikan-geocoding-anchor"),
+  ).toBeUndefined();
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v2/places" &&
+        !url.searchParams.has("name") &&
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
+    ),
+  ).toBe(true);
+  expect(primary.budgetUsage.requests + recovery.budgetUsage.requests).toBeLessThanOrEqual(25);
 });

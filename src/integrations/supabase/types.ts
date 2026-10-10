@@ -3324,6 +3324,10 @@ export type Database = {
         Returns: undefined
       }
       search_area_label_is_broad: { Args: { _label: string }; Returns: boolean }
+      search_canonical_name_candidates_v1: {
+        Args: { _centers: Json; _group_id: string; _text: string }
+        Returns: Json
+      }
       search_canonical_places_v1: {
         Args: {
           _categories?: string[]

@@ -42,9 +42,12 @@ Geoapifys proximity-bias får användas för stabil intern rangordning även nä
 
 ## Specifik namnsökning
 
-Places är primär sökväg. När första sidan för ett specifikt namn saknar relevanta
-träffar och är uttömd får servern använda Geocoding för högst tio namnfrön och
-prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
+Places är primär sökväg. Vid aktiv namnsökning kan en enda begränsad
+kandidatradie användas redan i primärhämtningen, med tydlig märkning av
+träffar utanför valt avstånd. Vid utebliven stark träff provas först en
+kort, geografiskt begränsad namnankarsökning via Places. Först om den
+saknar rimliga namn- eller stavfelskandidater får servern använda Geocoding
+för högst tio namnfrön och prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
 genom Places väljer en enda paginerad sökström. Geocoding används bara som
 bias-ankare; både Geocoding och Places behåller ursprungligt circle-/place-filter.
 Resultat, identitet och matmetadata kommer alltid från Places.
@@ -55,6 +58,33 @@ cachen saknas. En full primärsida utan relevanta träffar behåller ordinarie
 paginering. Avstånd för ankrade Places-träffar räknas från ursprungligt centrum;
 boundary-only-träffar visar fortsatt inget punktavstånd. Sökområdet flyttas eller
 utökas aldrig av namnankaret.
+
+## Gemensam resultatpool, radie och stavfel
+
+Listan behåller 20 handlingsbara träffar per steg. Kartan visar fler av redan
+hämtade kandidater och får fyllas på utan att flytta användarens viewport.
+Providerpaginering förs separat per sökområde så att fel och uttömda sidor
+inte förskjuter andra områden. En automatisk sökomgång begränsas till totalt
+25 cachemiss-anrop och en konservativ reservation på 40 krediter; uttrycklig
+**Visa fler** är en ny användarhandling med egen liten budget. Budgeten är
+inte ett påstående om faktisk providerdebitering.
+
+För ett specifikt verksamhetsnamn utan stark primärträff får ett enda
+begränsat kompletteringssteg söka utanför aktiva punktområdens radie:
+`min(50 km, vald radie + min(vald radie, 2 km))`.
+Namnträffar utanför radien visas separat och ändrar aldrig sparade områden.
+Generiska kategori-/köksfrågor expanderar inte. Boundaries förblir oförändrade
+och blandad punkt/boundary-sökning utökar inte geografin utan verifierat
+medlemskap i hela sökområdesunionen.
+
+Den befintliga **starka kanoniska 50-kilometersregeln** är separat och
+behålls bara för strikt matchade specifika namn. Defensiv stavfelstolerans använder samma begränsade närliggande kandidatgeografi
+som specifik namnsökning för punktområden. En tolerant kandidat utanför vald radie
+visas separat; den blir aldrig en stark kanonisk identitet och ger inte automatisk
+länkning eller sammanslagning. Primär namnfråga får söka inom denna begränsade
+kandidatradie men ska märka de träffar som ligger utanför den valda radien tydligt. Den nya kanoniska
+kandidatfunktionen är en gruppbehörighetskontrollerad read-only-RPC;
+toleranta namn får aldrig påverka identitet, källkoppling eller merge.
 
 ## Blandade områden och deduplicering
 

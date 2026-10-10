@@ -16,7 +16,7 @@ import { SEARCH_RADIUS_OPTIONS, searchAreaMode } from "@/lib/matrundan/search-ar
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
-const SEARCH_PLACEHOLDER = "Sök kommun, ort, stadsdel eller adress";
+const SEARCH_PLACEHOLDER = "Lägg till område eller adress";
 
 interface SearchAreaControlsProps {
   heading: string;
@@ -30,6 +30,7 @@ interface SearchAreaControlsProps {
   onRadiusChange: (radius: SearchRadiusKm) => void;
   isLive: boolean;
   fallbackCity: string;
+  mobileEditorOpen?: boolean;
 }
 
 interface SearchAreaFieldProps {
@@ -38,6 +39,7 @@ interface SearchAreaFieldProps {
   placeholder: string;
   disabled: boolean;
   fallbackCity: string;
+  selectedAreaPlaceIds: string[];
   onQueryChange: (query: string) => void;
   onSelect: (location: VerifiedLocationSelection) => void;
 }
@@ -59,6 +61,7 @@ function SearchAreaField({
   placeholder,
   disabled,
   fallbackCity,
+  selectedAreaPlaceIds,
   onQueryChange,
   onSelect,
 }: SearchAreaFieldProps) {
@@ -73,6 +76,7 @@ function SearchAreaField({
       demoMode={!isLive}
       demoFallbackCity={fallbackCity}
       allowBoundaryAreas
+      excludedPlaceIds={selectedAreaPlaceIds}
     />
   );
 }
@@ -128,14 +132,14 @@ function InlineSearchRadius({
       <SelectTrigger
         id="place-radius"
         aria-label="Avstånd runt adresser och platser"
-        className="h-8 w-auto shrink-0 gap-1 rounded-full border-border/60 bg-muted/50 px-2.5 text-xs font-normal text-muted-foreground"
+        className="h-9 w-auto shrink-0 gap-1 rounded-lg border-border/60 bg-muted/50 px-3 text-sm font-normal"
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="max-h-[min(38dvh,13rem)]">
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
-            {`Inom ${value} km från punktval`}
+            {`${value} km`}
           </SelectItem>
         ))}
       </SelectContent>
@@ -155,11 +159,18 @@ export function SearchAreaControls({
   onRadiusChange,
   isLive,
   fallbackCity,
+  mobileEditorOpen = false,
 }: SearchAreaControlsProps) {
   const [areaQuery, setAreaQuery] = React.useState("");
+  const wasMobileEditorOpen = React.useRef(mobileEditorOpen);
+  React.useEffect(() => {
+    if (wasMobileEditorOpen.current && !mobileEditorOpen) setAreaQuery("");
+    wasMobileEditorOpen.current = mobileEditorOpen;
+  }, [mobileEditorOpen]);
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
+  const selectedAreaPlaceIds = activeAreas.map((area) => area.placeId).filter(Boolean);
   const boundaryCount = activeAreas.filter((area) => searchAreaMode(area) === "boundary").length;
   const pointCount = activeAreas.length - boundaryCount;
 
@@ -211,17 +222,14 @@ export function SearchAreaControls({
   }
 
   return (
-    <section className="space-y-2" aria-label={heading}>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">{heading}</h3>
-        {pointCount > 0 ? (
-          <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
-        ) : boundaryCount > 0 ? (
-          <span className="rounded-full border border-border/60 bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground">
-            Söker inom områdesgränser
-          </span>
-        ) : null}
-      </div>
+    <section className="space-y-3" aria-label={heading}>
+      <h3 className="sr-only lg:not-sr-only lg:text-sm lg:font-medium">{heading}</h3>
+      <SelectedAreas
+        savedAreas={selectedSavedAreas}
+        temporaryAreas={temporaryAreas}
+        onRemoveSaved={removeSavedArea}
+        onRemoveTemporary={removeTemporaryArea}
+      />
 
       {atLimit ? (
         <div
@@ -245,22 +253,26 @@ export function SearchAreaControls({
             placeholder={SEARCH_PLACEHOLDER}
             disabled={false}
             fallbackCity={fallbackCity}
+            selectedAreaPlaceIds={selectedAreaPlaceIds}
             onQueryChange={setAreaQuery}
             onSelect={addVerifiedArea}
           />
         </div>
       )}
 
-      <SelectedAreas
-        savedAreas={selectedSavedAreas}
-        temporaryAreas={temporaryAreas}
-        onRemoveSaved={removeSavedArea}
-        onRemoveTemporary={removeTemporaryArea}
-      />
-
+      {pointCount > 0 ? (
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <Label htmlFor="place-radius" className="min-w-0 text-sm text-muted-foreground">
+            Sökradie
+          </Label>
+          <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
+        </div>
+      ) : boundaryCount > 0 ? (
+        <p className="text-xs text-muted-foreground">Söker inom de valda områdenas gränser.</p>
+      ) : null}
       {boundaryCount > 0 && pointCount > 0 ? (
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Avståndet gäller bara platser utan områdesgräns.
         </p>
       ) : null}
     </section>

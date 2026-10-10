@@ -10,7 +10,10 @@ async function openSearchDialog(page: import("@playwright/test").Page) {
   await expect(addPlace).toBeVisible();
   await addPlace.click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
-  await expect(dialog.getByRole("heading", { name: "Sök i", exact: true })).toBeVisible();
+  if ((page.viewportSize()?.width ?? 360) < 1024) {
+    await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+  }
+  await expect(dialog.getByRole("region", { name: "Valda områden", exact: true })).toBeVisible();
   return dialog;
 }
 
@@ -28,7 +31,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
     name: "Lägg till område eller adress",
     exact: true,
   });
-  await expect(areaInput).toHaveAttribute("placeholder", "Sök kommun, ort, stadsdel eller adress");
+  await expect(areaInput).toHaveAttribute("placeholder", "Lägg till område eller adress");
 
   await areaInput.fill("Stavsnäs");
   const stavnas = page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" });
@@ -39,6 +42,8 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("ArrowDown");
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Stavsnäs");
+  await areaInput.fill("Stavsnäs");
+  await expect(page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" })).toHaveCount(0);
   await page.getByRole("button", { name: /Ta bort Stavsnäs.*från sökningen/i }).click();
 
   await areaInput.fill("Värmdö kommun");
@@ -68,7 +73,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
   await expect(areaInput).toHaveCount(0);
-  const searchRegion = dialog.getByRole("region", { name: "Sök i" });
+  const searchRegion = dialog.getByRole("region", { name: "Valda områden" });
   const searchStatus = searchRegion.getByRole("status");
   await expect(searchStatus).toContainText("5 av 5 områden valda.");
   await expect(searchStatus).toContainText("Ta bort ett område för att söka efter ett annat.");
@@ -89,8 +94,9 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await expect(searchStatus).toHaveCount(0);
   await expect(
     dialog.getByRole("combobox", { name: "Lägg till område eller adress", exact: true }),
-  ).toHaveAttribute("placeholder", "Sök kommun, ort, stadsdel eller adress");
+  ).toHaveAttribute("placeholder", "Lägg till område eller adress");
 
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   const map = page.getByRole("region", {

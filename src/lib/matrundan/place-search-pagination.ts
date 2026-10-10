@@ -30,6 +30,9 @@ export function mergePlaceSearchPages(
         matchingAreaLabels: suggestion.matchingAreaLabels
           ? [...new Set(suggestion.matchingAreaLabels)]
           : suggestion.matchingAreaLabels,
+        matchingAreaIds: suggestion.matchingAreaIds
+          ? [...new Set(suggestion.matchingAreaIds)]
+          : suggestion.matchingAreaIds,
       });
       continue;
     }
@@ -44,13 +47,18 @@ export function mergePlaceSearchPages(
         ...(suggestion.matchingAreaLabels ?? []),
       ]),
     ];
+    const areaIds = [
+      ...new Set([...(existing.matchingAreaIds ?? []), ...(suggestion.matchingAreaIds ?? [])]),
+    ];
 
     merged.set(key, {
       ...base,
       ...(suggestion.identity ? { identity: suggestion.identity } : {}),
       ...(suggestion.canonical ? { canonical: suggestion.canonical } : {}),
       nearestAreaLabel: base.nearestAreaLabel ?? existing.nearestAreaLabel,
+      nearestAreaId: base.nearestAreaId ?? existing.nearestAreaId,
       ...(labels.length > 0 ? { matchingAreaLabels: labels } : {}),
+      ...(areaIds.length > 0 ? { matchingAreaIds: areaIds } : {}),
     });
   }
 
@@ -93,4 +101,50 @@ export function actionableSliceIndex(
     }
   }
   return suggestions.length;
+}
+
+/**
+ * Map-only presentation: round-robin across actual search-area IDs.
+ * Does not change canonical identity or reorder paginated list results.
+ */
+export function selectMapCandidates(
+  results: PlaceSuggestion[],
+  areaIds: string[],
+  totalLimit = 200,
+  perAreaLimit = 100,
+): PlaceSuggestion[] {
+  const selected: PlaceSuggestion[] = [];
+  const pools = new Map<string, PlaceSuggestion[]>();
+  const known = new Set(areaIds);
+  for (const id of areaIds) pools.set(id, []);
+  const other: PlaceSuggestion[] = [];
+  for (const result of results) {
+    if (result.nearestAreaId && known.has(result.nearestAreaId)) {
+      pools.get(result.nearestAreaId)!.push(result);
+    } else {
+      other.push(result);
+    }
+  }
+  const counts = new Map<string, number>();
+  const indexes = new Map<string, number>();
+  for (const id of areaIds) {
+    counts.set(id, 0);
+    indexes.set(id, 0);
+  }
+  while (selected.length < totalLimit) {
+    let added = false;
+    for (const id of areaIds) {
+      const pool = pools.get(id)!;
+      const index = indexes.get(id)!;
+      if (index >= pool.length || counts.get(id)! >= perAreaLimit) continue;
+      selected.push(pool[index]);
+      indexes.set(id, index + 1);
+      counts.set(id, counts.get(id)! + 1);
+      added = true;
+      if (selected.length >= totalLimit) break;
+    }
+    if (!added) break;
+  }
+  // Older demo snapshots have no nearestAreaId: preserve those candidates too.
+  return [...selected, ...other].slice(0, totalLimit);
 }

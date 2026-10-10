@@ -167,6 +167,7 @@ export function MultiAreaPlaceMap({
   items,
   centers,
   radiusKm,
+  searchContextKey,
   selectedId,
   onSelect,
   onAction,
@@ -177,6 +178,8 @@ export function MultiAreaPlaceMap({
   items: MultiAreaMapItem[];
   centers: MultiAreaMapCenter[];
   radiusKm: number;
+  /** Resets the initial fit only when the search context changes, not on map refill. */
+  searchContextKey?: string;
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   onAction?: (item: MultiAreaMapItem) => void;
@@ -191,6 +194,7 @@ export function MultiAreaPlaceMap({
   const selected = mappedItems.find((item) => item.id === selectedId) ?? null;
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
+  const lastFitContextRef = React.useRef<string | null>(null);
   const selectRef = React.useRef(onSelect);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
   const [renderedItemCount, setRenderedItemCount] = React.useState(0);
@@ -208,6 +212,7 @@ export function MultiAreaPlaceMap({
     if (!element) return;
     let cancelled = false;
     setLayersReady(false);
+    lastFitContextRef.current = null;
     setStatus("loading");
     setExternalTilesReady(false);
     setRenderedItemCount(0);
@@ -469,16 +474,24 @@ export function MultiAreaPlaceMap({
     );
   }, [centers, layersReady, mappedItems, radiusKm, selected, status]);
 
+  const fitContextKey =
+    searchContextKey ??
+    JSON.stringify([radiusKm, centers.map((center) => [center.id, center.lat, center.lng])]);
   React.useEffect(() => {
     const map = mapRef.current;
     if (status !== "ready" || !layersReady || !map) return;
+    // Map refill, point selection and user pan/zoom must not reset the viewport.
+    if (lastFitContextRef.current === fitContextKey) return;
     const points: [number, number][] = [
       ...centers.map((center) => [center.lng, center.lat] as [number, number]),
       ...centers.flatMap(multiAreaBoundaryPositions),
       ...mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]),
     ];
     if (points.length === 0) return;
+    let cancelled = false;
     void waitForMapLibre().then((mapLibre) => {
+      if (cancelled || mapRef.current !== map) return;
+      lastFitContextRef.current = fitContextKey;
       map.resize();
       if (points.length === 1) {
         map.jumpTo({ center: points[0], zoom: 14 });
@@ -494,7 +507,10 @@ export function MultiAreaPlaceMap({
         duration: 0,
       });
     });
-  }, [centers, layersReady, mappedItems, selected, status]);
+    return () => {
+      cancelled = true;
+    };
+  }, [centers, fitContextKey, layersReady, mappedItems, selected, status]);
 
   if (mappedItems.length === 0 && centers.length === 0) {
     return (
