@@ -918,14 +918,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             data.centers.map(async (center, centerIndex) => {
               const url = new URL("https://api.geoapify.com/v1/geocode/search");
               if (allPoints) {
-                // Hard Geocoding circle filters can discard genuine nearby
-                // venues. Use a location hint, then independently enforce
-                // the permitted nearby radius against the candidate position.
-                const locationHint = center.label.split(",")[0].trim();
-                url.searchParams.set(
-                  "text",
-                  [intent.query, locationHint].filter(Boolean).join(" "),
-                );
+                // Search by name with a coordinate bias: the area label may be
+                // an address, neighbourhood or a legacy point rather than a city.
+                // Geocoding's circle filter can exclude genuine nearby venues;
+                // the verified result radius is enforced below instead.
+                url.searchParams.set("text", intent.query);
               } else {
                 // Verified boundary selections retain their existing lookup.
                 url.searchParams.set("name", intent.query);
@@ -939,6 +936,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               url.searchParams.set("apiKey", readKey());
               const response = await callGeoapify(url);
               let attempts = 0;
+              const seenAnchors = new Set<string>();
               for (const feature of (response.features ?? []).slice(0, 10)) {
                 if (!feature || typeof feature !== "object") continue;
                 const props = (feature as GeoapifyFeature).properties;
@@ -969,39 +967,59 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                   distanceKm(center, { lat, lng }) > (retrievalRadius ?? WIDE_AREA_RADIUS_KM)
                 )
                   continue;
-                attempts++;
-                const page = await searchPlacesAtArea({
-                  // Geocoding supplies only a position; Places supplies the
-                  // actual venue identity, WITHOUT the failing name filter.
-                  text: allPoints ? undefined : seed.name,
-                  lat: allPoints ? lat : center.lat,
-                  lng: allPoints ? lng : center.lng,
-                  searchMode: center.searchMode ?? "point",
-                  placeId: center.placeId,
-                  radiusKm: allPoints ? 0.15 : retrievalRadius,
-                  limit: 20,
-                  offset: 0,
-                  allowNameAnchorRecovery: false,
-                  nameBias: allPoints ? undefined : { lat, lng },
-                });
+                const anchorKey = `${lat.toFixed(6)}:${lng.toFixed(6)}`;
+                if (seenAnchors.has(anchorKey)) continue;
+                seenAnchors.add(anchorKey);
                 const before = nearbyCandidates.length + typoCandidates.length;
-                for (const place of page.results) {
-                  if (
-                    allPoints &&
-                    (place.lat == null ||
-                      place.lng == null ||
-                      distanceKm({ lat, lng }, { lat: place.lat, lng: place.lng }) > 0.15)
-                  )
-                    continue;
-                  recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
-                  const exact = matchesSpecificPlaceName(intent.query, place.name);
-                  const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
-                  if (exact || typo) recordCandidate(place, centerIndex, typo);
+                const verifyPage = (page: PlaceSearchPage) => {
+                  for (const place of page.results) {
+                    if (
+                      allPoints &&
+                      (place.lat == null ||
+                        place.lng == null ||
+                        distanceKm({ lat, lng }, { lat: place.lat, lng: place.lng }) > 0.15)
+                    )
+                      continue;
+                    recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
+                    const exact = matchesSpecificPlaceName(intent.query, place.name);
+                    const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
+                    if (exact || typo) recordCandidate(place, centerIndex, typo);
+                  }
+                };
+                const searchAtAnchor = (offset: number) =>
+                  searchPlacesAtArea({
+                    // Geocoding supplies a position, never a venue identity.
+                    // Point verification must omit the broken provider name filter.
+                    text: allPoints ? undefined : seed.name,
+                    lat: allPoints ? lat : center.lat,
+                    lng: allPoints ? lng : center.lng,
+                    searchMode: center.searchMode ?? "point",
+                    placeId: center.placeId,
+                    radiusKm: allPoints ? 0.15 : retrievalRadius,
+                    limit: 20,
+                    offset,
+                    allowNameAnchorRecovery: false,
+                    nameBias: allPoints ? undefined : { lat, lng },
+                  });
+                attempts++;
+                const firstPage = await searchAtAnchor(0);
+                verifyPage(firstPage);
+                // Dense blocks can push the exact venue off page one. Fetch at
+                // most one continuation, shared with the second-anchor budget.
+                if (
+                  allPoints &&
+                  firstPage.hasMore &&
+                  nearbyCandidates.length + typoCandidates.length === before &&
+                  attempts < 2
+                ) {
+                  attempts++;
+                  verifyPage(await searchAtAnchor(firstPage.nextOffset));
                 }
-                // Point recovery: at most one verification per centre.
+                // At most two Places calls per point centre; either page two
+                // or a second plausible anchor, not an unbounded combination.
                 if (
                   nearbyCandidates.length + typoCandidates.length > before ||
-                  attempts >= (allPoints ? 1 : 3)
+                  attempts >= (allPoints ? 2 : 3)
                 )
                   break;
               }
