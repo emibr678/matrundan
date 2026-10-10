@@ -344,7 +344,9 @@ export function GeoapifyLocationInput({
           {loading && suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Söker…</li>
           ) : visibleSuggestions.length === 0 ? (
-            <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
+            <li className="px-2 py-2 text-muted-foreground">
+              {suggestions.length > 0 ? "Redan valt" : "Inga träffar"}
+            </li>
           ) : (
             visibleSuggestions.map((suggestion, index) => (
               <li
