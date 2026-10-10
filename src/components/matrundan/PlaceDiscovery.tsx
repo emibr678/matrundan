@@ -431,7 +431,7 @@ export function PlaceDiscovery({
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const isRecoveryPass: boolean = recoveryPending;
         const textSearch = query.trim().length >= 2;
-        const response = await searchPlaceDiscovery({
+        const response: Awaited<ReturnType<typeof searchPlaceDiscovery>> = await searchPlaceDiscovery({
           data: {
             groupId: groupId!,
             text: query.trim() || undefined,
@@ -471,7 +471,7 @@ export function PlaceDiscovery({
         collected = mergePlaceSearchPages(collected, response.results);
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);
-        response.failedAreaLabels.forEach((label) => failedAreaLabels.add(label));
+        response.failedAreaLabels.forEach((label: string) => failedAreaLabels.add(label));
         moreAvailable = response.hasMore;
         offset = response.nextOffset;
         progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };

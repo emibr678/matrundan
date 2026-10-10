@@ -473,8 +473,8 @@ export function AddPlaceDialogContent({
               {view === "search" ? (
                 mobileSearchExpanded ? (
                   <>
-                    <span className="lg:hidden">Sök matställe</span>
-                    <span className="hidden lg:inline">Lägg till matställe</span>
+                    <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
+                    <span aria-hidden="true" className="lg:hidden">Sök matställe</span>
                   </>
                 ) : (
                   "Lägg till matställe"
