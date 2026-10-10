@@ -94,6 +94,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
     dialog.getByRole("combobox", { name: "Lägg till område eller adress", exact: true }),
   ).toHaveAttribute("placeholder", "Lägg till område eller adress");
 
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   const map = page.getByRole("region", {
