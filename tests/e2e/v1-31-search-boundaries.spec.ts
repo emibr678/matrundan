@@ -15,12 +15,13 @@ test.describe("v1.31 sökområdesgränser", () => {
   test("kombinerar kommunboundary och adresspunkt på 360 px", async ({ page }) => {
     await page.setViewportSize({ width: 360, height: 800 });
     const dialog = await openAddPlaces(page);
+    await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
 
     await expect(dialog.getByText("Värmdö kommun", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Skärgårdsvägen 8", { exact: true })).toBeVisible();
     await expect(
       dialog.getByText(
-        "Områden söks inom sin gräns. Avståndet gäller bara adresser och andra punktval.",
+        "Avståndet gäller bara platser utan områdesgräns.",
       ),
     ).toBeVisible();
     await expect(
@@ -52,7 +53,7 @@ test.describe("v1.31 sökområdesgränser", () => {
     await expect(removeAddress).toBeVisible();
     await removeAddress.click();
 
-    await expect(dialog.getByText("Söker inom områdesgränser")).toBeVisible();
+    await expect(dialog.getByText("Söker inom de valda områdenas gränser.")).toBeVisible();
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
     ).toHaveCount(0);
