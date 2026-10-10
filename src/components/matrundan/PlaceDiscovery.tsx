@@ -1110,6 +1110,7 @@ export function PlaceDiscovery({
   return (
     <div
       className={showingMobileSuggestions ? "space-y-3 lg:space-y-4" : "space-y-4"}
+      data-mobile-place-mode={mobileMode}
       data-search-area-editing={editingMobileAreas ? "true" : "false"}
       data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
@@ -1140,7 +1141,7 @@ export function PlaceDiscovery({
         id="mobile-search-area-editor"
         className={
           editingMobileAreas
-            ? "max-h-[min(17rem,45dvh)] overflow-y-auto overscroll-contain border-b border-border/60 px-1 pb-3 lg:max-h-none lg:overflow-visible lg:border-0 lg:p-0"
+            ? "border-b border-border/60 px-1 pb-3 lg:border-0 lg:p-0"
             : "hidden lg:block"
         }
       >
@@ -1157,8 +1158,20 @@ export function PlaceDiscovery({
           isLive={isLive}
           fallbackCity={state.group.city}
         />
+        {editingMobileAreas ? (
+          <Button
+            type="button"
+            className="mt-4 min-h-11 w-full lg:hidden"
+            onClick={() => {
+              document.getElementById("search-area-query")?.blur();
+              onMobileModeChange("browse");
+            }}
+          >
+            Klar
+          </Button>
+        ) : null}
       </div>
-      <div className="min-w-0">
+      <div className={editingMobileAreas ? "hidden lg:block" : "min-w-0"}>
         <PlaceSearchCombobox
           query={query}
           onQueryChange={setQuery}
@@ -1207,7 +1220,7 @@ export function PlaceDiscovery({
         </details>
       ) : null}
 
-      <div className={showingMobileSuggestions ? "hidden lg:block" : "lg:overflow-visible"}>
+      <div className={mobileMode !== "browse" ? "hidden lg:block" : "lg:overflow-visible"}>
         {activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (
