@@ -16,7 +16,7 @@ import { SEARCH_RADIUS_OPTIONS, searchAreaMode } from "@/lib/matrundan/search-ar
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
-const SEARCH_PLACEHOLDER = "Sök kommun, ort, stadsdel eller adress";
+const SEARCH_PLACEHOLDER = "Lägg till område eller adress";
 
 interface SearchAreaControlsProps {
   heading: string;
@@ -223,6 +223,13 @@ export function SearchAreaControls({
         ) : null}
       </div>
 
+      <SelectedAreas
+        savedAreas={selectedSavedAreas}
+        temporaryAreas={temporaryAreas}
+        onRemoveSaved={removeSavedArea}
+        onRemoveTemporary={removeTemporaryArea}
+      />
+
       {atLimit ? (
         <div
           role="status"
@@ -251,23 +258,9 @@ export function SearchAreaControls({
         </div>
       )}
 
-      <SelectedAreas
-        savedAreas={selectedSavedAreas}
-        temporaryAreas={temporaryAreas}
-        onRemoveSaved={removeSavedArea}
-        onRemoveTemporary={removeTemporaryArea}
-      />
-
-      {pointCount > 0 && boundaryCount === 0 ? (
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Söker inom valt avstånd från varje plats. Ort utan verifierad gräns används som
-          utgångspunkt.
-        </p>
-      ) : null}
-
       {boundaryCount > 0 && pointCount > 0 ? (
-        <p className="text-[11px] leading-relaxed text-muted-foreground">
-          Områden söks inom sin gräns. Avståndet gäller runt valda platser utan områdesgräns.
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Avståndet gäller platser utan områdesgräns.
         </p>
       ) : null}
     </section>
