@@ -285,7 +285,8 @@ export function GeoapifyLocationInput({
     }
   }
 
-  const showList = open && value.trim().length >= 2 && (loading || visibleSuggestions.length > 0 || done);
+  const showList =
+    open && value.trim().length >= 2 && (loading || visibleSuggestions.length > 0 || done);
 
   return (
     <div className="relative min-w-0">
