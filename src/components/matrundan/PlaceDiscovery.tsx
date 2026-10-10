@@ -7,7 +7,7 @@ import {
   presentPlaceSearchResults,
   unambiguousPlaceCandidate,
 } from "@/lib/matrundan/place-discovery";
-import { Check, ChevronRight, List, Loader2, Map, Plus, Search, X } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, List, Loader2, Map, MapPin, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { MatrundanBrand } from "./MatrundanBrand";
@@ -1062,7 +1062,7 @@ export function PlaceDiscovery({
       ? shortSearchAreaLabel(activeAreas[0].label)
       : `${activeAreas.length} sökområden`;
   const includesPointArea = activeAreas.some((area) => searchAreaMode(area) === "point");
-  const showingMobileSuggestions = mobileSearchExpanded && query.trim().length >= 2;
+  const showingMobileSuggestions = mobileSearchExpanded;
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileSearchExpandedChange(false);
@@ -1088,38 +1088,39 @@ export function PlaceDiscovery({
 
   return (
     <div
-      className="flex min-h-0 flex-col gap-3 overflow-hidden lg:block lg:space-y-4 lg:overflow-visible"
+      className={mobileSearchExpanded ? "space-y-3 lg:space-y-4" : "space-y-4"}
       data-search-area-editing={editingMobileAreas ? "true" : "false"}
       data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
-      <div className="flex min-w-0 shrink-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-1.5 text-sm lg:hidden">
+      <button
+        type="button"
+        aria-label={editingMobileAreas ? "Dölj sökområden" : "Ändra sökområden"}
+        aria-expanded={editingMobileAreas}
+        aria-controls="mobile-search-area-editor"
+        className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 lg:hidden"
+        onClick={() => {
+          if (!editingMobileAreas) {
+            onMobileSearchExpandedChange(false);
+            document.getElementById("place-query")?.blur();
+          }
+          setEditingMobileAreas((previous) => !previous);
+        }}
+      >
+        <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
         {includesPointArea ? (
           <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
         ) : null}
-        <Button
-          type="button"
-          size="sm"
-          variant="ghost"
-          aria-expanded={editingMobileAreas}
-          aria-controls="mobile-search-area-editor"
-          className="min-h-11 shrink-0 px-2"
-          onClick={() => {
-            if (!editingMobileAreas) {
-              document.getElementById("place-query")?.blur();
-              onMobileSearchExpandedChange(false);
-            }
-            setEditingMobileAreas((previous) => !previous);
-          }}
-        >
-          {editingMobileAreas ? "Klar" : "Ändra"}
-        </Button>
-      </div>
+        <ChevronDown
+          className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${editingMobileAreas ? "rotate-180" : ""}`}
+          aria-hidden="true"
+        />
+      </button>
       <div
         id="mobile-search-area-editor"
         className={
           editingMobileAreas
-            ? "min-h-0 max-h-[min(15rem,42dvh)] shrink-0 overflow-y-auto overscroll-contain rounded-xl border border-border/60 bg-background/70 p-3 lg:max-h-none lg:overflow-visible lg:border-0 lg:p-0"
+            ? "max-h-[min(17rem,45dvh)] overflow-y-auto overscroll-contain border-b border-border/60 px-1 pb-3 lg:max-h-none lg:overflow-visible lg:border-0 lg:p-0"
             : "hidden lg:block"
         }
       >
@@ -1137,7 +1138,7 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
         />
       </div>
-      <div className="min-w-0 shrink-0">
+      <div className="min-w-0">
         <PlaceSearchCombobox
           query={query}
           onQueryChange={setQuery}
@@ -1155,7 +1156,12 @@ export function PlaceDiscovery({
         />
       </div>
 
-      {!editingMobileAreas && showingMobileSuggestions ? (
+      {showingMobileSuggestions && query.trim().length < 2 ? (
+        <p className="text-sm text-muted-foreground lg:hidden">
+          Sök efter ett matställe eller välj ett kök.
+        </p>
+      ) : null}
+      {showingMobileSuggestions ? (
         <Button
           type="button"
           variant="ghost"
@@ -1183,9 +1189,7 @@ export function PlaceDiscovery({
 
       <div
         className={
-          showingMobileSuggestions
-            ? "hidden lg:block"
-            : "min-h-0 max-h-[calc(var(--search-viewport-height,100dvh)-13rem)] overflow-y-auto overscroll-contain pb-2 lg:max-h-none lg:overflow-visible"
+          showingMobileSuggestions ? "hidden lg:block" : "lg:overflow-visible"
         }
       >
         {activeAreas.length === 0 ? (
@@ -1382,13 +1386,11 @@ export function PlaceDiscovery({
             ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
             : "Fiktiv demodata för utveckling."}
         </p>
-        {!editingMobileAreas ? (
-          <div className="flex justify-end">
-            <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
-              Klar
-            </Button>
-          </div>
-        ) : null}
+        <div className="flex justify-end">
+          <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
+            Klar
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -1708,7 +1710,7 @@ function PlaceSearchCombobox({
             className={[
               "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
               focused
-                ? "relative mt-2 max-h-[min(15rem,38dvh)] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)-13rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
                 : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
             ].join(" ")}
           >

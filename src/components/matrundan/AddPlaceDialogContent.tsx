@@ -361,7 +361,7 @@ export function AddPlaceDialogContent({
   // Mobile keyboards resize the visual viewport, not necessarily the layout viewport.
   // Only resize the suggestions surface; never collapse or reset the active search.
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen || view !== "search") return;
+    if (!searchDialogOpen || view !== "search" || !mobileSearchExpanded) return;
     const viewport = window.visualViewport;
     const update = () => {
       const dialog = searchDialogRef.current;
@@ -381,7 +381,7 @@ export function AddPlaceDialogContent({
       viewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [searchDialogOpen, view]);
+  }, [mobileSearchExpanded, searchDialogOpen, view]);
 
   React.useLayoutEffect(() => {
     if (!searchDialogOpen || !returningToSearchRef.current) return;
@@ -439,27 +439,49 @@ export function AddPlaceDialogContent({
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
           data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
-          data-search-shell={view === "search" ? "unified" : "fallback"}
+          data-search-shell={mobileSearchExpanded && view === "search" ? "focused" : "browse"}
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
-            view === "search"
-              ? "max-lg:top-[calc(var(--search-viewport-top,0px)+0.5rem)] max-lg:h-auto max-lg:max-h-[calc(var(--search-viewport-height,100dvh)-1rem)] max-lg:w-[calc(100vw-1rem)] max-lg:translate-y-0 max-lg:flex max-lg:min-h-0 max-lg:flex-col max-lg:gap-3 max-lg:overflow-hidden max-lg:rounded-2xl max-lg:border max-lg:bg-card max-lg:p-4 max-lg:duration-0"
+            mobileSearchExpanded && view === "search"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)+0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)-1rem)] max-lg:translate-y-0 max-lg:rounded-xl max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
-              view === "search"
-                ? "max-lg:items-start max-lg:gap-0 max-lg:space-y-0 max-lg:pr-9 max-lg:shrink-0 max-lg:text-left"
+              mobileSearchExpanded && view === "search"
+                ? "max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:space-y-0 max-lg:pr-9 max-lg:text-left"
                 : undefined
             }
           >
-            <DialogTitle
-              className={
-                view === "search" ? "font-display text-xl lg:text-2xl" : "font-display text-2xl"
-              }
-            >
-              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
+            {mobileSearchExpanded && view === "search" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Tillbaka till resultaten"
+                className="min-h-11 min-w-11 lg:hidden"
+                onClick={() => {
+                  setMobileSearchExpanded(false);
+                  document.getElementById("place-query")?.blur();
+                }}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            ) : null}
+            <DialogTitle className="font-display text-2xl">
+              {view === "search" ? (
+                mobileSearchExpanded ? (
+                  <>
+                    <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
+                    <span aria-hidden="true" className="lg:hidden">Sök matställe</span>
+                  </>
+                ) : (
+                  "Lägg till matställe"
+                )
+              ) : (
+                "Stället saknas i sökningen"
+              )}
             </DialogTitle>
             <DialogDescription className={view === "search" ? "sr-only" : undefined}>
               {view === "search"
