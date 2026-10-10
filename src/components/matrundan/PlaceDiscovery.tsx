@@ -148,6 +148,7 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
+  const [editingMobileAreas, setEditingMobileAreas] = React.useState(false);
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -1050,8 +1051,8 @@ export function PlaceDiscovery({
   );
   const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
   const placeAutocompleteSuggestions = React.useMemo(
-    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 6)),
-    [query, visibleResults],
+    () => (query.trim().length < 2 ? [] : filteredResults.slice(0, 6)),
+    [query, filteredResults],
   );
   const debugEnabled =
     typeof window !== "undefined" &&
@@ -1086,14 +1087,43 @@ export function PlaceDiscovery({
 
   return (
     <div
-      className={
-        mobileSearchExpanded
-          ? "flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:block lg:space-y-4 lg:overflow-visible"
-          : "space-y-4"
-      }
+      className="flex min-h-0 flex-1 flex-col gap-3 overflow-hidden lg:block lg:space-y-4 lg:overflow-visible"
+      data-search-area-editing={editingMobileAreas ? "true" : "false"}
       data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
-      <div className={mobileSearchExpanded ? "hidden lg:block" : ""}>
+      <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm lg:hidden">
+        <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
+        {includesPointArea ? (
+          <span className="shrink-0 text-xs text-muted-foreground">
+            Inom {radiusKm ?? 50} km
+          </span>
+        ) : null}
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          aria-expanded={editingMobileAreas}
+          aria-controls="mobile-search-area-editor"
+          className="min-h-11 shrink-0 px-2"
+          onClick={() => {
+            if (!editingMobileAreas) {
+              document.getElementById("place-query")?.blur();
+              onMobileSearchExpandedChange(false);
+            }
+            setEditingMobileAreas((previous) => !previous);
+          }}
+        >
+          {editingMobileAreas ? "Klar" : "Ändra"}
+        </Button>
+      </div>
+      <div
+        id="mobile-search-area-editor"
+        className={
+          editingMobileAreas
+            ? "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-3 lg:overflow-visible"
+            : "hidden lg:block"
+        }
+      >
         <SearchAreaControls
           heading="Sök i"
           addAreaActionLabel="Lägg till område eller adress"
@@ -1108,27 +1138,15 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
         />
       </div>
-      {mobileSearchExpanded ? (
-        <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm lg:hidden">
-          <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
-          {includesPointArea ? (
-            <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
-          ) : null}
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="min-h-10 shrink-0 px-2"
-            onClick={() => {
-              onMobileSearchExpandedChange(false);
-              document.getElementById("place-query")?.blur();
-            }}
-          >
-            Ändra
-          </Button>
-        </div>
-      ) : null}
-
+      <div
+        className={
+          editingMobileAreas
+            ? "hidden lg:block"
+            : mobileSearchExpanded
+              ? "flex min-h-0 flex-1 flex-col lg:block"
+              : "shrink-0"
+        }
+      >
       <PlaceSearchCombobox
         query={query}
         onQueryChange={setQuery}
@@ -1144,8 +1162,9 @@ export function PlaceDiscovery({
         onSelectPlace={activateSearchSuggestion}
         onMissingPlace={onMissingPlace}
       />
+      </div>
 
-      {mobileSearchExpanded && query.trim().length >= 2 ? (
+      {!editingMobileAreas && mobileSearchExpanded && query.trim().length >= 2 ? (
         <Button
           type="button"
           variant="ghost"
@@ -1159,7 +1178,7 @@ export function PlaceDiscovery({
         </Button>
       ) : null}
 
-      {debugEnabled ? (
+      {!editingMobileAreas && debugEnabled ? (
         <details
           data-testid="place-search-debug"
           className="rounded-xl border border-border/70 bg-muted/20 p-2 text-xs"
@@ -1171,7 +1190,13 @@ export function PlaceDiscovery({
         </details>
       ) : null}
 
-      <div className={mobileSearchExpanded ? "hidden lg:block" : ""}>
+      <div
+        className={
+          editingMobileAreas || mobileSearchExpanded
+            ? "hidden lg:block"
+            : "min-h-0 flex-1 overflow-y-auto overscroll-contain pb-2 lg:overflow-visible"
+        }
+      >
         {activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (

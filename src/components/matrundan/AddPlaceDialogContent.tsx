@@ -361,7 +361,7 @@ export function AddPlaceDialogContent({
   // Mobile keyboards resize the visual viewport, not necessarily the layout viewport.
   // Only resize the suggestions surface; never collapse or reset the active search.
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen || !mobileSearchExpanded) return;
+    if (!searchDialogOpen || view !== "search") return;
     const viewport = window.visualViewport;
     const update = () => {
       const dialog = searchDialogRef.current;
@@ -381,7 +381,7 @@ export function AddPlaceDialogContent({
       viewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [mobileSearchExpanded, searchDialogOpen]);
+  }, [searchDialogOpen, view]);
 
   React.useLayoutEffect(() => {
     if (!searchDialogOpen || !returningToSearchRef.current) return;
@@ -414,7 +414,7 @@ export function AddPlaceDialogContent({
         <DialogContent
           ref={searchDialogRef}
           onEscapeKeyDown={(event) => {
-            if (mobileSearchExpanded) {
+            if (mobileSearchExpanded && view === "search") {
               event.preventDefault();
               setMobileSearchExpanded(false);
               document.getElementById("place-query")?.blur();
@@ -429,58 +429,39 @@ export function AddPlaceDialogContent({
             }
           }}
           onOpenAutoFocus={(event) => {
+            if (view === "search" && window.matchMedia("(max-width: 1023px)").matches) {
+              event.preventDefault();
+              searchDialogRef.current?.focus({ preventScroll: true });
+              return;
+            }
             if (!returningToSearchRef.current) return;
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
           data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
+          data-search-shell={view === "search" ? "unified" : "fallback"}
           className={[
-            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto max-lg:top-[6dvh] max-lg:max-h-[88dvh] max-lg:translate-y-0 sm:max-w-5xl",
-            mobileSearchExpanded && view === "search"
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
+            view === "search"
               ? "max-lg:left-0 max-lg:top-[var(--search-viewport-top,0px)] max-lg:h-[var(--search-viewport-height,100dvh)] max-lg:max-h-none max-lg:w-screen max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:flex max-lg:flex-col max-lg:gap-2 max-lg:overflow-hidden max-lg:rounded-none max-lg:border-0 max-lg:p-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
-              mobileSearchExpanded && view === "search"
+              view === "search"
                 ? "max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:space-y-0 max-lg:pr-9 max-lg:shrink-0"
                 : undefined
             }
           >
-            {mobileSearchExpanded && view === "search" ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="min-h-11 min-w-11 lg:hidden"
-                aria-label="Tillbaka till resultaten"
-                onClick={() => {
-                  setMobileSearchExpanded(false);
-                  document.getElementById("place-query")?.blur();
-                }}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            ) : null}
             <DialogTitle
-              className={
-                mobileSearchExpanded && view === "search"
-                  ? "font-display text-lg lg:text-2xl"
-                  : "font-display text-2xl"
-              }
+              className={view === "search" ? "font-display text-lg lg:text-2xl" : "font-display text-2xl"}
             >
               {view === "search" ? (
-                mobileSearchExpanded ? (
-                  <>
-                    <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
-                    <span aria-hidden="true" className="lg:hidden">
-                      Sök matställe
-                    </span>
-                  </>
-                ) : (
-                  "Lägg till matställe"
-                )
+                <>
+                  <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
+                  <span aria-hidden="true" className="lg:hidden">Sök matställe</span>
+                </>
               ) : (
                 "Stället saknas i sökningen"
               )}
