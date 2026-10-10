@@ -81,6 +81,7 @@ export function GeoapifyLocationInput({
   demoMode = false,
   demoFallbackCity = "Göteborg",
   allowBoundaryAreas = false,
+  excludedPlaceIds = [],
 }: {
   id?: string;
   value: string;
@@ -93,6 +94,7 @@ export function GeoapifyLocationInput({
   demoMode?: boolean;
   demoFallbackCity?: string;
   allowBoundaryAreas?: boolean;
+  excludedPlaceIds?: string[];
 }) {
   const [suggestions, setSuggestions] = React.useState<LocationSuggestion[]>([]);
   const [open, setOpen] = React.useState(false);
@@ -220,8 +222,12 @@ export function GeoapifyLocationInput({
     setDone(false);
   }
 
+  const visibleSuggestions = suggestions.filter(
+    (suggestion) => !excludedPlaceIds.includes(suggestion.placeId),
+  );
+
   function moveActive(direction: 1 | -1) {
-    const selectable = suggestions
+    const selectable = visibleSuggestions
       .map((suggestion, index) => ({ suggestion, index }))
       .filter(({ suggestion }) => !suggestion.blocked)
       .map(({ index }) => index);
@@ -239,7 +245,7 @@ export function GeoapifyLocationInput({
 
   function onKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
     if (event.key === "ArrowDown") {
-      if (suggestions.length > 0) {
+      if (visibleSuggestions.length > 0) {
         event.preventDefault();
         setOpen(true);
         moveActive(1);
@@ -247,7 +253,7 @@ export function GeoapifyLocationInput({
       return;
     }
     if (event.key === "ArrowUp") {
-      if (suggestions.length > 0) {
+      if (visibleSuggestions.length > 0) {
         event.preventDefault();
         setOpen(true);
         moveActive(-1);
@@ -255,11 +261,16 @@ export function GeoapifyLocationInput({
       return;
     }
     if (event.key === "Enter" && open) {
-      const activeSuggestion = activeIx >= 0 ? suggestions[activeIx] : undefined;
+      const activeSuggestion = activeIx >= 0 ? visibleSuggestions[activeIx] : undefined;
       const demoSuggestion = demoMode
         ? demoAutocompleteLocations(value, demoFallbackCity, 6)
             .map((row) => toLocationSuggestion(row, allowBoundaryAreas))
-            .find((suggestion) => !suggestion.blocked && matchesDemoInputExactly(suggestion, value))
+            .find(
+              (suggestion) =>
+                !suggestion.blocked &&
+                !excludedPlaceIds.includes(suggestion.placeId) &&
+                matchesDemoInputExactly(suggestion, value),
+            )
         : undefined;
       const suggestion = activeSuggestion ?? demoSuggestion;
       if (suggestion && !suggestion.blocked) {
@@ -274,7 +285,7 @@ export function GeoapifyLocationInput({
     }
   }
 
-  const showList = open && value.trim().length >= 2 && (loading || suggestions.length > 0 || done);
+  const showList = open && value.trim().length >= 2 && (loading || visibleSuggestions.length > 0 || done);
 
   return (
     <div className="relative min-w-0">
@@ -327,14 +338,14 @@ export function GeoapifyLocationInput({
         <ul
           id={id ? `${id}-listbox` : undefined}
           role="listbox"
-          className="relative z-30 mt-1 max-h-[min(38dvh,18rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72"
+          className="relative z-30 mt-1 max-h-[min(38dvh,12rem)] w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md sm:absolute sm:max-h-72"
         >
           {loading && suggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Söker…</li>
-          ) : suggestions.length === 0 ? (
+          ) : visibleSuggestions.length === 0 ? (
             <li className="px-2 py-2 text-muted-foreground">Inga träffar</li>
           ) : (
-            suggestions.map((suggestion, index) => (
+            visibleSuggestions.map((suggestion, index) => (
               <li
                 key={suggestion.placeId}
                 id={id ? `${id}-opt-${index}` : undefined}
