@@ -429,7 +429,7 @@ export function PlaceDiscovery({
       const observations: unknown[] = [];
 
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
-        const isRecoveryPass = recoveryPending;
+        const isRecoveryPass: boolean = recoveryPending;
         const textSearch = query.trim().length >= 2;
         const response = await searchPlaceDiscovery({
           data: {
