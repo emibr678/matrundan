@@ -119,6 +119,7 @@ export function GeoapifyLocationInput({
     const text = value.trim();
     setSelectionError(null);
     if (text.length < 2) {
+      reqRef.current += 1;
       setSuggestions([]);
       setLoading(false);
       setDone(false);
