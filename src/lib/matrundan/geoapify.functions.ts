@@ -34,6 +34,7 @@ import {
   observeSearchWithBudget,
   recordSearchPhaseMs,
   recordSearchCandidateCounts,
+  recordSearchCandidateFlow,
 } from "./place-search-observation.server";
 import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
 import {
@@ -293,12 +294,16 @@ async function searchPlacesAtArea(
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
   const normalized: NormalizedPlaceSuggestion[] = [];
+  let rejectedByIntent = 0;
   for (const feature of json.features ?? []) {
     const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
 
-    if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
+    if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) {
+      rejectedByIntent++;
+      continue;
+    }
     if (anchor || input.nameBias) {
       // Provider distance now refers to the anchor, not the user's search point.
       place.distanceKm =
@@ -316,6 +321,11 @@ async function searchPlacesAtArea(
     const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
+  });
+  recordSearchCandidateFlow({
+    rawPlaces: rawFeatureCount,
+    acceptedPlaces: normalized.length,
+    rejectedByIntent,
   });
 
   return {
@@ -544,12 +554,17 @@ async function searchProviderAreas(
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
   });
+  let rejectedByNearbyDistance = 0;
+  let rejectedByNearbyName = 0;
   const results: MultiAreaPlaceSuggestion[] = rankedResults.flatMap(
     ({ nearestAreaSearchMode, ...result }) => {
       if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
       if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
       const position = { lat: result.lat, lng: result.lng };
-      if (!data.centers.some((center) => distanceKm(center, position) <= expandedRadius)) return [];
+      if (!data.centers.some((center) => distanceKm(center, position) <= expandedRadius)) {
+        rejectedByNearbyDistance++;
+        return [];
+      }
       const distances = data.centers
         .map((center) => ({ center, km: distanceKm(center, position) }))
         .sort((left, right) => left.km - right.km);
@@ -575,8 +590,10 @@ async function searchProviderAreas(
       if (
         !fullName.startsWith(inputName) &&
         !matchesSpecificPlaceName(nameIntent.query, result.name)
-      )
+      ) {
+        rejectedByNearbyName++;
         return [];
+      }
       return [
         {
           ...result,
@@ -591,6 +608,7 @@ async function searchProviderAreas(
     },
   );
 
+  recordSearchCandidateFlow({ rejectedByNearbyDistance, rejectedByNearbyName });
   return {
     results,
     failedAreaLabels,
@@ -884,6 +902,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           candidatePages.forEach((outcome, centerIndex) => {
             if (outcome.status !== "fulfilled") return;
             for (const candidate of outcome.value.results) {
+              recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
               const exact = matchesSpecificPlaceName(intent.query, candidate.name);
               const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
               if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
@@ -958,6 +977,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 });
                 const before = nearbyCandidates.length + typoCandidates.length;
                 for (const place of page.results) {
+                  recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
                   const exact = matchesSpecificPlaceName(intent.query, place.name);
                   const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
                   if (exact || typo) recordCandidate(place, centerIndex, typo);

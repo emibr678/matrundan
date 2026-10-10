@@ -9,6 +9,14 @@ type Observation = {
   providerCalls: { places: number; geocoding: number; other: number };
   phaseMs: { access: number; sources: number; recovery: number; identity: number };
   candidates: { primary: number; canonical: number; nearby: number; typo: number };
+  candidateFlow: {
+    rawPlaces: number;
+    acceptedPlaces: number;
+    rejectedByIntent: number;
+    rejectedByNearbyDistance: number;
+    rejectedByNearbyName: number;
+    recoveryNamesCompared: number;
+  };
 };
 
 const observation = new AsyncLocalStorage<Observation>();
@@ -26,6 +34,14 @@ export async function observePlaceSearch<T extends object>(
     providerCalls: { places: 0, geocoding: 0, other: 0 },
     phaseMs: { access: 0, sources: 0, recovery: 0, identity: 0 },
     candidates: { primary: 0, canonical: 0, nearby: 0, typo: 0 },
+    candidateFlow: {
+      rawPlaces: 0,
+      acceptedPlaces: 0,
+      rejectedByIntent: 0,
+      rejectedByNearbyDistance: 0,
+      rejectedByNearbyName: 0,
+      recoveryNamesCompared: 0,
+    },
   };
   const started = performance.now();
   const result = await withPlaceSearchBudget(limits, () => observation.run(counters, run));
@@ -70,4 +86,13 @@ export function recordSearchPhaseMs(phase: keyof Observation["phaseMs"], millise
 export function recordSearchCandidateCounts(counts: Observation["candidates"]) {
   const counters = observation.getStore();
   if (counters) counters.candidates = counts;
+}
+
+/** Only aggregate candidate counts. No query strings, names or provider identities. */
+export function recordSearchCandidateFlow(counts: Partial<Observation["candidateFlow"]>) {
+  const counters = observation.getStore();
+  if (!counters) return;
+  for (const key of Object.keys(counts) as Array<keyof Observation["candidateFlow"]>) {
+    counters.candidateFlow[key] += counts[key] ?? 0;
+  }
 }
