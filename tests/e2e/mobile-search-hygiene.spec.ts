@@ -308,6 +308,6 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeHidden();
   await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
   await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
-  await listbox.getByRole("option").filter({ hasText: PLACE_NAME }).getByRole("button").click();
+  await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).click();
   await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
 });
