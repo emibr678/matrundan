@@ -27,15 +27,13 @@ const anchors = new Map();
 // Controls distinguish a missing provider place from an invalid location or filter.
 // No raw provider payloads or unrelated names are reported.
 const scenarios = [
-  { label: "Pelikan structured Geocoding / 2 km", kind: "geocoding", name: "Pelikan", radius: 2000 },
-  { label: "Falloumi structured Geocoding / 2 km", kind: "geocoding", name: "Falloumi", radius: 2000 },
-  { label: "Pelikan free-text Geocoding / 2 km", kind: "geocoding", text: "Pelikan Stockholm", radius: 2000 },
-  { label: "Falloumi free-text Geocoding / 2 km", kind: "geocoding", text: "Falloumi Stockholm", radius: 2000 },
-  { label: "Pelikann free-text Geocoding", kind: "geocoding", text: "Pelikann Stockholm" },
-  { label: "Pelikan Geocoding anchor", kind: "geocoding", text: "Pelikan Stockholm", anchorFor: "pelikan" },
-  { label: "Falloumi Geocoding anchor", kind: "geocoding", text: "Falloumi Stockholm", anchorFor: "falloumi" },
-  { label: "Pelikan Places near verified Geocoding location", kind: "places", anchorKey: "pelikan", radius: 150 },
-  { label: "Falloumi Places near verified Geocoding location", kind: "places", anchorKey: "falloumi", radius: 150 },
+  { label: "Pelika partial Geocoding free text", kind: "geocoding", text: "Pelika Stockholm" },
+  { label: "Pelika partial Geocoding structured", kind: "geocoding", name: "Pelika", city: "Stockholm" },
+  { label: "Pelika partial Autocomplete", kind: "autocomplete", text: "Pelika Stockholm" },
+  { label: "Pelikann typo Autocomplete", kind: "autocomplete", text: "Pelikann Stockholm" },
+  { label: "Pelika partial Geocoding without city", kind: "geocoding", text: "Pelika" },
+  { label: "Fallou partial Geocoding", kind: "geocoding", text: "Fallou Stockholm" },
+  { label: "Fallou partial Autocomplete", kind: "autocomplete", text: "Fallou Stockholm" },
 ];
 
 function kmBetween(lat, lon) {
@@ -52,7 +50,7 @@ function normalized(value) {
 function isExpectedName(value, label) {
   const words = normalized(value).split(/[^a-zåäö0-9]+/u);
   const expected = label.includes("CONTROL Geocoding") ? "stockholm" :
-    label.includes("Falloumi") ? "falloumi" : "pelikan";
+    label.includes("Fallou") ? "falloumi" : "pelikan";
   return words.includes(expected);
 }
 
@@ -67,7 +65,11 @@ async function runScenario(scenario) {
   }
   const center = anchor ?? { lat: latitude, lon: longitude };
   const url = new URL(
-    scenario.kind === "geocoding" ? "/v1/geocode/search" : "/v2/places",
+    scenario.kind === "autocomplete"
+      ? "/v1/geocode/autocomplete"
+      : scenario.kind === "geocoding"
+        ? "/v1/geocode/search"
+        : "/v2/places",
     base,
   );
   url.searchParams.set("apiKey", key);
@@ -79,7 +81,7 @@ async function runScenario(scenario) {
   if (scenario.radius != null) {
     url.searchParams.set("filter", "circle:" + center.lon + "," + center.lat + "," + scenario.radius);
   }
-  if (scenario.kind === "geocoding") {
+  if (scenario.kind === "geocoding" || scenario.kind === "autocomplete") {
     url.searchParams.set("type", scenario.type ?? "amenity");
     url.searchParams.set("format", "geojson");
     url.searchParams.set("limit", "5");
