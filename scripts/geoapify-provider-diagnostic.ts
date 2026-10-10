@@ -49,10 +49,9 @@ function normalized(value) {
   return String(value ?? "").toLocaleLowerCase("sv-SE").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").trim();
 }
 function isExpectedName(value, label) {
-  const n = normalized(value);
-  return (label.includes("Falloumi") && n.includes("falloumi")) ||
-    (label.includes("Pelikan") && n.includes("pelikan")) ||
-    (label.includes("Pelikann") && n.includes("pelikan"));
+  const words = normalized(value).split(/[^a-zåäö0-9]+/u);
+  const expected = label.includes("Falloumi") ? "falloumi" : "pelikan";
+  return words.includes(expected);
 }
 
 async function runScenario(scenario) {
