@@ -4,7 +4,11 @@ import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
 import { ManualAddPlaceForm, type ManualAddPlaceSnapshot } from "./ManualAddPlaceForm";
-import { PlaceDiscovery, type PlaceDiscoverySnapshot } from "./PlaceDiscovery";
+import {
+  PlaceDiscovery,
+  type PlaceDiscoveryMobileMode,
+  type PlaceDiscoverySnapshot,
+} from "./PlaceDiscovery";
 import type { SourceMatchResult } from "./SearchResultSections";
 import {
   AlertDialog,
@@ -71,7 +75,7 @@ export function AddPlaceDialogContent({
   const { mode, activeGroupId, exampleMode } = useSession();
   const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
-  const [mobileSearchExpanded, setMobileSearchExpanded] = React.useState(false);
+  const [mobileMode, setMobileMode] = React.useState<PlaceDiscoveryMobileMode>("browse");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
@@ -88,6 +92,7 @@ export function AddPlaceDialogContent({
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
   const searchScrollTopRef = React.useRef(0);
+  const browseScrollTopRef = React.useRef(0);
   const returningToSearchRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -119,6 +124,14 @@ export function AddPlaceDialogContent({
       );
   }, [activeGroupId, mode, state.group.id]);
 
+  function changeMobileMode(next: PlaceDiscoveryMobileMode) {
+    if (next === mobileMode) return;
+    if (mobileMode === "browse" && next !== "browse") {
+      browseScrollTopRef.current = searchDialogRef.current?.scrollTop ?? 0;
+    }
+    setMobileMode(next);
+  }
+
   React.useEffect(() => {
     setPending(null);
     setPendingSourceMatch(null);
@@ -127,7 +140,7 @@ export function AddPlaceDialogContent({
     setDiscoverySnapshot(null);
     setResolutions({});
     setManualSnapshot(null);
-    setMobileSearchExpanded(false);
+    setMobileMode("browse");
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
@@ -139,8 +152,9 @@ export function AddPlaceDialogContent({
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
       setView("search");
-      setMobileSearchExpanded(false);
+      setMobileMode("browse");
       searchScrollTopRef.current = 0;
+      browseScrollTopRef.current = 0;
       returningToSearchRef.current = false;
     }
     onOpenChange(nextOpen);
@@ -152,13 +166,13 @@ export function AddPlaceDialogContent({
   }
 
   function beginAdd(suggestion: PlaceSuggestion) {
-    setMobileSearchExpanded(false);
+    setMobileMode("browse");
     rememberSearchPosition();
     setPending(suggestion);
   }
 
   function beginSourceMatch(match: SourceMatchResult) {
-    setMobileSearchExpanded(false);
+    setMobileMode("browse");
     rememberSearchPosition();
     setPendingSourceMatch(match);
   }
@@ -361,7 +375,7 @@ export function AddPlaceDialogContent({
   // Mobile keyboards resize the visual viewport, not necessarily the layout viewport.
   // Only resize the suggestions surface; never collapse or reset the active search.
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen || view !== "search" || !mobileSearchExpanded) return;
+    if (!searchDialogOpen || view !== "search" || mobileMode !== "search") return;
     const viewport = window.visualViewport;
     const update = () => {
       const dialog = searchDialogRef.current;
@@ -371,6 +385,7 @@ export function AddPlaceDialogContent({
         `${Math.max(200, viewport?.height ?? window.innerHeight)}px`,
       );
       dialog.style.setProperty("--search-viewport-top", `${viewport?.offsetTop ?? 0}px`);
+      dialog.scrollTop = 0;
     };
     update();
     viewport?.addEventListener("resize", update);
@@ -381,7 +396,20 @@ export function AddPlaceDialogContent({
       viewport?.removeEventListener("scroll", update);
       window.removeEventListener("resize", update);
     };
-  }, [mobileSearchExpanded, searchDialogOpen, view]);
+  }, [mobileMode, searchDialogOpen, view]);
+
+  // Keep the search field visible when the keyboard opens and restore browse position on exit.
+  React.useLayoutEffect(() => {
+    if (!searchDialogOpen || view !== "search" || returningToSearchRef.current) return;
+    const dialog = searchDialogRef.current;
+    if (!dialog) return;
+    const top = mobileMode === "browse" ? browseScrollTopRef.current : 0;
+    dialog.scrollTop = top;
+    const frame = window.requestAnimationFrame(() => {
+      dialog.scrollTop = top;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [mobileMode, searchDialogOpen, view]);
 
   React.useLayoutEffect(() => {
     if (!searchDialogOpen || !returningToSearchRef.current) return;
@@ -414,9 +442,9 @@ export function AddPlaceDialogContent({
         <DialogContent
           ref={searchDialogRef}
           onEscapeKeyDown={(event) => {
-            if (mobileSearchExpanded && view === "search") {
+            if (mobileMode === "search" && view === "search") {
               event.preventDefault();
-              setMobileSearchExpanded(false);
+              setMobileMode("browse");
               document.getElementById("place-query")?.blur();
               return;
             }
@@ -438,23 +466,23 @@ export function AddPlaceDialogContent({
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
-          data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
-          data-search-shell={mobileSearchExpanded && view === "search" ? "focused" : "browse"}
+          data-search-mode={mobileMode === "search" && view === "search" ? "expanded" : "normal"}
+          data-search-shell={mobileMode === "search" && view === "search" ? "focused" : "browse"}
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-5xl sm:rounded-lg",
-            mobileSearchExpanded && view === "search"
+            mobileMode === "search" && view === "search"
               ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
-              mobileSearchExpanded && view === "search"
+              mobileMode === "search" && view === "search"
                 ? "max-lg:relative max-lg:flex-row max-lg:items-center max-lg:justify-center max-lg:space-y-0 max-lg:px-11 max-lg:text-center"
                 : undefined
             }
           >
-            {mobileSearchExpanded && view === "search" ? (
+            {mobileMode === "search" && view === "search" ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -462,7 +490,7 @@ export function AddPlaceDialogContent({
                 aria-label="Tillbaka till resultaten"
                 className="min-h-11 min-w-11 max-lg:absolute max-lg:left-0 lg:hidden"
                 onClick={() => {
-                  setMobileSearchExpanded(false);
+                  setMobileMode("browse");
                   document.getElementById("place-query")?.blur();
                 }}
               >
@@ -471,7 +499,7 @@ export function AddPlaceDialogContent({
             ) : null}
             <DialogTitle className="font-display text-2xl">
               {view === "search" ? (
-                mobileSearchExpanded ? (
+                mobileMode === "search" ? (
                   <>
                     <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
                     <span aria-hidden="true" className="lg:hidden">
@@ -501,8 +529,8 @@ export function AddPlaceDialogContent({
               bulkBusy={bulkBusy || sourceLinkBusy}
               snapshot={discoverySnapshot}
               onSnapshotChange={setDiscoverySnapshot}
-              mobileSearchExpanded={mobileSearchExpanded}
-              onMobileSearchExpandedChange={setMobileSearchExpanded}
+              mobileMode={mobileMode}
+              onMobileModeChange={changeMobileMode}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
@@ -511,7 +539,7 @@ export function AddPlaceDialogContent({
               onBeginAdd={beginAdd}
               onLinkSource={beginSourceMatch}
               onMissingPlace={() => {
-                setMobileSearchExpanded(false);
+                setMobileMode("browse");
                 setView("fallback");
               }}
               onClose={() => handleOpenChange(false)}
