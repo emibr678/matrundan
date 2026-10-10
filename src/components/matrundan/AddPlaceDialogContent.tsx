@@ -443,7 +443,7 @@ export function AddPlaceDialogContent({
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
             mobileSearchExpanded && view === "search"
-              ? "max-lg:top-[calc(var(--search-viewport-top,0px)+0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)-1rem)] max-lg:translate-y-0 max-lg:rounded-xl max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:rounded-xl max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
