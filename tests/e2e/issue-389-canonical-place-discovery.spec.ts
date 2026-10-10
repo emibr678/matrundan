@@ -447,7 +447,7 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   await expect(
     suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
   ).toBeVisible();
-  await search.getByRole("button", { name: "Visa alla resultat" }).click();
+  await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
   await expect(suggestions).toHaveCount(0);
   await expect(
     search.getByRole("button", { name: "Redan i gruppen (1)", exact: true }),

@@ -125,7 +125,9 @@ test("normalläget är enkelt och flera sökträffar kan väljas i ett separat l
   await expect(dialog.getByText(/ställen valda/)).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Välj flera", exact: true })).toBeVisible();
   await expect(mapToggle).toHaveAttribute("aria-pressed", "true");
-  await expect(radius).toContainText("10 km");
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText(
+    "Inom 10 km",
+  );
 
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
   const existing = existingSection(dialog, initialExistingCount + 2);
