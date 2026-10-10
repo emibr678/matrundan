@@ -416,7 +416,7 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
     await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius),
   ).toBe(browseCorner);
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toHaveCount(0);
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
   await expectInsideViewport(page, input, "Fokuserat sökfält");
 
