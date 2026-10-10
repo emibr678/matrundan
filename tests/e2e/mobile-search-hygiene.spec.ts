@@ -324,7 +324,7 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await expect(placeSuggestionButton(page)).toBeVisible();
 });
 
-test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista", async ({ page }) => {
+test("mobil sökträff väljs med touch utan oavsiktlig Google Maps-navigering", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 620 });
   const dialog = await openPlaceSearch(page);
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
@@ -334,8 +334,17 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeHidden();
   await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
   await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
-  await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).click();
-  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
+  const unexpectedPopups: Page[] = [];
+  page.on("popup", (popup) => unexpectedPopups.push(popup));
+  await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).tap();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details).toBeVisible();
+  await expect(
+    details.getByRole("link", { name: `Öppna ${PLACE_NAME} i Google Maps` }),
+  ).toBeVisible();
+  await page.waitForTimeout(200);
+  expect(unexpectedPopups, "Touch på förslag får inte aktivera Google Maps-länken").toHaveLength(0);
+  await expect(page).toHaveURL(/\/matstallen/);
 });
 
 test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({

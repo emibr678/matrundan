@@ -1508,7 +1508,6 @@ function PlaceSearchCombobox({
   const [activeIx, setActiveIx] = React.useState(-1);
   const inputRef = React.useRef<HTMLInputElement>(null);
   const blurTimeoutRef = React.useRef<number | null>(null);
-  const touchedOptionRef = React.useRef(false);
   const listboxRef = React.useRef<HTMLDivElement>(null);
   const [canScrollSuggestions, setCanScrollSuggestions] = React.useState(false);
   const genericOptions: PlaceSearchOption[] = genericSuggestions
@@ -1666,20 +1665,11 @@ function PlaceSearchCombobox({
                   "flex w-full min-w-0 items-center gap-2 rounded px-2 py-2 text-left hover:bg-accent",
                   optionIndex === activeIx ? "bg-accent" : "",
                 ].join(" ")}
-                onPointerDown={(event) => {
-                  if (event.pointerType !== "touch") return;
-                  event.preventDefault();
-                  touchedOptionRef.current = true;
-                  select(option);
-                }}
+                // Commit selection on click/tap release. Selecting on touch pointerdown
+                // can mount the details dialog beneath the still-active finger,
+                // potentially activating its Google Maps link on release.
                 onMouseDown={(event) => event.preventDefault()}
-                onClick={() => {
-                  if (touchedOptionRef.current) {
-                    touchedOptionRef.current = false;
-                    return;
-                  }
-                  select(option);
-                }}
+                onClick={() => select(option)}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block min-w-0 break-words font-medium text-foreground">
