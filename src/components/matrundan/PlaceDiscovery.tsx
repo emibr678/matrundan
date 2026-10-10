@@ -1493,12 +1493,8 @@ function PlaceSearchCombobox({
   }, []);
 
   React.useEffect(() => {
-    if (!focused || !window.matchMedia("(max-width: 1023px)").matches) return;
-    const timer = window.setTimeout(
-      () => inputRef.current?.scrollIntoView({ block: "nearest" }),
-      0,
-    );
-    return () => window.clearTimeout(timer);
+    // Leaving the dedicated mobile search also dismisses any old popup state.
+    if (!focused && document.activeElement !== inputRef.current) setOpen(false);
   }, [focused]);
 
   function select(option: PlaceSearchOption) {
@@ -1643,7 +1639,7 @@ function PlaceSearchCombobox({
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
             blurTimeoutRef.current = null;
             setOpen(true);
-            onFocusChange(true);
+            if (window.matchMedia("(max-width: 1023px)").matches) onFocusChange(true);
           }}
           onBlur={() => {
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
