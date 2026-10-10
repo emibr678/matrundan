@@ -850,6 +850,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         ) => {
           if (seen.has(candidate.externalId)) return;
           const center = data.centers[centerIndex];
+          const isPointCenter = center.searchMode !== "boundary";
           const distances =
             allPoints && candidate.lat != null && candidate.lng != null
               ? data.centers.map((area) => ({
@@ -860,6 +861,14 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           const selectedRadius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
           const maxRadius = retrievalRadius ?? WIDE_AREA_RADIUS_KM;
           if (allPoints && (!distances.length || distances.every(({ km }) => km > maxRadius)))
+            return;
+          // In a mixed boundary+point search, the point still uses its selected
+          // radius and actual coordinates, not the boundary's provider filter.
+          const mixedPointDistance =
+            !allPoints && isPointCenter && candidate.lat != null && candidate.lng != null
+              ? distanceKm(center, { lat: candidate.lat, lng: candidate.lng })
+              : null;
+          if (!allPoints && isPointCenter && (mixedPointDistance == null || mixedPointDistance > selectedRadius))
             return;
           const primary = allPoints
             ? distances.filter(({ km }) => km <= selectedRadius).map(({ area }) => area)
@@ -872,7 +881,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             ...candidate,
             nearestAreaLabel: nearest?.area.label ?? center.label,
             nearestAreaId: nearest?.area.id ?? center.id,
-            distanceKm: nearest?.km ?? candidate.distanceKm,
+            distanceKm: nearest?.km ?? mixedPointDistance ?? candidate.distanceKm,
             matchingAreaLabels: primary.map((area) => area.label),
             matchingAreaIds: primary.map((area) => area.id),
             searchAreaGroup: primary.length ? undefined : ("nearby" as const),
@@ -916,8 +925,9 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         if (nearbyCandidates.length === 0 && typoCandidates.length === 0) {
           await Promise.allSettled(
             data.centers.map(async (center, centerIndex) => {
+              const isPointCenter = center.searchMode !== "boundary";
               const url = new URL("https://api.geoapify.com/v1/geocode/search");
-              if (allPoints) {
+              if (isPointCenter) {
                 // Search by name with a coordinate bias: the area label may be
                 // an address, neighbourhood or a legacy point rather than a city.
                 // Geocoding's circle filter can exclude genuine nearby venues;
@@ -963,7 +973,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 const typoSeed = !exactSeed && matchesTypoPlaceName(intent.query, seed.name);
                 if (!exactSeed && !typoSeed) continue;
                 if (
-                  allPoints &&
+                  isPointCenter &&
                   distanceKm(center, { lat, lng }) > (retrievalRadius ?? WIDE_AREA_RADIUS_KM)
                 )
                   continue;
@@ -974,7 +984,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 const verifyPage = (page: PlaceSearchPage) => {
                   for (const place of page.results) {
                     if (
-                      allPoints &&
+                      isPointCenter &&
                       (place.lat == null ||
                         place.lng == null ||
                         distanceKm({ lat, lng }, { lat: place.lat, lng: place.lng }) > 0.15)
@@ -990,16 +1000,16 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                   searchPlacesAtArea({
                     // Geocoding supplies a position, never a venue identity.
                     // Point verification must omit the broken provider name filter.
-                    text: allPoints ? undefined : seed.name,
-                    lat: allPoints ? lat : center.lat,
-                    lng: allPoints ? lng : center.lng,
+                    text: isPointCenter ? undefined : seed.name,
+                    lat: isPointCenter ? lat : center.lat,
+                    lng: isPointCenter ? lng : center.lng,
                     searchMode: center.searchMode ?? "point",
                     placeId: center.placeId,
-                    radiusKm: allPoints ? 0.15 : retrievalRadius,
+                    radiusKm: isPointCenter ? 0.15 : retrievalRadius,
                     limit: 20,
                     offset,
                     allowNameAnchorRecovery: false,
-                    nameBias: allPoints ? undefined : { lat, lng },
+                    nameBias: isPointCenter ? undefined : { lat, lng },
                   });
                 attempts++;
                 const firstPage = await searchAtAnchor(0);
@@ -1007,7 +1017,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 // Dense blocks can push the exact venue off page one. Fetch at
                 // most one continuation, shared with the second-anchor budget.
                 if (
-                  allPoints &&
+                  isPointCenter &&
                   firstPage.hasMore &&
                   nearbyCandidates.length + typoCandidates.length === before &&
                   attempts < 2
@@ -1019,7 +1029,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 // or a second plausible anchor, not an unbounded combination.
                 if (
                   nearbyCandidates.length + typoCandidates.length > before ||
-                  attempts >= (allPoints ? 2 : 3)
+                  attempts >= (isPointCenter ? 2 : 3)
                 )
                   break;
               }

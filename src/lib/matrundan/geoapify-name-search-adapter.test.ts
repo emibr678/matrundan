@@ -809,6 +809,57 @@ test("geografisk sökledtråd styrs av koordinat, inte sökområdets visningsnam
   expect(geocoding?.searchParams.get("bias")).toBe(centerBias);
 });
 
+test("blandade punkt- och boundaryområden håller point-recovery inom radie utan place:undefined", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC " + name);
+      },
+    },
+  };
+  const boundary = {
+    ...area,
+    id: "boundary",
+    label: "Stockholms kommun",
+    searchMode: "boundary" as const,
+    placeId: "verified-boundary",
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search")
+      return {
+        features: url.searchParams.get("text") === "Falloumi" ? [seedWithName("Falloumi")] : [],
+      };
+    if (url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)
+      return { features: [place("mixed-area-falloumi", "Falloumi")] };
+    return { features: [] };
+  }, context);
+  const recovered = await a.discovery({
+    text: "Falloumi",
+    centers: [area, boundary],
+    radiusKm: 2,
+    searchPhase: "recovery",
+  });
+  const match = recovered.results.find((result) => result.externalId === "mixed-area-falloumi");
+  expect(match?.nearestAreaId).toBe(area.id);
+  expect(match?.distanceKm).toBeGreaterThan(1);
+  expect(match?.distanceKm).toBeLessThan(2);
+  expect(
+    a.calls.some((url) => url.searchParams.get("filter") === "place:undefined"),
+  ).toBe(false);
+  expect(
+    a.calls.some(
+      (url) => url.pathname === "/v1/geocode/search" &&
+        url.searchParams.get("text") === "Falloumi" && !url.searchParams.has("filter"),
+    ),
+  ).toBe(true);
+  expect(recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
 test("geokodningsledtråd kan inte ge träff utanför utökad radie eller utan verifierat Places-namn", async () => {
   const context: FixtureContext = {
     supabase: {
