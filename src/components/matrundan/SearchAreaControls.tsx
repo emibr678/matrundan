@@ -128,14 +128,14 @@ function InlineSearchRadius({
       <SelectTrigger
         id="place-radius"
         aria-label="Avstånd runt adresser och platser"
-        className="h-8 w-auto shrink-0 gap-1 rounded-full border-border/60 bg-muted/50 px-2.5 text-xs font-normal text-muted-foreground"
+        className="h-9 w-auto shrink-0 gap-1 rounded-lg border-border/60 bg-muted/50 px-3 text-sm font-normal"
       >
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
-            {`Inom ${value} km`}
+            {`${value} km`}
           </SelectItem>
         ))}
       </SelectContent>
@@ -211,18 +211,8 @@ export function SearchAreaControls({
   }
 
   return (
-    <section className="space-y-2" aria-label={heading}>
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium">{heading}</h3>
-        {pointCount > 0 ? (
-          <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
-        ) : boundaryCount > 0 ? (
-          <span className="rounded-full border border-border/60 bg-muted/50 px-2.5 py-1.5 text-xs text-muted-foreground">
-            Söker inom områdesgränser
-          </span>
-        ) : null}
-      </div>
-
+    <section className="space-y-3" aria-label={heading}>
+      <h3 className="sr-only">{heading}</h3>
       <SelectedAreas
         savedAreas={selectedSavedAreas}
         temporaryAreas={temporaryAreas}
@@ -258,9 +248,19 @@ export function SearchAreaControls({
         </div>
       )}
 
+      {pointCount > 0 ? (
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <Label htmlFor="place-radius" className="min-w-0 text-sm text-muted-foreground">
+            Avstånd från valda platser
+          </Label>
+          <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
+        </div>
+      ) : boundaryCount > 0 ? (
+        <p className="text-xs text-muted-foreground">Söker inom de valda områdenas gränser.</p>
+      ) : null}
       {boundaryCount > 0 && pointCount > 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Avståndet gäller platser utan områdesgräns.
+          Avståndet gäller bara platser utan områdesgräns.
         </p>
       ) : null}
     </section>
