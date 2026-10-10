@@ -435,7 +435,7 @@ export function AddPlaceDialogContent({
           }}
           data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
           className={[
-            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto max-lg:top-[6dvh] max-lg:max-h-[88dvh] max-lg:translate-y-0 sm:max-w-5xl",
             mobileSearchExpanded && view === "search"
               ? "max-lg:left-0 max-lg:top-[var(--search-viewport-top,0px)] max-lg:h-[var(--search-viewport-height,100dvh)] max-lg:max-h-none max-lg:w-screen max-lg:max-w-none max-lg:translate-x-0 max-lg:translate-y-0 max-lg:flex max-lg:flex-col max-lg:gap-2 max-lg:overflow-hidden max-lg:rounded-none max-lg:border-0 max-lg:p-3 max-lg:duration-0"
               : "",

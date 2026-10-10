@@ -311,3 +311,28 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).click();
   await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
 });
+
+
+test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const normalY = (await dialog.boundingBox())!.y;
+  await input.fill("Italien");
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  const listbox = dialog.getByRole("listbox");
+  const cuisine = listbox.getByRole("button", { name: /Italienskt/ });
+  await expect(cuisine).toBeVisible();
+  await cuisine.click();
+  await expect(input).toHaveValue("Italienskt");
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Inriktning vald i mobil sökyta");
+  await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  const afterY = (await dialog.boundingBox())!.y;
+  expect(Math.abs(afterY - normalY)).toBeLessThanOrEqual(2);
+  await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
+});

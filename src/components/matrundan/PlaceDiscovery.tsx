@@ -1454,13 +1454,16 @@ function PlaceSearchCombobox({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const blurTimeoutRef = React.useRef<number | null>(null);
   const touchedOptionRef = React.useRef(false);
-  const genericOptions: PlaceSearchOption[] = genericSuggestions.slice(0, 2).map((suggestion) => ({
-    kind: "generic",
-    key: suggestion.id,
-    label: suggestion.label,
-    meta: suggestion.groupLabel,
-    searchValue: suggestion.searchValue,
-  }));
+  const genericOptions: PlaceSearchOption[] = genericSuggestions
+    .filter((suggestion) => suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"))
+    .slice(0, 2)
+    .map((suggestion) => ({
+      kind: "generic",
+      key: suggestion.id,
+      label: suggestion.label,
+      meta: suggestion.groupLabel,
+      searchValue: suggestion.searchValue,
+    }));
   const placeOptions: PlaceSearchOption[] = placeSuggestions
     .slice(0, 5 - genericOptions.length)
     .map((suggestion) => ({
@@ -1499,8 +1502,15 @@ function PlaceSearchCombobox({
   }, [focused]);
 
   function select(option: PlaceSearchOption) {
-    if (option.kind === "generic") onQueryChange(option.label);
-    else onSelectPlace(option.suggestion);
+    if (option.kind === "generic") {
+      // Choosing a cuisine/type refines the current search; it is not an exit
+      // from search mode. Keep the input and scrollable suggestions stable.
+      onQueryChange(option.label);
+      setActiveIx(-1);
+      inputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    onSelectPlace(option.suggestion);
     setOpen(false);
     onFocusChange(false);
     inputRef.current?.blur();
