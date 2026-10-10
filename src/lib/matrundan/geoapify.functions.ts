@@ -922,7 +922,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 // venues. Use a location hint, then independently enforce
                 // the permitted nearby radius against the candidate position.
                 const locationHint = center.label.split(",")[0].trim();
-                url.searchParams.set("text", [intent.query, locationHint].filter(Boolean).join(" "));
+                url.searchParams.set(
+                  "text",
+                  [intent.query, locationHint].filter(Boolean).join(" "),
+                );
               } else {
                 // Verified boundary selections retain their existing lookup.
                 url.searchParams.set("name", intent.query);
