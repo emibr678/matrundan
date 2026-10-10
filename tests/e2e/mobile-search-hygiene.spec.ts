@@ -357,13 +357,19 @@ test("sökområde och radie ändras i samma mobila sökvy utan att förlora sök
   const top = (await dialog.boundingBox())!.y;
   await dialog.getByRole("button", { name: "Ändra", exact: true }).click();
   await expect(dialog).toHaveAttribute("data-search-shell", "unified");
-  await expect(dialog).toHaveAttribute("data-search-area-editing", "true");
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "true",
+  );
   await expect(input).toBeHidden();
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toBeVisible();
   expect((await dialog.boundingBox())!.y).toBeCloseTo(top, 0);
   await dialog.getByRole("button", { name: "Klar", exact: true }).click();
-  await expect(dialog).toHaveAttribute("data-search-area-editing", "false");
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "false",
+  );
   await expect(input).toHaveValue("Pelikan");
   await expect(dialog).toHaveAttribute("data-search-shell", "unified");
   expect((await dialog.boundingBox())!.y).toBeCloseTo(top, 0);
