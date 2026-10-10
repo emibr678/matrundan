@@ -7,7 +7,7 @@ import {
   presentPlaceSearchResults,
   unambiguousPlaceCandidate,
 } from "@/lib/matrundan/place-discovery";
-import { Check, ChevronRight, List, Loader2, Map, Plus, Search } from "lucide-react";
+import { Check, ChevronRight, List, Loader2, Map, Plus, Search, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { MatrundanBrand } from "./MatrundanBrand";
@@ -107,6 +107,8 @@ export function PlaceDiscovery({
   bulkBusy,
   snapshot,
   onSnapshotChange,
+  mobileSearchExpanded,
+  onMobileSearchExpandedChange,
   onToggleSelected,
   onClearSelected,
   onAddSelected,
@@ -122,6 +124,8 @@ export function PlaceDiscovery({
   bulkBusy: boolean;
   snapshot?: PlaceDiscoverySnapshot | null;
   onSnapshotChange?: (snapshot: PlaceDiscoverySnapshot) => void;
+  mobileSearchExpanded: boolean;
+  onMobileSearchExpandedChange: (expanded: boolean) => void;
   onToggleSelected: (suggestion: PlaceSuggestion) => void;
   onClearSelected: () => void;
   onAddSelected: () => void;
@@ -144,7 +148,6 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
-  const [searchFocused, setSearchFocused] = React.useState(false);
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -1058,7 +1061,7 @@ export function PlaceDiscovery({
   const includesPointArea = activeAreas.some((area) => searchAreaMode(area) === "point");
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
-    setSearchFocused(false);
+    onMobileSearchExpandedChange(false);
     const sourceMatch = allSourceMatches.find(
       (match) => match.result.externalId === suggestion.externalId,
     );
@@ -1081,10 +1084,14 @@ export function PlaceDiscovery({
 
   return (
     <div
-      className="space-y-4"
+      className={
+        mobileSearchExpanded
+          ? "flex min-h-0 flex-1 flex-col gap-2 overflow-hidden lg:block lg:space-y-4 lg:overflow-visible"
+          : "space-y-4"
+      }
       data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
-      <div className={searchFocused ? "hidden lg:block" : ""}>
+      <div className={mobileSearchExpanded ? "hidden lg:block" : ""}>
         <SearchAreaControls
           heading="Sök i"
           addAreaActionLabel="Lägg till område eller adress"
@@ -1099,7 +1106,7 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
         />
       </div>
-      {searchFocused ? (
+      {mobileSearchExpanded ? (
         <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm lg:hidden">
           <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
           {includesPointArea ? (
@@ -1111,7 +1118,7 @@ export function PlaceDiscovery({
             variant="ghost"
             className="min-h-10 shrink-0 px-2"
             onClick={() => {
-              setSearchFocused(false);
+              onMobileSearchExpandedChange(false);
               document.getElementById("place-query")?.blur();
             }}
           >
@@ -1130,11 +1137,25 @@ export function PlaceDiscovery({
         onRetry={() => setRetry((value) => value + 1)}
         genericSuggestions={genericSuggestions}
         placeSuggestions={placeAutocompleteSuggestions}
-        focused={searchFocused}
-        onFocusChange={setSearchFocused}
+        focused={mobileSearchExpanded}
+        onFocusChange={onMobileSearchExpandedChange}
         onSelectPlace={activateSearchSuggestion}
         onMissingPlace={onMissingPlace}
       />
+
+      {mobileSearchExpanded && query.trim().length >= 2 ? (
+        <Button
+          type="button"
+          variant="ghost"
+          className="min-h-11 w-full shrink-0 lg:hidden"
+          onClick={() => {
+            onMobileSearchExpandedChange(false);
+            document.getElementById("place-query")?.blur();
+          }}
+        >
+          Visa alla resultat <ChevronRight className="ml-1 h-4 w-4" />
+        </Button>
+      ) : null}
 
       {debugEnabled ? (
         <details
@@ -1148,7 +1169,7 @@ export function PlaceDiscovery({
         </details>
       ) : null}
 
-      <div className={searchFocused ? "hidden lg:block" : ""}>
+      <div className={mobileSearchExpanded ? "hidden lg:block" : ""}>
         {activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (
@@ -1434,20 +1455,22 @@ function PlaceSearchCombobox({
   const inputRef = React.useRef<HTMLInputElement>(null);
   const blurTimeoutRef = React.useRef<number | null>(null);
   const touchedOptionRef = React.useRef(false);
-  const genericOptions: PlaceSearchOption[] = genericSuggestions.map((suggestion) => ({
+  const genericOptions: PlaceSearchOption[] = genericSuggestions.slice(0, 2).map((suggestion) => ({
     kind: "generic",
     key: suggestion.id,
     label: suggestion.label,
     meta: suggestion.groupLabel,
     searchValue: suggestion.searchValue,
   }));
-  const placeOptions: PlaceSearchOption[] = placeSuggestions.map((suggestion) => ({
+  const placeOptions: PlaceSearchOption[] = placeSuggestions
+    .slice(0, 5 - genericOptions.length)
+    .map((suggestion) => ({
     kind: "place",
     key: suggestion.externalId,
     label: suggestion.name,
     meta: placeOptionMeta(suggestion),
-    suggestion,
-  }));
+      suggestion,
+    }));
   const isInternalOption = (option: PlaceSearchOption) =>
     option.kind === "place" &&
     (option.suggestion.kind === "canonical" ||
@@ -1457,7 +1480,7 @@ function PlaceSearchCombobox({
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList = open && hasQuery;
+  const showList = (open || focused) && hasQuery;
   const canOfferMissing =
     !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
 
@@ -1478,23 +1501,6 @@ function PlaceSearchCombobox({
     return () => window.clearTimeout(timer);
   }, [focused]);
 
-  React.useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) return;
-    let previousHeight = viewport.height;
-    const onResize = () => {
-      const nextHeight = viewport.height;
-      // Android keyboard dismissal may resize the viewport without blurring the input.
-      if (nextHeight - previousHeight > 120) {
-        setOpen(false);
-        onFocusChange(false);
-      }
-      previousHeight = nextHeight;
-    };
-    viewport.addEventListener("resize", onResize);
-    return () => viewport.removeEventListener("resize", onResize);
-  }, [onFocusChange]);
-
   function select(option: PlaceSearchOption) {
     if (option.kind === "generic") onQueryChange(option.label);
     else onSelectPlace(option.suggestion);
@@ -1506,6 +1512,7 @@ function PlaceSearchCombobox({
 
   function activateMissingPlace() {
     setOpen(false);
+    onFocusChange(false);
     setActiveIx(-1);
     onMissingPlace();
   }
@@ -1535,7 +1542,10 @@ function PlaceSearchCombobox({
       return;
     }
     if (event.key === "Escape") {
+      event.preventDefault();
       setOpen(false);
+      onFocusChange(false);
+      inputRef.current?.blur();
       setActiveIx(-1);
     }
   }
@@ -1607,14 +1617,22 @@ function PlaceSearchCombobox({
   }
 
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor="place-query">Sök matställen</Label>
-      <div className="relative min-w-0">
+    <div
+      className={
+        focused ? "flex min-h-0 flex-1 flex-col gap-2 lg:block lg:space-y-1.5" : "space-y-1.5"
+      }
+    >
+      <Label htmlFor="place-query" className={focused ? "sr-only lg:not-sr-only" : undefined}>
+        Sök matställen
+      </Label>
+      <div
+        className={focused ? "relative flex min-h-0 flex-1 flex-col lg:block" : "relative min-w-0"}
+      >
         <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
           ref={inputRef}
           id="place-query"
-          className="pl-9"
+          className="shrink-0 pl-9 pr-10"
           placeholder="Namn, kök eller typ"
           value={query}
           onChange={(event) => {
@@ -1630,8 +1648,8 @@ function PlaceSearchCombobox({
           onBlur={() => {
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
             blurTimeoutRef.current = window.setTimeout(() => {
-              setOpen(false);
-              onFocusChange(false);
+              // Keyboard dismissal must not close the active search view.
+              if (!focused) setOpen(false);
               blurTimeoutRef.current = null;
             }, 150);
           }}
@@ -1643,6 +1661,20 @@ function PlaceSearchCombobox({
           aria-controls="place-search-listbox"
           aria-activedescendant={activeIx >= 0 ? `place-search-opt-${activeIx}` : undefined}
         />
+        {query.length > 0 ? (
+          <button
+            type="button"
+            aria-label="Rensa sökning"
+            className="absolute right-1 top-0 flex min-h-11 min-w-10 items-center justify-center text-muted-foreground"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={() => {
+              onQueryChange("");
+              inputRef.current?.focus();
+            }}
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
         {showList ? (
           <div
             id="place-search-listbox"
@@ -1652,7 +1684,7 @@ function PlaceSearchCombobox({
             className={[
               "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
               focused
-                ? "relative mt-2 max-h-[min(38dvh,17rem)] lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                ? "relative mt-2 min-h-0 flex-1 max-h-none lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
                 : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
             ].join(" ")}
           >
