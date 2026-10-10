@@ -441,16 +441,16 @@ export function AddPlaceDialogContent({
           data-search-mode={mobileSearchExpanded && view === "search" ? "expanded" : "normal"}
           data-search-shell={mobileSearchExpanded && view === "search" ? "focused" : "browse"}
           className={[
-            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl",
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-5xl sm:rounded-lg",
             mobileSearchExpanded && view === "search"
-              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:rounded-xl max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
               mobileSearchExpanded && view === "search"
-                ? "max-lg:flex-row max-lg:items-center max-lg:gap-2 max-lg:space-y-0 max-lg:pr-9 max-lg:text-left"
+                ? "max-lg:relative max-lg:flex-row max-lg:items-center max-lg:justify-center max-lg:space-y-0 max-lg:px-11 max-lg:text-center"
                 : undefined
             }
           >
@@ -460,7 +460,7 @@ export function AddPlaceDialogContent({
                 variant="ghost"
                 size="icon"
                 aria-label="Tillbaka till resultaten"
-                className="min-h-11 min-w-11 lg:hidden"
+                className="min-h-11 min-w-11 max-lg:absolute max-lg:left-0 lg:hidden"
                 onClick={() => {
                   setMobileSearchExpanded(false);
                   document.getElementById("place-query")?.blur();
