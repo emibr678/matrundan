@@ -76,16 +76,3 @@ export function typoProviderSearchSeed(query: string): string | null {
   if (!anchor) return null;
   return tokens.length > 1 ? anchor : anchor.slice(0, Math.min(anchor.length - 2, 6));
 }
-
-/**
- * A second Places name probe after a failed prefix search. A single trailing
- * doubled letter is a safe candidate spelling to try (Pelikann → pelikan).
- * This is retrieval only; it does not verify or merge a place identity.
- */
-export function preciseProviderRecoverySeed(query: string): string | null {
-  if (!isSpecificPlaceName(query)) return null;
-  const words = normalizePlaceIdentity(query).split(" ").filter(Boolean);
-  if (words.length !== 1) return null;
-  const word = words[0];
-  return word.length >= 6 && /([a-zåäö])\1$/u.test(word) ? word.slice(0, -1) : word;
-}

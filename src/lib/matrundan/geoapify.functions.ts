@@ -26,12 +26,8 @@ import {
 import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
 import { distanceKm } from "./manual-place-source-linking";
 import { isBoundaryEligibleResultType } from "./search-areas";
-import { expandedNameRadiusKm, nameRecoveryProbeRadiusKm } from "./place-search-expansion";
-import {
-  matchesTypoPlaceName,
-  preciseProviderRecoverySeed,
-  typoProviderSearchSeed,
-} from "./place-search-typo";
+import { expandedNameRadiusKm } from "./place-search-expansion";
+import { matchesTypoPlaceName, typoProviderSearchSeed } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import {
   observeProviderRequest,
@@ -912,40 +908,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
             }
           });
-        }
-
-        // When a shortened name fails to retrieve any candidate, try a
-        // precise name (or one trailing-double-letter correction) with a small
-        // provider-only overscan. The already bounded nearby radius above
-        // remains the final result gate; this never widens displayed geography.
-        if (allPoints && nearbyCandidates.length === 0 && typoCandidates.length === 0) {
-          const preciseName = preciseProviderRecoverySeed(intent.query);
-          const probeRadius = nameRecoveryProbeRadiusKm(data.radiusKm);
-          if (preciseName && probeRadius != null) {
-            const probedPages = await Promise.allSettled(
-              data.centers.map((center) =>
-                searchPlacesAtArea({
-                  text: preciseName,
-                  lat: center.lat,
-                  lng: center.lng,
-                  searchMode: "point",
-                  radiusKm: probeRadius,
-                  limit: 20,
-                  offset: 0,
-                  allowNameAnchorRecovery: false,
-                }),
-              ),
-            );
-            probedPages.forEach((outcome, centerIndex) => {
-              if (outcome.status !== "fulfilled") return;
-              for (const candidate of outcome.value.results) {
-                recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
-                const exact = matchesSpecificPlaceName(intent.query, candidate.name);
-                const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
-                if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
-              }
-            });
-          }
         }
 
         // Geocoding can correct a business name that Places would otherwise
