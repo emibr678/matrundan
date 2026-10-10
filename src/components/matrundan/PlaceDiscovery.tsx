@@ -7,7 +7,18 @@ import {
   presentPlaceSearchResults,
   unambiguousPlaceCandidate,
 } from "@/lib/matrundan/place-discovery";
-import { Check, ChevronDown, ChevronRight, List, Loader2, Map, MapPin, Plus, Search, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  ChevronRight,
+  List,
+  Loader2,
+  Map,
+  MapPin,
+  Plus,
+  Search,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { MatrundanBrand } from "./MatrundanBrand";
@@ -1187,11 +1198,7 @@ export function PlaceDiscovery({
         </details>
       ) : null}
 
-      <div
-        className={
-          showingMobileSuggestions ? "hidden lg:block" : "lg:overflow-visible"
-        }
-      >
+      <div className={showingMobileSuggestions ? "hidden lg:block" : "lg:overflow-visible"}>
         {activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (

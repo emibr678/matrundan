@@ -474,7 +474,9 @@ export function AddPlaceDialogContent({
                 mobileSearchExpanded ? (
                   <>
                     <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
-                    <span aria-hidden="true" className="lg:hidden">Sök matställe</span>
+                    <span aria-hidden="true" className="lg:hidden">
+                      Sök matställe
+                    </span>
                   </>
                 ) : (
                   "Lägg till matställe"
