@@ -868,7 +868,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             !allPoints && isPointCenter && candidate.lat != null && candidate.lng != null
               ? distanceKm(center, { lat: candidate.lat, lng: candidate.lng })
               : null;
-          if (!allPoints && isPointCenter && (mixedPointDistance == null || mixedPointDistance > selectedRadius))
+          if (
+            !allPoints &&
+            isPointCenter &&
+            (mixedPointDistance == null || mixedPointDistance > selectedRadius)
+          )
             return;
           const primary = allPoints
             ? distances.filter(({ km }) => km <= selectedRadius).map(({ area }) => area)

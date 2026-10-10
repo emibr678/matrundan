@@ -848,13 +848,13 @@ test("blandade punkt- och boundaryområden håller point-recovery inom radie uta
   expect(match?.nearestAreaId).toBe(area.id);
   expect(match?.distanceKm).toBeGreaterThan(1);
   expect(match?.distanceKm).toBeLessThan(2);
-  expect(
-    a.calls.some((url) => url.searchParams.get("filter") === "place:undefined"),
-  ).toBe(false);
+  expect(a.calls.some((url) => url.searchParams.get("filter") === "place:undefined")).toBe(false);
   expect(
     a.calls.some(
-      (url) => url.pathname === "/v1/geocode/search" &&
-        url.searchParams.get("text") === "Falloumi" && !url.searchParams.has("filter"),
+      (url) =>
+        url.pathname === "/v1/geocode/search" &&
+        url.searchParams.get("text") === "Falloumi" &&
+        !url.searchParams.has("filter"),
     ),
   ).toBe(true);
   expect(recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
