@@ -110,6 +110,8 @@ export interface PlaceDiscoverySnapshot {
   budgetRemaining?: SearchBudget;
 }
 
+export type PlaceDiscoveryMobileMode = "browse" | "search" | "areas";
+
 export function PlaceDiscovery({
   initialQuery = "",
   resolutions = {},
@@ -118,8 +120,8 @@ export function PlaceDiscovery({
   bulkBusy,
   snapshot,
   onSnapshotChange,
-  mobileSearchExpanded,
-  onMobileSearchExpandedChange,
+  mobileMode,
+  onMobileModeChange,
   onToggleSelected,
   onClearSelected,
   onAddSelected,
@@ -135,8 +137,8 @@ export function PlaceDiscovery({
   bulkBusy: boolean;
   snapshot?: PlaceDiscoverySnapshot | null;
   onSnapshotChange?: (snapshot: PlaceDiscoverySnapshot) => void;
-  mobileSearchExpanded: boolean;
-  onMobileSearchExpandedChange: (expanded: boolean) => void;
+  mobileMode: PlaceDiscoveryMobileMode;
+  onMobileModeChange: (mode: PlaceDiscoveryMobileMode) => void;
   onToggleSelected: (suggestion: PlaceSuggestion) => void;
   onClearSelected: () => void;
   onAddSelected: () => void;
@@ -159,7 +161,7 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
-  const [editingMobileAreas, setEditingMobileAreas] = React.useState(false);
+
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -1073,10 +1075,19 @@ export function PlaceDiscovery({
       ? shortSearchAreaLabel(activeAreas[0].label)
       : `${activeAreas.length} sökområden`;
   const includesPointArea = activeAreas.some((area) => searchAreaMode(area) === "point");
-  const showingMobileSuggestions = mobileSearchExpanded;
+  const editingMobileAreas = mobileMode === "areas";
+  const showingMobileSuggestions = mobileMode === "search";
+  const visibleGenericSuggestionCount = genericSuggestions
+    .filter(
+      (suggestion) =>
+        suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
+    )
+    .slice(0, 2).length;
+  const showFullResultsLink =
+    filteredResults.length > 5 - visibleGenericSuggestionCount || hasMore;
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
-    onMobileSearchExpandedChange(false);
+    onMobileModeChange("browse");
     const sourceMatch = allSourceMatches.find(
       (match) => match.result.externalId === suggestion.externalId,
     );
@@ -1099,7 +1110,7 @@ export function PlaceDiscovery({
 
   return (
     <div
-      className={mobileSearchExpanded ? "space-y-3 lg:space-y-4" : "space-y-4"}
+      className={showingMobileSuggestions ? "space-y-3 lg:space-y-4" : "space-y-4"}
       data-search-area-editing={editingMobileAreas ? "true" : "false"}
       data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
@@ -1110,15 +1121,14 @@ export function PlaceDiscovery({
         aria-controls="mobile-search-area-editor"
         className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 lg:hidden"
         onClick={() => {
-          if (!editingMobileAreas) {
-            onMobileSearchExpandedChange(false);
-            document.getElementById("place-query")?.blur();
-          }
-          setEditingMobileAreas((previous) => !previous);
+          document.getElementById("place-query")?.blur();
+          onMobileModeChange(editingMobileAreas ? "browse" : "areas");
         }}
       >
         <MapPin className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-        <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
+        <span className="min-w-0 flex-1 truncate font-medium">
+          {editingMobileAreas ? "Sökområden" : searchAreaSummary}
+        </span>
         {includesPointArea && !editingMobileAreas ? (
           <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
         ) : null}
@@ -1160,8 +1170,8 @@ export function PlaceDiscovery({
           onRetry={() => setRetry((value) => value + 1)}
           genericSuggestions={genericSuggestions}
           placeSuggestions={placeAutocompleteSuggestions}
-          focused={mobileSearchExpanded && !editingMobileAreas}
-          onFocusChange={onMobileSearchExpandedChange}
+          focused={showingMobileSuggestions}
+          onFocusChange={(focused) => onMobileModeChange(focused ? "search" : "browse")}
           onSelectPlace={activateSearchSuggestion}
           onMissingPlace={onMissingPlace}
         />
@@ -1172,13 +1182,13 @@ export function PlaceDiscovery({
           Sök efter ett matställe eller välj ett kök.
         </p>
       ) : null}
-      {showingMobileSuggestions ? (
+      {showingMobileSuggestions && showFullResultsLink ? (
         <Button
           type="button"
           variant="ghost"
           className="min-h-11 w-full shrink-0 lg:hidden"
           onClick={() => {
-            onMobileSearchExpandedChange(false);
+            onMobileModeChange("browse");
             document.getElementById("place-query")?.blur();
           }}
         >
@@ -1659,7 +1669,9 @@ function PlaceSearchCombobox({
 
   return (
     <div className="min-w-0 space-y-1.5">
-      <Label htmlFor="place-query">Sök matställen</Label>
+      <Label htmlFor="place-query" className={focused ? "sr-only lg:not-sr-only" : undefined}>
+        Sök matställen
+      </Label>
       <div className="relative min-w-0">
         <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
@@ -1717,7 +1729,7 @@ function PlaceSearchCombobox({
             className={[
               "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
               focused
-                ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)_-_13rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                ? "relative mt-2 max-h-[min(14rem,calc(var(--search-viewport-height,100dvh)_-_12rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
                 : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
             ].join(" ")}
           >
