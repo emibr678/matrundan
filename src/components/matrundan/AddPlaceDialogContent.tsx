@@ -455,12 +455,16 @@ export function AddPlaceDialogContent({
             }
           >
             <DialogTitle
-              className={view === "search" ? "font-display text-lg lg:text-2xl" : "font-display text-2xl"}
+              className={
+                view === "search" ? "font-display text-lg lg:text-2xl" : "font-display text-2xl"
+              }
             >
               {view === "search" ? (
                 <>
                   <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
-                  <span aria-hidden="true" className="lg:hidden">Sök matställe</span>
+                  <span aria-hidden="true" className="lg:hidden">
+                    Sök matställe
+                  </span>
                 </>
               ) : (
                 "Stället saknas i sökningen"

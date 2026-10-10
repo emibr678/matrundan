@@ -1094,9 +1094,7 @@ export function PlaceDiscovery({
       <div className="flex min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-sm lg:hidden">
         <span className="min-w-0 flex-1 truncate font-medium">{searchAreaSummary}</span>
         {includesPointArea ? (
-          <span className="shrink-0 text-xs text-muted-foreground">
-            Inom {radiusKm ?? 50} km
-          </span>
+          <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
         ) : null}
         <Button
           type="button"
@@ -1147,21 +1145,21 @@ export function PlaceDiscovery({
               : "shrink-0"
         }
       >
-      <PlaceSearchCombobox
-        query={query}
-        onQueryChange={setQuery}
-        loading={searchInFlight}
-        error={error}
-        incomplete={failedAreas.length > 0}
-        noAreas={activeAreas.length === 0}
-        onRetry={() => setRetry((value) => value + 1)}
-        genericSuggestions={genericSuggestions}
-        placeSuggestions={placeAutocompleteSuggestions}
-        focused={mobileSearchExpanded}
-        onFocusChange={onMobileSearchExpandedChange}
-        onSelectPlace={activateSearchSuggestion}
-        onMissingPlace={onMissingPlace}
-      />
+        <PlaceSearchCombobox
+          query={query}
+          onQueryChange={setQuery}
+          loading={searchInFlight}
+          error={error}
+          incomplete={failedAreas.length > 0}
+          noAreas={activeAreas.length === 0}
+          onRetry={() => setRetry((value) => value + 1)}
+          genericSuggestions={genericSuggestions}
+          placeSuggestions={placeAutocompleteSuggestions}
+          focused={mobileSearchExpanded}
+          onFocusChange={onMobileSearchExpandedChange}
+          onSelectPlace={activateSearchSuggestion}
+          onMissingPlace={onMissingPlace}
+        />
       </div>
 
       {!editingMobileAreas && mobileSearchExpanded && query.trim().length >= 2 ? (

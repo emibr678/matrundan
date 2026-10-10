@@ -345,8 +345,9 @@ test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
 });
 
-
-test("sökområde och radie ändras i samma mobila sökvy utan att förlora söktext", async ({ page }) => {
+test("sökområde och radie ändras i samma mobila sökvy utan att förlora söktext", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 690 });
   const dialog = await openPlaceSearch(page);
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
