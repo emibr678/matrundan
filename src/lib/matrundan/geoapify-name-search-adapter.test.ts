@@ -558,14 +558,11 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
     },
   };
   const a = adapter((url) => {
-    const expanded = url.searchParams.get("filter")?.endsWith(",2000");
     if (url.pathname === "/v1/geocode/search")
-      return {
-        features: expanded ? [seedWithName("Pelikan")] : [],
-      };
+      return { features: [seedWithName("Pelikan")] };
     return {
       features:
-        expanded && url.searchParams.get("bias") === oxBias
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`
           ? [place("pelikan-2km", "Pelikan")]
           : [],
     };
@@ -591,7 +588,17 @@ test("Pelikan utanför 1 km återfinns även när utökad primär-Places är tom
   expect(
     a.calls.some(
       (url) =>
-        url.pathname === "/v1/geocode/search" && url.searchParams.get("filter")?.endsWith(",2000"),
+        url.pathname === "/v1/geocode/search" &&
+        url.searchParams.get("text") === "Pelikan Stockholm" &&
+        !url.searchParams.has("filter"),
+    ),
+  ).toBe(true);
+  expect(
+    a.calls.some(
+      (url) =>
+        url.pathname === "/v2/places" &&
+        !url.searchParams.has("name") &&
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
     ),
   ).toBe(true);
   expect(result.budgetUsage.requests + initial.budgetUsage.requests).toBeLessThanOrEqual(25);
@@ -608,6 +615,84 @@ function seedWithName(name: string) {
     datasource: { raw: { cuisine: "coffee" } },
   });
 }
+
+
+test("Falloumi hittas på 1,9 km när name+circle saknar kandidater", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  const a = adapter((url) => {
+    if (url.pathname === "/v1/geocode/search")
+      return { features: url.searchParams.get("text") === "Falloumi Stockholm" ? [seedWithName("Falloumi")] : [] };
+    if (url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)
+      return { features: [place("places-falloumi", "Falloumi")] };
+    return { features: [] };
+  }, context);
+  const first = await a.discovery({
+    text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "primary",
+  });
+  expect(first.results).toHaveLength(0);
+  const recovered = await a.discovery({
+    text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "recovery",
+    providerRequestLimit: 25 - first.budgetUsage.requests,
+    providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+  });
+  const found = recovered.results.find((item) => item.externalId === "places-falloumi");
+  expect(found?.searchAreaGroup).toBe("nearby");
+  expect(found?.distanceKm).toBeGreaterThan(1);
+  expect(found?.distanceKm).toBeLessThan(2);
+  expect(JSON.stringify(recovered)).not.toContain("pelikan-geocoding-anchor");
+  expect(a.calls.some((url) => url.pathname === "/v1/geocode/search" && !url.searchParams.has("filter"))).toBe(true);
+  expect(a.calls.some((url) => url.pathname === "/v2/places" && !url.searchParams.has("name") &&
+    url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)).toBe(true);
+  expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  expect(first.budgetUsage.reservedCredits + recovered.budgetUsage.reservedCredits).toBeLessThanOrEqual(40);
+});
+
+test("geokodningsledtråd kan inte ge träff utanför utökad radie eller utan verifierat Places-namn", async () => {
+  const context: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
+  };
+  for (const variant of ["far", "wrong-name", "wrong-location"] as const) {
+    const outside = { lat: 59.415, lng: 18.08 };
+    const a = adapter((url) => {
+      if (url.pathname === "/v1/geocode/search") {
+        const seedFeature = seedWithName("Falloumi");
+        return { features: [variant === "far" ? { ...seedFeature, properties: { ...seedFeature.properties, ...outside, lon: outside.lng } } : seedFeature] };
+      }
+      if (url.searchParams.get("filter")?.endsWith(",150"))
+        return { features: [place("unverified", variant === "wrong-name" ? "Annan restaurang" : "Falloumi",
+          variant === "wrong-location" ? { lat: stockholm.lat, lon: stockholm.lng } : {})] };
+      return { features: [] };
+    }, context);
+    const first = await a.discovery({ text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "primary" });
+    const recovered = await a.discovery({
+      text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "recovery",
+      providerRequestLimit: 25 - first.budgetUsage.requests,
+      providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
+    });
+    expect(recovered.results).toHaveLength(0);
+    expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
+  }
+});
 
 test("primära sökresultat behöver inte invänta namnåterhämtning", async () => {
   let releaseGeocoding: () => void = () => {};
@@ -818,8 +903,8 @@ test("geokodad korrigering av Pelikann måste verifieras med Places innan den vi
     if (url.pathname === "/v1/geocode/search") return { features: [seedWithName("Pelikan")] };
     if (
       url.pathname === "/v2/places" &&
-      url.searchParams.get("name") === "Pelikan" &&
-      url.searchParams.get("bias") === oxBias
+      !url.searchParams.has("name") &&
+      url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`
     )
       return { features: [place("verified-pelikan", "Pelikan")] };
     return { features: [] };
@@ -849,7 +934,10 @@ test("geokodad korrigering av Pelikann måste verifieras med Places innan den vi
   ).toBeUndefined();
   expect(
     a.calls.some(
-      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "Pelikan",
+      (url) =>
+        url.pathname === "/v2/places" &&
+        !url.searchParams.has("name") &&
+        url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
     ),
   ).toBe(true);
   expect(primary.budgetUsage.requests + recovery.budgetUsage.requests).toBeLessThanOrEqual(25);
