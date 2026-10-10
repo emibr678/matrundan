@@ -383,13 +383,17 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
   await expect(dialog.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toBeVisible();
   await expectInsideViewport(page, dialog, "Vanlig dialog före sökning");
-  const browseCorner = await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
+  const browseCorner = await dialog.evaluate(
+    (element) => getComputedStyle(element).borderTopLeftRadius,
+  );
   expect(browseCorner).not.toBe("0px");
   await expectNoHorizontalOverflow(page, "Vanlig dialog");
 
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
-  expect(await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius)).toBe(browseCorner);
+  expect(
+    await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius),
+  ).toBe(browseCorner);
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
