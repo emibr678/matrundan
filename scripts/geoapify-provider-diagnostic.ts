@@ -1,7 +1,6 @@
 import { appendFileSync } from "node:fs";
 import { GEOAPIFY_DISCOVERY_CATEGORIES } from "../src/lib/matrundan/geoapify-place-search";
 import { expandedNameRadiusKm } from "../src/lib/matrundan/place-search-expansion";
-import { typoProviderSearchSeed } from "../src/lib/matrundan/place-search-typo";
 
 /**
  * Read-only, bounded real-provider diagnostic for Issue #465.
@@ -24,17 +23,17 @@ const results = [];
 let requests = 0;
 const maxRequests = 10;
 
+// Controls distinguish a missing provider place from an invalid location or filter.
+// No raw provider payloads or unrelated names are reported.
 const scenarios = [
-  { label: "Pelikan exact / allowed 2 km", kind: "places", name: "Pelikan", radius: 2000 },
-  { label: "Pelikann exact / allowed 2 km", kind: "places", name: "Pelikann", radius: 2000 },
-  { label: "Pelikann prefix / allowed 2 km", kind: "places", name: typoProviderSearchSeed("Pelikann"), radius: 2000 },
-  { label: "Falloumi exact / allowed 2 km", kind: "places", name: "Falloumi", radius: 2000 },
-  { label: "Falloumi prefix / allowed 2 km", kind: "places", name: typoProviderSearchSeed("Falloumi"), radius: 2000 },
-  { label: "Falloumi exact / diagnostic 4 km", kind: "places", name: "Falloumi", radius: 4000 },
-  { label: "Pelikan exact / proximity only", kind: "places", name: "Pelikan" },
-  { label: "Falloumi exact / proximity only", kind: "places", name: "Falloumi" },
-  { label: "Pelikann Geocoding / allowed 2 km", kind: "geocoding", name: "Pelikann", radius: 2000 },
-  { label: "Falloumi Geocoding / allowed 2 km", kind: "geocoding", name: "Falloumi", radius: 2000 },
+  { label: "CONTROL Places restaurants within 2 km", kind: "places", radius: 2000 },
+  { label: "CONTROL Places restaurants within 4 km", kind: "places", radius: 4000 },
+  { label: "Pelikan exact / diagnostic 5 km", kind: "places", name: "Pelikan", radius: 5000 },
+  { label: "Falloumi exact / diagnostic 5 km", kind: "places", name: "Falloumi", radius: 5000 },
+  { label: "CONTROL Geocoding Stockholm city", kind: "geocoding", text: "Stockholm", type: "city" },
+  { label: "Pelikan / Geocoding free text", kind: "geocoding", text: "Pelikan Stockholm", type: "amenity" },
+  { label: "Falloumi / Geocoding free text", kind: "geocoding", text: "Falloumi Stockholm", type: "amenity" },
+  { label: "Pelikan / Geocoding structured name and city", kind: "geocoding", name: "Pelikan", city: "Stockholm", type: "amenity" },
 ];
 
 function kmBetween(lat, lon) {
@@ -50,26 +49,31 @@ function normalized(value) {
 }
 function isExpectedName(value, label) {
   const words = normalized(value).split(/[^a-zåäö0-9]+/u);
-  const expected = label.includes("Falloumi") ? "falloumi" : "pelikan";
+  const expected = label.includes("CONTROL Geocoding") ? "stockholm" :
+    label.includes("Falloumi") ? "falloumi" : "pelikan";
   return words.includes(expected);
 }
 
 async function runScenario(scenario) {
   if (requests >= maxRequests) throw new Error("Provider request cap exceeded.");
-  if (typeof scenario.name !== "string" || !scenario.name) throw new Error("Invalid scenario name.");
+  if (!scenario.name && !scenario.text && !scenario.label.startsWith("CONTROL Places")) {
+    throw new Error("Invalid diagnostic scenario.");
+  }
   const url = new URL(
     scenario.kind === "geocoding" ? "/v1/geocode/search" : "/v2/places",
     base,
   );
   url.searchParams.set("apiKey", key);
-  url.searchParams.set("name", scenario.name);
+  if (scenario.name) url.searchParams.set("name", scenario.name);
+  if (scenario.text) url.searchParams.set("text", scenario.text);
+  if (scenario.city) url.searchParams.set("city", scenario.city);
   url.searchParams.set("lang", "sv");
   url.searchParams.set("bias", "proximity:" + longitude + "," + latitude);
   if (scenario.radius != null) {
     url.searchParams.set("filter", "circle:" + longitude + "," + latitude + "," + scenario.radius);
   }
   if (scenario.kind === "geocoding") {
-    url.searchParams.set("type", "amenity");
+    url.searchParams.set("type", scenario.type ?? "amenity");
     url.searchParams.set("format", "geojson");
     url.searchParams.set("limit", "5");
   } else {
@@ -121,7 +125,7 @@ const report = [
   ),
   "",
   "Total actual calls: " + requests + " / " + maxRequests +
-    ". Every Places call uses limit <=20; Geocoding uses limit 5. Credits are provider-billed separately and not inferred from this count.",
+    ". Each Places call uses limit <=20 and Geocoding uses limit 5. Credits are provider-billed separately and not inferred from this count.",
   "",
   "Diagnostic only: missing place does not cause false-success regression assertions. Raw API responses, provider IDs and credentials are not recorded.",
   "",
