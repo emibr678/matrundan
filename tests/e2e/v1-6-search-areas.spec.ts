@@ -13,7 +13,7 @@ async function openSearchDialog(page: import("@playwright/test").Page) {
   if ((page.viewportSize()?.width ?? 360) < 1024) {
     await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
   }
-  await expect(dialog.getByRole("heading", { name: "Valda områden", exact: true })).toBeVisible();
+  await expect(dialog.getByRole("region", { name: "Valda områden", exact: true })).toBeVisible();
   return dialog;
 }
 
