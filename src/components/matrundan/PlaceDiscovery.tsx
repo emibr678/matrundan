@@ -1073,7 +1073,8 @@ export function PlaceDiscovery({
     activeAreas.length === 1
       ? shortSearchAreaLabel(activeAreas[0].label)
       : `${activeAreas.length} sökområden`;
-  const includesPointArea = activeAreas.some((area) => searchAreaMode(area) === "point");
+  const showRadiusInSummary =
+    activeAreas.length > 0 && activeAreas.every((area) => searchAreaMode(area) === "point");
   const editingMobileAreas = mobileMode === "areas";
   const showingMobileSuggestions = mobileMode === "search";
   const visibleGenericSuggestionCount = genericSuggestions
@@ -1130,7 +1131,7 @@ export function PlaceDiscovery({
         <span className="min-w-0 flex-1 truncate font-medium">
           {editingMobileAreas ? "Sökområden" : searchAreaSummary}
         </span>
-        {includesPointArea && !editingMobileAreas ? (
+        {showRadiusInSummary && !editingMobileAreas ? (
           <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
         ) : null}
         <ChevronDown
