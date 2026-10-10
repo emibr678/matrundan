@@ -30,6 +30,7 @@ interface SearchAreaControlsProps {
   onRadiusChange: (radius: SearchRadiusKm) => void;
   isLive: boolean;
   fallbackCity: string;
+  mobileEditorOpen?: boolean;
 }
 
 interface SearchAreaFieldProps {
@@ -158,8 +159,14 @@ export function SearchAreaControls({
   onRadiusChange,
   isLive,
   fallbackCity,
+  mobileEditorOpen = false,
 }: SearchAreaControlsProps) {
   const [areaQuery, setAreaQuery] = React.useState("");
+  const wasMobileEditorOpen = React.useRef(mobileEditorOpen);
+  React.useEffect(() => {
+    if (wasMobileEditorOpen.current && !mobileEditorOpen) setAreaQuery("");
+    wasMobileEditorOpen.current = mobileEditorOpen;
+  }, [mobileEditorOpen]);
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
