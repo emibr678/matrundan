@@ -351,10 +351,11 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
     "data-search-area-editing",
     "true",
   );
-  await expect(input).toBeVisible();
+  await expect(input).toBeHidden();
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
   await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeVisible();
   await expect(dialog.getByRole("region", { name: "Valda områden" })).toBeVisible();
-  await expect(dialog.getByText("Avstånd från valda platser")).toBeVisible();
+  await expect(dialog.getByText("Sökradie")).toBeVisible();
   await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
   await page.getByRole("option", { name: "2 km" }).click();
   await expect(dialog.getByText(/Ort utan verifierad gräns/)).toHaveCount(0);
@@ -364,7 +365,7 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
     "aria-expanded",
     "true",
   );
-  await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",
     "false",
@@ -376,8 +377,12 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
   await expect(areaEditor).toBeVisible();
   const areaInput = dialog.getByRole("combobox", { name: "Lägg till område eller adress" });
-  await areaInput.focus();
+  await areaInput.fill("Enskede");
   await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, areaInput, "Områdessökfält med tangentbord");
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
+  await expect(input).toBeHidden();
+  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
