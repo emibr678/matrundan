@@ -294,7 +294,6 @@ test("en felaktig demoträff kan rapporteras, döljas och granskas utan overflow
   await expect(placeSuggestionButton(page)).toBeVisible();
 });
 
-
 test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 620 });
   const dialog = await openPlaceSearch(page);

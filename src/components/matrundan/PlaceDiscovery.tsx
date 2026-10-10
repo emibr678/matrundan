@@ -1045,10 +1045,7 @@ export function PlaceDiscovery({
   );
   const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
   const placeAutocompleteSuggestions = React.useMemo(
-    () =>
-      query.trim().length < 2
-        ? []
-        : visibleResults.slice(0, 6),
+    () => (query.trim().length < 2 ? [] : visibleResults.slice(0, 6)),
     [query, visibleResults],
   );
   const debugEnabled =
@@ -1342,7 +1339,8 @@ export function PlaceDiscovery({
               onClick={onAddSelected}
             >
               {bulkBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-              Lägg till {selectedResults.length} {selectedResults.length === 1 ? "ställe" : "ställen"}
+              Lägg till {selectedResults.length}{" "}
+              {selectedResults.length === 1 ? "ställe" : "ställen"}
             </Button>
           </div>
         ) : null}
@@ -1465,10 +1463,10 @@ function PlaceSearchCombobox({
   const placeOptions: PlaceSearchOption[] = placeSuggestions
     .slice(0, 5 - genericOptions.length)
     .map((suggestion) => ({
-    kind: "place",
-    key: suggestion.externalId,
-    label: suggestion.name,
-    meta: placeOptionMeta(suggestion),
+      kind: "place",
+      key: suggestion.externalId,
+      label: suggestion.name,
+      meta: placeOptionMeta(suggestion),
       suggestion,
     }));
   const isInternalOption = (option: PlaceSearchOption) =>
@@ -1481,16 +1479,18 @@ function PlaceSearchCombobox({
   const options = [...genericOptions, ...internalOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = (open || focused) && hasQuery;
-  const canOfferMissing =
-    !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
+  const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
 
   React.useEffect(() => {
     setActiveIx(-1);
   }, [query]);
 
-  React.useEffect(() => () => {
-    if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
-  }, []);
+  React.useEffect(
+    () => () => {
+      if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
+    },
+    [],
+  );
 
   React.useEffect(() => {
     // Leaving the dedicated mobile search also dismisses any old popup state.

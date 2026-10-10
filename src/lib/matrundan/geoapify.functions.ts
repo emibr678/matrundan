@@ -688,9 +688,10 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           const fuzzy = await context.supabase.rpc("search_canonical_name_candidates_v1", {
             _group_id: data.groupId,
             _text: intent.query,
-            _centers: fuzzyRadius == null
-              ? centers
-              : centers.map((center) => ({ ...center, radiusKm: fuzzyRadius })),
+            _centers:
+              fuzzyRadius == null
+                ? centers
+                : centers.map((center) => ({ ...center, radiusKm: fuzzyRadius })),
           });
           if (fuzzy.error) {
             // Missing migration or a provider/database fault is never a confirmed zero-result.

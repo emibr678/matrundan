@@ -626,16 +626,13 @@ test("primära sökresultat behöver inte invänta namnåterhämtning", async ()
       },
     },
   };
-  const a = adapter(
-    async (url) => {
-      if (url.pathname === "/v1/geocode/search") {
-        await blockedGeocoding;
-        return { features: [] };
-      }
+  const a = adapter(async (url) => {
+    if (url.pathname === "/v1/geocode/search") {
+      await blockedGeocoding;
       return { features: [] };
-    },
-    context,
-  );
+    }
+    return { features: [] };
+  }, context);
   const input: SearchInput = { text: "Pelikan", centers: [area], radiusKm: 1 };
   const first = await a.discovery({ ...input, searchPhase: "primary" });
   expect(first.results).toEqual([]);
@@ -656,7 +653,6 @@ test("primära sökresultat behöver inte invänta namnåterhämtning", async ()
     recovered.budgetUsage.reservedCredits + first.budgetUsage.reservedCredits,
   ).toBeLessThanOrEqual(40);
 });
-
 
 test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökning", async () => {
   const a = adapter(
@@ -703,8 +699,8 @@ test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökn
   expect(hit?.searchMatchType).toBe("tolerant");
   expect(hit?.searchAreaGroup).toBe("nearby");
   expect(
-    (recovered as typeof recovered & { observation: { candidates: { typo: number } } })
-      .observation.candidates.typo,
+    (recovered as typeof recovered & { observation: { candidates: { typo: number } } }).observation
+      .candidates.typo,
   ).toBe(1);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
   expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(0);
@@ -747,7 +743,6 @@ test("korrekt namn utanför 1 km levereras redan i primär sökning utan fallbac
   expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
 });
 
-
 test("Pel hittar Pelikan nära sökområdet medan användaren skriver", async () => {
   const a = adapter(
     (url) => ({
@@ -783,22 +778,18 @@ test("Pel hittar Pelikan nära sökområdet medan användaren skriver", async ()
   expect(a.calls.filter((url) => url.pathname === "/v2/places")).toHaveLength(1);
 });
 
-
 test("halvfärdigt generiskt ord startar inte dyr namnåterhämtning", async () => {
-  const a = adapter(
-    () => ({ features: [] }),
-    {
-      supabase: {
-        rpc: async (name) => {
-          if (name === "get_place_discovery_context_v1")
-            return { data: { canConfirm: true }, error: null };
-          if (name === "search_canonical_places_v1") return { data: [], error: null };
-          if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
-          throw new Error("Unexpected RPC: " + name);
-        },
+  const a = adapter(() => ({ features: [] }), {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1") return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
       },
     },
-  );
+  });
   const result = await a.discovery({
     text: "Restau",
     centers: [area],
