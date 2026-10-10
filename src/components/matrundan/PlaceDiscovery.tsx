@@ -161,7 +161,6 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
-
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
