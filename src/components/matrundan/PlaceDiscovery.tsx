@@ -1122,6 +1122,7 @@ export function PlaceDiscovery({
         className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-xl border border-border/70 bg-muted/30 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/50 lg:hidden"
         onClick={() => {
           document.getElementById("place-query")?.blur();
+          document.getElementById("search-area-query")?.blur();
           onMobileModeChange(editingMobileAreas ? "browse" : "areas");
         }}
       >
@@ -1157,6 +1158,7 @@ export function PlaceDiscovery({
           onRadiusChange={setRadiusKm}
           isLive={isLive}
           fallbackCity={state.group.city}
+          mobileEditorOpen={editingMobileAreas}
         />
         {editingMobileAreas ? (
           <Button
