@@ -38,6 +38,7 @@ interface SearchAreaFieldProps {
   placeholder: string;
   disabled: boolean;
   fallbackCity: string;
+  selectedAreaPlaceIds: string[];
   onQueryChange: (query: string) => void;
   onSelect: (location: VerifiedLocationSelection) => void;
 }
@@ -59,6 +60,7 @@ function SearchAreaField({
   placeholder,
   disabled,
   fallbackCity,
+  selectedAreaPlaceIds,
   onQueryChange,
   onSelect,
 }: SearchAreaFieldProps) {
@@ -73,6 +75,7 @@ function SearchAreaField({
       demoMode={!isLive}
       demoFallbackCity={fallbackCity}
       allowBoundaryAreas
+      excludedPlaceIds={selectedAreaPlaceIds}
     />
   );
 }
@@ -132,7 +135,7 @@ function InlineSearchRadius({
       >
         <SelectValue />
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent className="max-h-[min(38dvh,13rem)]">
         {SEARCH_RADIUS_OPTIONS.map((value) => (
           <SelectItem key={value} value={String(value)}>
             {`${value} km`}
@@ -160,6 +163,7 @@ export function SearchAreaControls({
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
+  const selectedAreaPlaceIds = activeAreas.map((area) => area.placeId).filter(Boolean);
   const boundaryCount = activeAreas.filter((area) => searchAreaMode(area) === "boundary").length;
   const pointCount = activeAreas.length - boundaryCount;
 
@@ -242,6 +246,7 @@ export function SearchAreaControls({
             placeholder={SEARCH_PLACEHOLDER}
             disabled={false}
             fallbackCity={fallbackCity}
+            selectedAreaPlaceIds={selectedAreaPlaceIds}
             onQueryChange={setAreaQuery}
             onSelect={addVerifiedArea}
           />
@@ -251,7 +256,7 @@ export function SearchAreaControls({
       {pointCount > 0 ? (
         <div className="flex min-w-0 items-center justify-between gap-3">
           <Label htmlFor="place-radius" className="min-w-0 text-sm text-muted-foreground">
-            Avstånd från valda platser
+            Sökradie
           </Label>
           <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
         </div>
