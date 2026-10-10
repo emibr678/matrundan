@@ -508,7 +508,7 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
       if (url.pathname === "/v1/geocode/search") return { features: [] };
       return {
         features:
-          url.searchParams.get("name") === "pelika" &&
+          url.searchParams.get("name") === "pelik" &&
           url.searchParams.get("filter")?.endsWith(",2000")
             ? [place("pelikan-nearby", "Pelikan")]
             : [],
