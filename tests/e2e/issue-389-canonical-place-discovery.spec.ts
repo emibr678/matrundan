@@ -437,12 +437,18 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await query.fill("Astrom");
 
-  await expect(search.getByRole("group", { name: "Finns i Matrundan", exact: true })).toHaveCount(
-    0,
-  );
+  // Focused mobile search can show existing places as navigation suggestions,
+  // but they must never be offered as a new group addition.
+  const suggestions = search.getByRole("listbox", {
+    name: "Förslag på kök, typer och matställen",
+    exact: true,
+  });
+  await expect(suggestions).toBeVisible();
   await expect(
-    search.getByRole("listbox", { name: "Förslag på kök, typer och matställen", exact: true }),
-  ).toHaveCount(0);
+    suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+  ).toBeVisible();
+  await search.getByRole("button", { name: "Visa alla resultat" }).click();
+  await expect(suggestions).toHaveCount(0);
   await expect(
     search.getByRole("button", { name: "Redan i gruppen (1)", exact: true }),
   ).toBeVisible();
