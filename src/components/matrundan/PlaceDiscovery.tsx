@@ -473,9 +473,13 @@ export function PlaceDiscovery({
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);
         response.failedAreaLabels.forEach((label: string) => failedAreaLabels.add(label));
-        moreAvailable = response.hasMore;
-        offset = response.nextOffset;
-        progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
+        // Recovery adds verified candidates but does not advance primary-area cursors.
+        // Preserve pagination for a full first Places page without name matches.
+        if (!isRecoveryPass) {
+          moreAvailable = response.hasMore;
+          offset = response.nextOffset;
+          progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
+        }
         recoveryPending = !isRecoveryPass && response.pendingRecovery;
         // Stop if providers were limited or an area failed; never spin through its cursor.
         if (response.budgetUsage.limited || response.failedAreaIds.length > 0) break;
