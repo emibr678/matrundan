@@ -363,6 +363,7 @@ test("sökområde och radie ändras i samma mobila sökvy utan att förlora sök
   );
   await expect(input).toBeVisible();
   await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toHaveCount(1);
   await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toBeVisible();
   expect((await dialog.boundingBox())!.y).toBeCloseTo(top, 0);
   const areaEditor = dialog.locator("#mobile-search-area-editor");

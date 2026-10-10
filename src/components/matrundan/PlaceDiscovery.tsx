@@ -1382,11 +1382,13 @@ export function PlaceDiscovery({
             ? "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare."
             : "Fiktiv demodata för utveckling."}
         </p>
-        <div className="flex justify-end">
-          <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
-            Klar
-          </Button>
-        </div>
+        {!editingMobileAreas ? (
+          <div className="flex justify-end">
+            <Button className="min-h-11" disabled={bulkBusy} onClick={onClose}>
+              Klar
+            </Button>
+          </div>
+        ) : null}
       </div>
     </div>
   );
