@@ -549,7 +549,7 @@ export function AddPlaceDialogContent({
           if (!nextOpen && !sourceLinkBusy) setPendingSourceMatch(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100vw-1rem)] rounded-2xl sm:rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Är det samma ställe?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 text-left">
@@ -559,10 +559,10 @@ export function AddPlaceDialogContent({
               </span>
               <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
                 <span>
-                  <strong>Hittat i kartan:</strong> {comparisonLocation(pendingSourceMatch?.result)}
+                  <strong>Sökträff:</strong> {comparisonLocation(pendingSourceMatch?.result)}
                 </span>
                 <span>
-                  <strong>Redan i Matrundan:</strong>{" "}
+                  <strong>Stället i gruppen:</strong>{" "}
                   {comparisonLocation(pendingSourceMatch?.place)}
                 </span>
               </span>
