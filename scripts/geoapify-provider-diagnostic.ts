@@ -22,18 +22,20 @@ const base = "https://api.geoapify.com";
 const results = [];
 let requests = 0;
 const maxRequests = 10;
+const anchors = new Map();
 
 // Controls distinguish a missing provider place from an invalid location or filter.
 // No raw provider payloads or unrelated names are reported.
 const scenarios = [
-  { label: "CONTROL Places restaurants within 2 km", kind: "places", radius: 2000 },
-  { label: "CONTROL Places restaurants within 4 km", kind: "places", radius: 4000 },
-  { label: "Pelikan exact / diagnostic 5 km", kind: "places", name: "Pelikan", radius: 5000 },
-  { label: "Falloumi exact / diagnostic 5 km", kind: "places", name: "Falloumi", radius: 5000 },
-  { label: "CONTROL Geocoding Stockholm city", kind: "geocoding", text: "Stockholm", type: "city" },
-  { label: "Pelikan / Geocoding free text", kind: "geocoding", text: "Pelikan Stockholm", type: "amenity" },
-  { label: "Falloumi / Geocoding free text", kind: "geocoding", text: "Falloumi Stockholm", type: "amenity" },
-  { label: "Pelikan / Geocoding structured name and city", kind: "geocoding", name: "Pelikan", city: "Stockholm", type: "amenity" },
+  { label: "Pelikan structured Geocoding / 2 km", kind: "geocoding", name: "Pelikan", radius: 2000 },
+  { label: "Falloumi structured Geocoding / 2 km", kind: "geocoding", name: "Falloumi", radius: 2000 },
+  { label: "Pelikan free-text Geocoding / 2 km", kind: "geocoding", text: "Pelikan Stockholm", radius: 2000 },
+  { label: "Falloumi free-text Geocoding / 2 km", kind: "geocoding", text: "Falloumi Stockholm", radius: 2000 },
+  { label: "Pelikann free-text Geocoding", kind: "geocoding", text: "Pelikann Stockholm" },
+  { label: "Pelikan Geocoding anchor", kind: "geocoding", text: "Pelikan Stockholm", anchorFor: "pelikan" },
+  { label: "Falloumi Geocoding anchor", kind: "geocoding", text: "Falloumi Stockholm", anchorFor: "falloumi" },
+  { label: "Pelikan Places near verified Geocoding location", kind: "places", anchorKey: "pelikan", radius: 150 },
+  { label: "Falloumi Places near verified Geocoding location", kind: "places", anchorKey: "falloumi", radius: 150 },
 ];
 
 function kmBetween(lat, lon) {
@@ -56,9 +58,14 @@ function isExpectedName(value, label) {
 
 async function runScenario(scenario) {
   if (requests >= maxRequests) throw new Error("Provider request cap exceeded.");
-  if (!scenario.name && !scenario.text && !scenario.label.startsWith("CONTROL Places")) {
+  if (!scenario.name && !scenario.text && !scenario.anchorKey) {
     throw new Error("Invalid diagnostic scenario.");
   }
+  const anchor = scenario.anchorKey ? anchors.get(scenario.anchorKey) : null;
+  if (scenario.anchorKey && !anchor) {
+    return { label: scenario.label, status: "no verified Geocoding anchor", elapsedMs: 0, features: 0, matches: [] };
+  }
+  const center = anchor ?? { lat: latitude, lon: longitude };
   const url = new URL(
     scenario.kind === "geocoding" ? "/v1/geocode/search" : "/v2/places",
     base,
@@ -68,9 +75,9 @@ async function runScenario(scenario) {
   if (scenario.text) url.searchParams.set("text", scenario.text);
   if (scenario.city) url.searchParams.set("city", scenario.city);
   url.searchParams.set("lang", "sv");
-  url.searchParams.set("bias", "proximity:" + longitude + "," + latitude);
+  url.searchParams.set("bias", "proximity:" + center.lon + "," + center.lat);
   if (scenario.radius != null) {
-    url.searchParams.set("filter", "circle:" + longitude + "," + latitude + "," + scenario.radius);
+    url.searchParams.set("filter", "circle:" + center.lon + "," + center.lat + "," + scenario.radius);
   }
   if (scenario.kind === "geocoding") {
     url.searchParams.set("type", scenario.type ?? "amenity");
@@ -90,6 +97,16 @@ async function runScenario(scenario) {
   }
   const json = await response.json();
   const features = Array.isArray(json?.features) ? json.features : [];
+  if (scenario.anchorFor) {
+    const exact = features.map((feature) => feature?.properties ?? {}).find(
+      (p) =>
+        normalized(p.name) === scenario.anchorFor &&
+        typeof p.lat === "number" &&
+        typeof p.lon === "number" &&
+        (kmBetween(p.lat, p.lon) ?? Infinity) <= 2,
+    );
+    if (exact) anchors.set(scenario.anchorFor, { lat: exact.lat, lon: exact.lon });
+  }
   const matches = features
     .map((f) => {
       const p = f?.properties ?? {};
