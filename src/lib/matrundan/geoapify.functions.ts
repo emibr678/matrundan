@@ -14,6 +14,7 @@ import {
 } from "./geoapify-normalize";
 import {
   geoapifyCategoriesForPlaceSearchIntent,
+  GEOAPIFY_DISCOVERY_CATEGORIES,
   geoapifyNameQueryForPlaceSearchIntent,
   hasStructuredGeoapifyMapping,
 } from "./geoapify-place-search";
@@ -243,6 +244,8 @@ async function searchPlacesAtArea(
     offset?: number;
     /** The original #464 name recovery is used only for the primary search. */
     allowNameAnchorRecovery?: boolean;
+    /** Verified Geocoding bias; the original spatial filter is unchanged. */
+    nameBias?: { lat: number; lng: number };
   },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
@@ -270,7 +273,10 @@ async function searchPlacesAtArea(
       ? `place:${input.placeId!.trim()}`
       : `circle:${input.lng},${input.lat},${Math.round(radiusKm * 1000)}`,
   );
-  url.searchParams.set("bias", `proximity:${input.lng},${input.lat}`);
+  url.searchParams.set(
+    "bias",
+    `proximity:${input.nameBias?.lng ?? input.lng},${input.nameBias?.lat ?? input.lat}`,
+  );
   url.searchParams.set("lang", "sv");
   url.searchParams.set("limit", String(providerLimit));
   if (offset > 0) url.searchParams.set("offset", String(offset));
@@ -293,7 +299,7 @@ async function searchPlacesAtArea(
     seen.add(place.externalId);
 
     if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) continue;
-    if (anchor) {
+    if (anchor || input.nameBias) {
       // Provider distance now refers to the anchor, not the user's search point.
       place.distanceKm =
         typeof place.lat === "number" &&
@@ -798,7 +804,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       const primaryOnly = data.searchPhase === "primary";
       const recoveryEligible =
         (data.offset ?? 0) === 0 &&
-        !page.hasMore &&
+        (!page.hasMore || page.results.length === 0) &&
         !page.failedAreaIds.length &&
         intent.kind === "text" &&
         isSpecificPlaceName(intent.query) &&
@@ -885,31 +891,78 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           });
         }
 
-        // The Places name index can omit a real venue even for a valid prefix.
-        // Keep the original bounded #464 name anchor as a LAST resort.
+
+        // Geocoding can correct a business name that Places would otherwise
+        // reject as an exact-name filter. Geocoding is NEVER a venue identity;
+        // every selected result must be independently retrieved from Places.
         if (nearbyCandidates.length === 0 && typoCandidates.length === 0) {
-          const anchoredPages = await Promise.allSettled(
-            data.centers.map((center) =>
-              searchPlacesAtArea({
-                text: data.text,
-                lat: center.lat,
-                lng: center.lng,
-                searchMode: center.searchMode ?? "point",
-                placeId: center.placeId,
-                radiusKm: retrievalRadius,
-                limit: 20,
-                offset: 0,
-                allowNameAnchorRecovery: true,
-              }),
-            ),
+          await Promise.allSettled(
+            data.centers.map(async (center, centerIndex) => {
+              const url = new URL("https://api.geoapify.com/v1/geocode/search");
+              url.searchParams.set("name", intent.query);
+              url.searchParams.set(
+                "filter",
+                center.searchMode === "boundary"
+                  ? "place:" + center.placeId
+                  : "circle:" + center.lng + "," + center.lat + "," +
+                      Math.round((retrievalRadius ?? 50) * 1000),
+              );
+              url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
+              url.searchParams.set("lang", "sv");
+              url.searchParams.set("type", "amenity");
+              url.searchParams.set("format", "geojson");
+              url.searchParams.set("limit", "10");
+              url.searchParams.set("apiKey", readKey());
+              const response = await callGeoapify(url);
+              let attempts = 0;
+              for (const feature of (response.features ?? []).slice(0, 10)) {
+                if (!feature || typeof feature !== "object") continue;
+                const props = (feature as GeoapifyFeature).properties;
+                const category = props?.category;
+                const lat = props?.lat;
+                const lng = props?.lon;
+                if (
+                  props?.result_type !== "amenity" ||
+                  typeof category !== "string" ||
+                  !GEOAPIFY_DISCOVERY_CATEGORIES.some(
+                    (value) => category === value || category.startsWith(value + "."),
+                  ) ||
+                  typeof lat !== "number" ||
+                  !Number.isFinite(lat) ||
+                  typeof lng !== "number" ||
+                  !Number.isFinite(lng)
+                ) continue;
+                const seed = normalizePlaceFeature(
+                  feature as Parameters<typeof normalizePlaceFeature>[0],
+                );
+                if (!seed) continue;
+                const exactSeed = matchesSpecificPlaceName(intent.query, seed.name);
+                const typoSeed = !exactSeed && matchesTypoPlaceName(intent.query, seed.name);
+                if (!exactSeed && !typoSeed) continue;
+                attempts++;
+                const page = await searchPlacesAtArea({
+                  text: seed.name,
+                  lat: center.lat,
+                  lng: center.lng,
+                  searchMode: center.searchMode ?? "point",
+                  placeId: center.placeId,
+                  radiusKm: retrievalRadius,
+                  limit: 20,
+                  offset: 0,
+                  allowNameAnchorRecovery: false,
+                  nameBias: { lat, lng },
+                });
+                const before = nearbyCandidates.length + typoCandidates.length;
+                for (const place of page.results) {
+                  const exact = matchesSpecificPlaceName(intent.query, place.name);
+                  const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
+                  if (exact || typo) recordCandidate(place, centerIndex, typo);
+                }
+                if (nearbyCandidates.length + typoCandidates.length > before || attempts >= 3)
+                  break;
+              }
+            }),
           );
-          anchoredPages.forEach((outcome, centerIndex) => {
-            if (outcome.status !== "fulfilled") return;
-            for (const candidate of outcome.value.results) {
-              if (matchesSpecificPlaceName(intent.query, candidate.name))
-                recordCandidate(candidate, centerIndex, false);
-            }
-          });
         }
       }
       recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
