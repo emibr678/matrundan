@@ -428,7 +428,9 @@ export function AddPlaceResultDialogs({
         }}
       >
         {pending && reportablePending ? (
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg">
+          <DialogContent
+            className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg"
+          >
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">
                 {review
@@ -661,7 +663,9 @@ export function AddPlaceResultDialogs({
           if (!nextOpen && !syncBusy) resetSync();
         }}
       >
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg">
+        <DialogContent
+          className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg"
+        >
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till tidigare besök</DialogTitle>
             <DialogDescription>
