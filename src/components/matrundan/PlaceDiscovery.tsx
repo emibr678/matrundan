@@ -1136,7 +1136,7 @@ export function PlaceDiscovery({
         }
       >
         <SearchAreaControls
-          heading="Sök i"
+          heading="Valda områden"
           addAreaActionLabel="Lägg till område eller adress"
           savedAreas={savedAreas}
           selectedAreaIds={selectedAreaIds}
@@ -1746,7 +1746,7 @@ function PlaceSearchCombobox({
                 {renderGroup("Kök och typer", genericOptions, 0)}
                 {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
                 {renderGroup(
-                  "Hittat i kartan",
+                  "Matställen",
                   externalOptions,
                   genericOptions.length + internalOptions.length,
                 )}
