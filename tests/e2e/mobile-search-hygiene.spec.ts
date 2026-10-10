@@ -312,8 +312,9 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toBeVisible();
 });
 
-
-test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({ page }) => {
+test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen?demo=1");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();

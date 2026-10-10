@@ -1459,7 +1459,10 @@ function PlaceSearchCombobox({
   const blurTimeoutRef = React.useRef<number | null>(null);
   const touchedOptionRef = React.useRef(false);
   const genericOptions: PlaceSearchOption[] = genericSuggestions
-    .filter((suggestion) => suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"))
+    .filter(
+      (suggestion) =>
+        suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
+    )
     .slice(0, 2)
     .map((suggestion) => ({
       kind: "generic",

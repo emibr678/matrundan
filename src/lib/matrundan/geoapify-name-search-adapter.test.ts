@@ -801,35 +801,56 @@ test("halvfärdigt generiskt ord startar inte dyr namnåterhämtning", async () 
   expect(a.calls[0].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,1000");
 });
 
-
 test("geokodad korrigering av Pelikann måste verifieras med Places innan den visas", async () => {
   const context: FixtureContext = {
-    supabase: { rpc: async (name) => {
-      if (name === "get_place_discovery_context_v1") return { data: { canConfirm: true }, error: null };
-      if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
-        return { data: [], error: null };
-      if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
-      throw new Error("Unexpected RPC: " + name);
-    } },
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: true }, error: null };
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1") return { data: [], error: null };
+        throw new Error("Unexpected RPC: " + name);
+      },
+    },
   };
   const a = adapter((url) => {
     if (url.pathname === "/v1/geocode/search") return { features: [seedWithName("Pelikan")] };
-    if (url.pathname === "/v2/places" && url.searchParams.get("name") === "Pelikan" &&
-        url.searchParams.get("bias") === oxBias)
+    if (
+      url.pathname === "/v2/places" &&
+      url.searchParams.get("name") === "Pelikan" &&
+      url.searchParams.get("bias") === oxBias
+    )
       return { features: [place("verified-pelikan", "Pelikan")] };
     return { features: [] };
   }, context);
-  const primary = await a.discovery({ text: "Pelikann", centers: [area], radiusKm: 1, searchPhase: "primary" });
+  const primary = await a.discovery({
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
   expect((primary as typeof primary & { pendingRecovery: boolean }).pendingRecovery).toBe(true);
   const recovery = await a.discovery({
-    text: "Pelikann", centers: [area], radiusKm: 1, searchPhase: "recovery",
+    text: "Pelikann",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
     providerRequestLimit: 25 - primary.budgetUsage.requests,
     providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
   });
-  const verified = recovery.results.find((candidate) => candidate.externalId === "verified-pelikan");
+  const verified = recovery.results.find(
+    (candidate) => candidate.externalId === "verified-pelikan",
+  );
   expect(verified?.searchMatchType).toBe("tolerant");
   expect(verified?.searchAreaGroup).toBe("nearby");
-  expect(recovery.results.find((candidate) => candidate.externalId === "pelikan-geocoding-anchor")).toBeUndefined();
-  expect(a.calls.some((url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "Pelikan")).toBe(true);
+  expect(
+    recovery.results.find((candidate) => candidate.externalId === "pelikan-geocoding-anchor"),
+  ).toBeUndefined();
+  expect(
+    a.calls.some(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("name") === "Pelikan",
+    ),
+  ).toBe(true);
   expect(primary.budgetUsage.requests + recovery.budgetUsage.requests).toBeLessThanOrEqual(25);
 });

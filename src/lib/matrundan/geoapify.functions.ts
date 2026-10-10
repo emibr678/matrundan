@@ -891,7 +891,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           });
         }
 
-
         // Geocoding can correct a business name that Places would otherwise
         // reject as an exact-name filter. Geocoding is NEVER a venue identity;
         // every selected result must be independently retrieved from Places.
@@ -904,7 +903,11 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 "filter",
                 center.searchMode === "boundary"
                   ? "place:" + center.placeId
-                  : "circle:" + center.lng + "," + center.lat + "," +
+                  : "circle:" +
+                      center.lng +
+                      "," +
+                      center.lat +
+                      "," +
                       Math.round((retrievalRadius ?? 50) * 1000),
               );
               url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
@@ -931,7 +934,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                   !Number.isFinite(lat) ||
                   typeof lng !== "number" ||
                   !Number.isFinite(lng)
-                ) continue;
+                )
+                  continue;
                 const seed = normalizePlaceFeature(
                   feature as Parameters<typeof normalizePlaceFeature>[0],
                 );
