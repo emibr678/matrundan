@@ -355,6 +355,8 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
   await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeVisible();
   await expect(dialog.getByRole("region", { name: "Valda områden" })).toBeVisible();
   await expect(dialog.getByText("Avstånd från valda platser")).toBeVisible();
+  await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
+  await page.getByRole("option", { name: "2 km" }).click();
   await expect(dialog.getByText(/Ort utan verifierad gräns/)).toHaveCount(0);
   const areaEditor = dialog.locator("#mobile-search-area-editor");
   expect((await areaEditor.boundingBox())!.height).toBeLessThanOrEqual(310);
@@ -373,6 +375,9 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
   // Android regression: typing again must collapse the area editor before showing suggestions.
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
   await expect(areaEditor).toBeVisible();
+  const areaInput = dialog.getByRole("combobox", { name: "Lägg till område eller adress" });
+  await areaInput.focus();
+  await page.setViewportSize({ width: 360, height: 420 });
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
@@ -380,9 +385,10 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
     "false",
   );
   await expect(areaEditor).toBeHidden();
-  await page.setViewportSize({ width: 360, height: 420 });
+  await expect(input).toHaveValue("Pelikan");
   await expectInsideViewport(page, input, "Sökfält efter utfällt sökområde");
   await expectInsideViewport(page, dialog.getByRole("listbox"), "Förslag efter områdesbyte");
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText("Inom 2 km");
   await expectNoHorizontalOverflow(page, "Sökning efter kompakt sökområdesexpander");
 });
 
