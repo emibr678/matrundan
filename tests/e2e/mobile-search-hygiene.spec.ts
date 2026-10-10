@@ -67,7 +67,11 @@ async function openPlaceSearch(page: Page) {
   });
   await expect(searchInput).toBeVisible();
   await searchInput.fill(PLACE_NAME);
-  await searchDialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  if ((page.viewportSize()?.width ?? 360) < 1024) {
+    await searchDialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  } else {
+    await searchInput.evaluate((element) => (element as HTMLInputElement).blur());
+  }
   await expect(placeSuggestionButton(searchDialog)).toBeVisible();
   return searchDialog;
 }

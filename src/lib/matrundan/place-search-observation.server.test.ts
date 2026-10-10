@@ -34,10 +34,10 @@ test("concurrent search observations remain isolated and include failed calls", 
     "candidates",
     "elapsedMs",
     "failures",
+    "phaseMs",
     "providerCalls",
     "providerFeatures",
     "providerMs",
-    "phaseMs",
     "requests",
   ]);
 });
