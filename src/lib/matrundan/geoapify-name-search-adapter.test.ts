@@ -631,8 +631,7 @@ test("Falloumi hittas på 1,9 km när name+circle saknar kandidater", async () =
   const a = adapter((url) => {
     if (url.pathname === "/v1/geocode/search")
       return {
-        features:
-          url.searchParams.get("text") === "Falloumi" ? [seedWithName("Falloumi")] : [],
+        features: url.searchParams.get("text") === "Falloumi" ? [seedWithName("Falloumi")] : [],
       };
     if (url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`)
       return { features: [place("places-falloumi", "Falloumi")] };
@@ -699,16 +698,23 @@ test("en tät Places-förstasida får en begränsad andra sida för att hitta r�
     };
   }, context);
   const first = await a.discovery({
-    text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "primary",
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
   });
   const recovered = await a.discovery({
-    text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "recovery",
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
     providerRequestLimit: 25 - first.budgetUsage.requests,
     providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
   });
   expect(recovered.results.map((r) => r.externalId)).toContain("verified-falloumi-page2");
   const verification = a.calls.filter(
-    (url) => url.pathname === "/v2/places" &&
+    (url) =>
+      url.pathname === "/v2/places" &&
       url.searchParams.get("filter") === `circle:${oxLan.lng},${oxLan.lat},150`,
   );
   expect(verification).toHaveLength(2);
@@ -734,24 +740,40 @@ test("två relevanta geoankare kan provas när det första saknar Places-matchni
   const a = adapter((url) => {
     if (url.pathname === "/v1/geocode/search") {
       const firstSeed = seedWithName("Falloumi");
-      return { features: [
-        { ...firstSeed, properties: { ...firstSeed.properties, lat: firstPoint.lat, lon: firstPoint.lng } },
-        seedWithName("Falloumi"),
-      ] };
+      return {
+        features: [
+          {
+            ...firstSeed,
+            properties: { ...firstSeed.properties, lat: firstPoint.lat, lon: firstPoint.lng },
+          },
+          seedWithName("Falloumi"),
+        ],
+      };
     }
     if (url.searchParams.get("filter") === `circle:${secondPoint.lng},${secondPoint.lat},150`)
       return { features: [place("verified-falloumi-second-anchor", "Falloumi")] };
     return { features: [] };
   }, context);
-  const first = await a.discovery({ text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "primary" });
+  const first = await a.discovery({
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "primary",
+  });
   const recovered = await a.discovery({
-    text: "Falloumi", centers: [area], radiusKm: 1, searchPhase: "recovery",
+    text: "Falloumi",
+    centers: [area],
+    radiusKm: 1,
+    searchPhase: "recovery",
     providerRequestLimit: 25 - first.budgetUsage.requests,
     providerCreditLimit: 40 - first.budgetUsage.reservedCredits,
   });
   expect(recovered.results.map((r) => r.externalId)).toContain("verified-falloumi-second-anchor");
-  expect(a.calls.filter((url) => url.pathname === "/v2/places" &&
-    url.searchParams.get("filter")?.endsWith(",150"))).toHaveLength(2);
+  expect(
+    a.calls.filter(
+      (url) => url.pathname === "/v2/places" && url.searchParams.get("filter")?.endsWith(",150"),
+    ),
+  ).toHaveLength(2);
 });
 
 test("geografisk sökledtråd styrs av koordinat, inte sökområdets visningsnamn", async () => {
@@ -767,11 +789,22 @@ test("geografisk sökledtråd styrs av koordinat, inte sökområdets visningsnam
       },
     },
   };
-  const a = adapter((url) => url.pathname === "/v1/geocode/search" ?
-    { features: [seedWithName("Falloumi")] } : { features: [] }, context);
-  await a.discovery({ text: "Falloumi", centers: [{ ...area, label: "En sökadress, okänd ort" }], radiusKm: 1, searchPhase: "recovery" });
-  const geocoding = a.calls.find(url => url.pathname === "/v1/geocode/search" &&
-    !url.searchParams.has("filter"));
+  const a = adapter(
+    (url) =>
+      url.pathname === "/v1/geocode/search"
+        ? { features: [seedWithName("Falloumi")] }
+        : { features: [] },
+    context,
+  );
+  await a.discovery({
+    text: "Falloumi",
+    centers: [{ ...area, label: "En sökadress, okänd ort" }],
+    radiusKm: 1,
+    searchPhase: "recovery",
+  });
+  const geocoding = a.calls.find(
+    (url) => url.pathname === "/v1/geocode/search" && !url.searchParams.has("filter"),
+  );
   expect(geocoding?.searchParams.get("text")).toBe("Falloumi");
   expect(geocoding?.searchParams.get("bias")).toBe(centerBias);
 });
