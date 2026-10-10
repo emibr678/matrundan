@@ -165,6 +165,7 @@ test("mobil sökförslag flyttar inte listan och gamla träffar visas inte för 
   await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toBeVisible();
   await expect(heading).toBeHidden();
   await expect(listbox.getByText(PLACE_NAME, { exact: true })).toBeVisible();
+  await expect(listbox.getByRole("group", { name: "Matställen" })).toBeVisible();
   expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(5);
   await expectNoHorizontalOverflow(page, "Fokuserad sökyta");
 
@@ -305,7 +306,7 @@ test("mobil sökträff under tangentbordet kan väljas direkt utan dubbel lista"
   await input.focus();
   const listbox = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
   await expect(listbox).toBeVisible();
-  await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeHidden();
+  await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeHidden();
   await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
   await expectNoHorizontalOverflow(page, "Sökning med öppet tangentbord");
   await listbox.getByRole("button", { name: /Päronträdets Trattoria Restaurang/ }).click();
@@ -351,7 +352,9 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
     "true",
   );
   await expect(input).toBeVisible();
-  await expect(dialog.getByPlaceholder("Sök kommun, ort, stadsdel eller adress")).toBeVisible();
+  await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeVisible();
+  await expect(dialog.getByRole("heading", { name: "Valda områden" })).toBeVisible();
+  await expect(dialog.getByText(/Ort utan verifierad gräns/)).toHaveCount(0);
   const areaEditor = dialog.locator("#mobile-search-area-editor");
   expect((await areaEditor.boundingBox())!.height).toBeLessThanOrEqual(310);
   await expect(dialog.getByRole("button", { name: "Dölj sökområden" })).toHaveAttribute(
@@ -380,10 +383,13 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
   await expect(dialog.getByRole("heading", { name: "Lägg till matställe" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toBeVisible();
   await expectInsideViewport(page, dialog, "Vanlig dialog före sökning");
+  const browseCorner = await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius);
+  expect(browseCorner).not.toBe("0px");
   await expectNoHorizontalOverflow(page, "Vanlig dialog");
 
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  expect(await dialog.evaluate((element) => getComputedStyle(element).borderTopLeftRadius)).toBe(browseCorner);
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
