@@ -507,21 +507,38 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
     const a = adapter((url) => {
       if (url.pathname === "/v1/geocode/search") return { features: [] };
       return {
-        features: url.searchParams.get("filter")?.endsWith(",2000")
-          ? [place("pelikan-nearby", "Pelikan")]
-          : [],
+        features:
+          url.searchParams.get("name") === "pelika" &&
+          url.searchParams.get("filter")?.endsWith(",2000")
+            ? [place("pelikan-nearby", "Pelikan")]
+            : [],
       };
     }, context);
-    const result = await a.discovery({ text: "Pelikan", centers: [area], radiusKm: 1 });
-    const recovered = result.results.find((row) => row.externalId === "pelikan-nearby");
-    expect(recovered?.searchAreaGroup).toBe("nearby");
+    const primary = await a.discovery({
+      text: "Pelikan",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "primary",
+    });
+    expect(primary.results).toHaveLength(0);
+    const result = await a.discovery({
+      text: "Pelikan",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "recovery",
+      providerRequestLimit: 25 - primary.budgetUsage.requests,
+      providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
+    });
+    expect(result.results.find((row) => row.externalId === "pelikan-nearby")?.searchAreaGroup).toBe(
+      "nearby",
+    );
     expect(a.calls.map((url) => url.pathname)).toEqual([
       "/v2/places",
       "/v1/geocode/search",
       "/v2/places",
     ]);
     expect(a.calls[2].searchParams.get("filter")).toBe("circle:18.0710935,59.3251172,2000");
-    expect(result.budgetUsage.requests).toBe(3);
+    expect(primary.budgetUsage.requests + result.budgetUsage.requests).toBe(3);
   });
 
   test("stavfelsförslag behåller prefix som reserv efter tom Geocoding", async () => {
@@ -532,13 +549,27 @@ describe("begränsad namnsökning utan onödiga geocodingkedjor (#465)", () => {
           url.searchParams.get("name") === "pharma" ? [place("pharmarium-typo", "Pharmarium")] : [],
       };
     }, context);
-    const result = await a.discovery({ text: "Pharmarim", centers: [area], radiusKm: 5 });
+    const primary = await a.discovery({
+      text: "Pharmarim",
+      centers: [area],
+      radiusKm: 5,
+      searchPhase: "primary",
+    });
+    expect(primary.results).toHaveLength(0);
+    const result = await a.discovery({
+      text: "Pharmarim",
+      centers: [area],
+      radiusKm: 5,
+      searchPhase: "recovery",
+      providerRequestLimit: 25 - primary.budgetUsage.requests,
+      providerCreditLimit: 40 - primary.budgetUsage.reservedCredits,
+    });
     expect(
       result.results.find((row) => row.externalId === "pharmarium-typo")?.searchMatchType,
     ).toBe("tolerant");
-    // One inexpensive Geocoding probe precedes the single prefix request.
+    // One Geocoding attempt, then the bounded Places prefix fallback.
     expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
-    expect(result.budgetUsage.requests).toBe(3);
+    expect(primary.budgetUsage.requests + result.budgetUsage.requests).toBe(3);
   });
 });
 
