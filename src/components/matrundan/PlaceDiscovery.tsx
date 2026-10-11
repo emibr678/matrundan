@@ -1178,7 +1178,9 @@ export function PlaceDiscovery({
         suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
     )
     .slice(0, 2).length;
-  const showFullResultsLink = filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
+  const showFullResultsLink = nameHintsActive
+    ? nameHints.length + canonicalHints.length > 3 - visibleGenericSuggestionCount
+    : filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileModeChange("browse");
@@ -1873,8 +1875,14 @@ function PlaceSearchCombobox({
           onBlur={() => {
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
             blurTimeoutRef.current = window.setTimeout(() => {
-              // Keyboard dismissal must not close the active search view.
-              if (!focused) setOpen(false);
+              // On Android the keyboard may close without ending the search.
+              // Desktop blur genuinely exits the focused suggestion flow.
+              if (window.matchMedia("(min-width: 1024px)").matches) {
+                setOpen(false);
+                onFocusChange(false);
+              } else if (!focused) {
+                setOpen(false);
+              }
               blurTimeoutRef.current = null;
             }, 150);
           }}
