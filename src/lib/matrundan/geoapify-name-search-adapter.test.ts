@@ -1304,8 +1304,8 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
     const result = await a.discovery({
       ...basicInput,
       searchPhase: "hints",
-      providerRequestLimit: 0,
-      providerCreditLimit: 0,
+      providerRequestLimit: 5,
+      providerCreditLimit: 10,
     });
     expect(result.results).toHaveLength(0);
     expect(a.calls).toHaveLength(0);
