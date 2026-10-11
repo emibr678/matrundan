@@ -39,7 +39,7 @@ import {
   recordSearchCandidateCounts,
   recordSearchCandidateFlow,
 } from "./place-search-observation.server";
-import { budgetProviderRequest, estimatedGeoapifyCredits } from "./place-search-budget.server";
+import { budgetProviderRequest, estimatedGeoapifyCredits, withPlaceSearchBudget } from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
@@ -1165,6 +1165,8 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
     if (access.error) throw new Error("Gruppen kunde inte verifieras.");
     if (resolvePlaceSearchIntent(data.text).kind !== "text") return [];
 
+    // Bound all cache-miss provider requests across every selected area.
+    return (await withPlaceSearchBudget({ requests: 25, credits: 40, timeoutMs: 9_000 }, async () => {
     const responses = await Promise.allSettled(
       data.centers.map(async (center) => {
         const boundary =
@@ -1234,9 +1236,10 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         }
       }
     }
-    return [...unique.values()]
+    return { hints: [...unique.values()]
       .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-      .slice(0, 12);
+      .slice(0, 12) };
+    })).hints;
   });
 
 const selectedNameHintSchema = z.object({
