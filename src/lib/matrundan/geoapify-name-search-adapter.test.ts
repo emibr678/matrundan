@@ -52,7 +52,7 @@ type SearchInput = {
   offset?: number;
   areaOffsets?: Record<string, number>;
   exhaustedAreaIds?: string[];
-  searchPhase?: "primary" | "recovery" | "complete";
+  searchPhase?: "primary" | "recovery" | "complete" | "hints";
   providerRequestLimit?: number;
   providerCreditLimit?: number;
 };
