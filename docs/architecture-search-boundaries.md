@@ -42,7 +42,29 @@ Geoapifys proximity-bias får användas för stabil intern rangordning även nä
 
 ## Specifik namnsökning
 
-Places är primär sökväg. Vid aktiv namnsökning kan en enda begränsad
+I det **fokuserade namnförslagsläget** hämtar den autentiserade servern
+Geoapifys **Autocomplete** för namn på matverksamheter, parallellt med
+gruppbehörighetskontrollerade kanoniska Matrundan-kandidater. Autocomplete
+används bara för kandidatupptäckt medan man skriver; den skapar ingen
+platsidentitet eller rätt att dela privata uppgifter. Förslagen rangordnas
+med de valda sökområdena som utgångspunkter, utan att ändra deras radier
+eller boundary-betydelse. Servern begränsar anrop och krediter över alla
+valda områden. Fel skiljs från nollträffar och gamla förslag får inte
+visas för en ny söktext.
+
+När användaren väljer ett externt förslag hämtar servern först **Place
+Details** och kräver ett trovärdigt matställe med matchande namn och position.
+En närliggande Places-kandidat måste dessutom styrkas med **exakt samma
+OSM-typ och OSM-id** innan den kan nå Matrundans befintliga
+gruppscopade identitetsgranskning. Geoapifys Geocoding-`place_id` är
+aldrig samma sak som en verifierad Places-identitet; det kan skilja sig
+även för samma OSM-objekt. Saknas verifierbar OSM-identitet eller bryts
+kontrollerna ska användaren få ett tydligt fel, aldrig en automatisk
+fuzzy-koppling.
+
+**Places är fortfarande primär sökväg för geografisk upptäckt,
+kategori-/köksfilter, paginerad helresultatlista och karta.**
+I den separata fullresultatsökningen kan en enda begränsad
 kandidatradie användas redan i primärhämtningen, med tydlig märkning av
 träffar utanför valt avstånd. Vid utebliven stark träff provas först en
 kort, geografiskt begränsad namnankarsökning via Places. Först om den
