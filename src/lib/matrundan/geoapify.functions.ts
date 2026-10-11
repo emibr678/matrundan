@@ -1206,7 +1206,7 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         );
         const unique = new Map<
           string,
-          { properties: GeoapifyFeature["properties"]; providerRank: number }
+          { properties: NonNullable<GeoapifyFeature["properties"]>; providerRank: number }
         >();
         for (const area of areas) {
           for (const [providerRank, feature] of area.features.entries()) {
