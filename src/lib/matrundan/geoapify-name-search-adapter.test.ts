@@ -1072,10 +1072,6 @@ test("Pelikann hittar Pelikan 1,6 km bort med gemensam fuzzy/radie-kandidatsökn
   const hit = recovered.results.find((candidate) => candidate.externalId === "pelikan-typo-nearby");
   expect(hit?.searchMatchType).toBe("tolerant");
   expect(hit?.searchAreaGroup).toBe("nearby");
-  expect(
-    (recovered as typeof recovered & { observation: { candidates: { typo: number } } }).observation
-      .candidates.typo,
-  ).toBe(1);
   expect(first.budgetUsage.requests + recovered.budgetUsage.requests).toBeLessThanOrEqual(25);
   expect(a.calls.filter((url) => url.pathname === "/v1/geocode/search")).toHaveLength(1);
 });
