@@ -39,7 +39,11 @@ import {
   recordSearchCandidateCounts,
   recordSearchCandidateFlow,
 } from "./place-search-observation.server";
-import { budgetProviderRequest, estimatedGeoapifyCredits, withPlaceSearchBudget } from "./place-search-budget.server";
+import {
+  budgetProviderRequest,
+  estimatedGeoapifyCredits,
+  withPlaceSearchBudget,
+} from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
   providerIdentityReviewSchema,
@@ -1166,80 +1170,84 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
     if (resolvePlaceSearchIntent(data.text).kind !== "text") return [];
 
     // Bound all cache-miss provider requests across every selected area.
-    return (await withPlaceSearchBudget({ requests: 25, credits: 40, timeoutMs: 9_000 }, async () => {
-    const responses = await Promise.allSettled(
-      data.centers.map(async (center) => {
-        const boundary =
-          center.searchMode === "boundary" && center.placeId
-            ? await loadBoundary(center.placeId)
-            : null;
-        if (center.searchMode === "boundary" && !boundary) {
-          throw new Error("Sökområdets gräns kunde inte verifieras.");
+    return (
+      await withPlaceSearchBudget({ requests: 25, credits: 40, timeoutMs: 9_000 }, async () => {
+        const responses = await Promise.allSettled(
+          data.centers.map(async (center) => {
+            const boundary =
+              center.searchMode === "boundary" && center.placeId
+                ? await loadBoundary(center.placeId)
+                : null;
+            if (center.searchMode === "boundary" && !boundary) {
+              throw new Error("Sökområdets gräns kunde inte verifieras.");
+            }
+            const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+            url.searchParams.set("text", data.text);
+            url.searchParams.set("type", "amenity");
+            url.searchParams.set("format", "geojson");
+            url.searchParams.set("lang", "sv");
+            url.searchParams.set("limit", "10");
+            url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
+            if (center.searchMode === "boundary") {
+              url.searchParams.set("filter", "place:" + center.placeId);
+            }
+            url.searchParams.set("apiKey", readKey());
+            return { center, boundary, features: (await callGeoapify(url)).features ?? [] };
+          }),
+        );
+        if (responses.every((outcome) => outcome.status === "rejected")) {
+          throw new Error("Sökförslag kunde inte hämtas. Försök igen.");
         }
-        const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
-        url.searchParams.set("text", data.text);
-        url.searchParams.set("type", "amenity");
-        url.searchParams.set("format", "geojson");
-        url.searchParams.set("lang", "sv");
-        url.searchParams.set("limit", "10");
-        url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
-        if (center.searchMode === "boundary") {
-          url.searchParams.set("filter", "place:" + center.placeId);
+        const unique = new Map<string, PlaceNameHint>();
+        for (const response of responses) {
+          if (response.status !== "fulfilled") continue;
+          const { center, boundary, features } = response.value;
+          for (const feature of features) {
+            const p = (feature as GeoapifyFeature)?.properties;
+            if (!p || !foodAmenity(p)) continue;
+            const location = p as Parameters<typeof addressFromGeoapify>[0];
+            if (
+              typeof p.place_id !== "string" ||
+              !p.place_id ||
+              typeof p.name !== "string" ||
+              !p.name.trim() ||
+              typeof p.lat !== "number" ||
+              !Number.isFinite(p.lat) ||
+              typeof p.lon !== "number" ||
+              !Number.isFinite(p.lon)
+            )
+              continue;
+            const candidate = { lat: p.lat, lng: p.lon };
+            if (boundary && !placeWithinBoundary(candidate, boundary)) continue;
+            const distance = distanceKm(center, candidate);
+            // A saved area is a ranking origin, not a hard search constraint.
+            // Discard geographically implausible geocoder suggestions.
+            if (!boundary && distance > 50) continue;
+            const match: PlaceNameHint = {
+              placeId: p.place_id,
+              name: p.name.trim(),
+              address: addressFromGeoapify(location, p.name),
+              city: cityFromGeoapify(location),
+              area: areaFromGeoapify(location),
+              lat: p.lat,
+              lng: p.lon,
+              nearestAreaLabel: center.label,
+              distanceKm: boundary ? undefined : distance,
+              outsideArea: !boundary && distance > (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+            };
+            const previous = unique.get(match.placeId);
+            if (!previous || (match.distanceKm ?? 0) < (previous.distanceKm ?? 0)) {
+              unique.set(match.placeId, match);
+            }
+          }
         }
-        url.searchParams.set("apiKey", readKey());
-        return { center, boundary, features: (await callGeoapify(url)).features ?? [] };
-      }),
-    );
-    if (responses.every((outcome) => outcome.status === "rejected")) {
-      throw new Error("Sökförslag kunde inte hämtas. Försök igen.");
-    }
-    const unique = new Map<string, PlaceNameHint>();
-    for (const response of responses) {
-      if (response.status !== "fulfilled") continue;
-      const { center, boundary, features } = response.value;
-      for (const feature of features) {
-        const p = (feature as GeoapifyFeature)?.properties;
-        if (!p || !foodAmenity(p)) continue;
-        const location = p as Parameters<typeof addressFromGeoapify>[0];
-        if (
-          typeof p.place_id !== "string" ||
-          !p.place_id ||
-          typeof p.name !== "string" ||
-          !p.name.trim() ||
-          typeof p.lat !== "number" ||
-          !Number.isFinite(p.lat) ||
-          typeof p.lon !== "number" ||
-          !Number.isFinite(p.lon)
-        )
-          continue;
-        const candidate = { lat: p.lat, lng: p.lon };
-        if (boundary && !placeWithinBoundary(candidate, boundary)) continue;
-        const distance = distanceKm(center, candidate);
-        // A saved area is a ranking origin, not a hard search constraint.
-        // Discard geographically implausible geocoder suggestions.
-        if (!boundary && distance > 50) continue;
-        const match: PlaceNameHint = {
-          placeId: p.place_id,
-          name: p.name.trim(),
-          address: addressFromGeoapify(location, p.name),
-          city: cityFromGeoapify(location),
-          area: areaFromGeoapify(location),
-          lat: p.lat,
-          lng: p.lon,
-          nearestAreaLabel: center.label,
-          distanceKm: boundary ? undefined : distance,
-          outsideArea: !boundary && distance > (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+        return {
+          hints: [...unique.values()]
+            .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+            .slice(0, 12),
         };
-        const previous = unique.get(match.placeId);
-        if (!previous || (match.distanceKm ?? 0) < (previous.distanceKm ?? 0)) {
-          unique.set(match.placeId, match);
-        }
-      }
-    }
-    return { hints: [...unique.values()]
-      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-      .slice(0, 12) };
-    })).hints;
+      })
+    ).hints;
   });
 
 const selectedNameHintSchema = z.object({
