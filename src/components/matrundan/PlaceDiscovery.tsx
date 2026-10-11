@@ -169,9 +169,12 @@ export function PlaceDiscovery({
     snapshot?.selectedFilter ?? null,
   );
   const effectiveQuery = selectedFilter?.label ?? query.trim();
-  const filterSelection = selectedFilter
-    ? { kind: selectedFilter.kind, id: selectedFilter.id }
-    : undefined;
+  const filterSelection = React.useMemo(
+    () => selectedFilter
+      ? { kind: selectedFilter.kind, id: selectedFilter.id }
+      : undefined,
+    [selectedFilter],
+  );
   const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>([]);
   const [canonicalHints, setCanonicalHints] = React.useState<PlaceSuggestion[]>([]);
   const [nameHintsKey, setNameHintsKey] = React.useState("");
