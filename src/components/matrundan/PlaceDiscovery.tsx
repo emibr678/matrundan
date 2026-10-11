@@ -316,10 +316,17 @@ export function PlaceDiscovery({
       }));
       const settled = await Promise.allSettled([
         searchPlaceNameHints({ data: { groupId, text: query.trim(), centers, radiusKm } }),
-        searchPlaceDiscovery({ data: {
-          groupId, text: query.trim(), centers, radiusKm, searchPhase: "hints",
-          providerRequestLimit: 5, providerCreditLimit: 10,
-        } }),
+        searchPlaceDiscovery({
+          data: {
+            groupId,
+            text: query.trim(),
+            centers,
+            radiusKm,
+            searchPhase: "hints",
+            providerRequestLimit: 5,
+            providerCreditLimit: 10,
+          },
+        }),
       ]);
       if (!active) return;
       if (settled[0].status === "fulfilled") setNameHints(settled[0].value);
@@ -336,7 +343,10 @@ export function PlaceDiscovery({
       setNameHintsKey(key);
       setNameHintsLoading(false);
     }, 300);
-    return () => { active = false; window.clearTimeout(timer); };
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
   }, [activeAreas, currentSearchKey, groupId, isLive, nameHintsActive, query, radiusKm]);
 
   const activeAreasWithGeometry = React.useMemo(
@@ -1197,13 +1207,15 @@ export function PlaceDiscovery({
     nameHintSelectionRef.current = true;
     setVerifyingNameHint(true);
     try {
-      const selected = await resolvePlaceNameHint({ data: {
-        groupId,
-        placeId: hint.placeId,
-        name: hint.name,
-        lat: hint.lat,
-        lng: hint.lng,
-      } });
+      const selected = await resolvePlaceNameHint({
+        data: {
+          groupId,
+          placeId: hint.placeId,
+          name: hint.name,
+          lat: hint.lat,
+          lng: hint.lng,
+        },
+      });
       activateSearchSuggestion(selected);
     } catch (caught) {
       toast.error(providerMessage(caught), {
@@ -1285,9 +1297,11 @@ export function PlaceDiscovery({
         <PlaceSearchCombobox
           query={query}
           onQueryChange={setQuery}
-          loading={nameHintsActive
-            ? nameHintsLoading || nameHintsKey !== currentSearchKey || verifyingNameHint
-            : searchInFlight}
+          loading={
+            nameHintsActive
+              ? nameHintsLoading || nameHintsKey !== currentSearchKey || verifyingNameHint
+              : searchInFlight
+          }
           error={nameHintsActive ? nameHintsError : error}
           incomplete={!nameHintsActive && failedAreas.length > 0}
           noAreas={activeAreas.length === 0}
@@ -1661,7 +1675,9 @@ function PlaceSearchCombobox({
         hint.address || hint.area,
         hint.city,
         hint.outsideArea ? "utanför vald radie" : "",
-      ].filter(Boolean).join(" · "),
+      ]
+        .filter(Boolean)
+        .join(" · "),
       hint,
     }));
   const isInternalOption = (option: PlaceSearchOption) =>
@@ -1934,7 +1950,11 @@ function PlaceSearchCombobox({
                 <>
                   {renderGroup("Kök och typer", genericOptions, 0)}
                   {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
-                  {renderGroup("Förslag på matställen", hintOptions, genericOptions.length + internalOptions.length)}
+                  {renderGroup(
+                    "Förslag på matställen",
+                    hintOptions,
+                    genericOptions.length + internalOptions.length,
+                  )}
                   {renderGroup(
                     "Matställen",
                     externalOptions,

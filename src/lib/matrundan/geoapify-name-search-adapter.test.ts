@@ -139,13 +139,19 @@ function adapter(
   return {
     calls,
     hints: (input: Pick<SearchInput, "text" | "centers" | "radiusKm">) =>
-      (functions.searchPlaceNameHints as (args: { data: typeof input & { groupId: string } }) =>
-        Promise<import("./geoapify.functions").PlaceNameHint[]>)({
+      (
+        functions.searchPlaceNameHints as (args: {
+          data: typeof input & { groupId: string };
+        }) => Promise<import("./geoapify.functions").PlaceNameHint[]>
+      )({
         data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
       }),
     resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
-      (functions.resolvePlaceNameHint as (args: { data: typeof input & { groupId: string } }) =>
-        Promise<PlaceSuggestion>)({
+      (
+        functions.resolvePlaceNameHint as (args: {
+          data: typeof input & { groupId: string };
+        }) => Promise<PlaceSuggestion>
+      )({
         data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
       }),
     multi: (input: SearchInput) =>
@@ -1222,22 +1228,27 @@ test("geokodad korrigering av Pelikann måste verifieras med Places innan den vi
   expect(primary.budgetUsage.requests + recovery.budgetUsage.requests).toBeLessThanOrEqual(25);
 });
 
-
 describe("autocomplete under skrivning och verifiering först vid val (#465)", () => {
   const ctx: FixtureContext = {
     supabase: {
       rpc: async (name) => {
         if (name === "get_place_discovery_context_v1")
           return { data: { canConfirm: false }, error: null };
-        if (name === "search_canonical_places_v1" ||
-            name === "search_canonical_name_candidates_v1")
+        if (name === "search_canonical_places_v1" || name === "search_canonical_name_candidates_v1")
           return { data: [], error: null };
         if (name === "match_place_discovery_candidates_v1")
           return {
-            data: [{
-              providerPlaceId: "places-ox", providerVersion: "b".repeat(32),
-              knownPlace: null, candidates: [], reviewRequired: true, identityConflict: false,
-            }], error: null,
+            data: [
+              {
+                providerPlaceId: "places-ox",
+                providerVersion: "b".repeat(32),
+                knownPlace: null,
+                candidates: [],
+                reviewRequired: true,
+                identityConflict: false,
+              },
+            ],
+            error: null,
           };
         throw new Error("Unexpected private RPC: " + name);
       },
@@ -1259,12 +1270,22 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
   }
 
   test("förslag hämtas via autocomplete utan Places och avslöjar inte oidentifierade providerdata", async () => {
-    const a = adapter((url) =>
-      url.pathname === "/v1/geocode/autocomplete"
-        ? { features: [geocodingHint(), place("irrelevant", "Postkontor", {
-          category: "service.post", result_type: "amenity", categories: ["service.post"],
-        })] }
-        : { features: [] }, ctx);
+    const a = adapter(
+      (url) =>
+        url.pathname === "/v1/geocode/autocomplete"
+          ? {
+              features: [
+                geocodingHint(),
+                place("irrelevant", "Postkontor", {
+                  category: "service.post",
+                  result_type: "amenity",
+                  categories: ["service.post"],
+                }),
+              ],
+            }
+          : { features: [] },
+      ctx,
+    );
     const hints = await a.hints({ text: "Ox Lan", centers: [area], radiusKm: 1 });
     expect(hints).toHaveLength(1);
     expect(hints[0].placeId).toBe("geocoding-only-id");
@@ -1280,8 +1301,12 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
     const a = adapter(() => {
       throw new Error("Should not send HTTP provider requests while typing canonical hints");
     }, ctx);
-    const result = await a.discovery({ ...basicInput, searchPhase: "hints",
-      providerRequestLimit: 0, providerCreditLimit: 0 });
+    const result = await a.discovery({
+      ...basicInput,
+      searchPhase: "hints",
+      providerRequestLimit: 0,
+      providerCreditLimit: 0,
+    });
     expect(result.results).toHaveLength(0);
     expect(a.calls).toHaveLength(0);
   });
@@ -1293,7 +1318,9 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
       return { features: [] };
     }, ctx);
     const selected = await a.resolveHint({
-      placeId: "geocoding-only-id", name: "Ox Lan", ...oxLan,
+      placeId: "geocoding-only-id",
+      name: "Ox Lan",
+      ...oxLan,
     });
     expect(selected.externalId).toBe("places-ox");
     expect(selected.kind).toBe("provider");
@@ -1309,28 +1336,47 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
   test("annan OSM-källa med samma namn får aldrig bli vald identitet", async () => {
     const a = adapter((url) => {
       if (url.pathname === "/v2/place-details") return { features: [detail()] };
-      if (url.pathname === "/v2/places") return {
-        features: [place("different-real-restaurant", "Ox Lan", {
-          datasource: { raw: { osm_type: "node", osm_id: 54321 } },
-        })],
-      };
+      if (url.pathname === "/v2/places")
+        return {
+          features: [
+            place("different-real-restaurant", "Ox Lan", {
+              datasource: { raw: { osm_type: "node", osm_id: 54321 } },
+            }),
+          ],
+        };
       return { features: [] };
     }, ctx);
-    await expect(a.resolveHint({
-      placeId: "geocoding-only-id", name: "Ox Lan", ...oxLan,
-    })).rejects.toThrow("identitet");
+    await expect(
+      a.resolveHint({
+        placeId: "geocoding-only-id",
+        name: "Ox Lan",
+        ...oxLan,
+      }),
+    ).rejects.toThrow("identitet");
   });
 
   test("valda förslag får inte bytas ut med ett annat namn eller en falsk position", async () => {
-    const a = adapter((url) => ({
-      features: url.pathname === "/v2/place-details" ? [detail()] : [place()],
-    }), ctx);
-    await expect(a.resolveHint({
-      placeId: "geocoding-only-id", name: "Annat matställe", ...oxLan,
-    })).rejects.toThrow("verifieras");
-    await expect(a.resolveHint({
-      placeId: "geocoding-only-id", name: "Ox Lan", lat: 57.7, lng: 11.9,
-    })).rejects.toThrow("verifieras");
+    const a = adapter(
+      (url) => ({
+        features: url.pathname === "/v2/place-details" ? [detail()] : [place()],
+      }),
+      ctx,
+    );
+    await expect(
+      a.resolveHint({
+        placeId: "geocoding-only-id",
+        name: "Annat matställe",
+        ...oxLan,
+      }),
+    ).rejects.toThrow("verifieras");
+    await expect(
+      a.resolveHint({
+        placeId: "geocoding-only-id",
+        name: "Ox Lan",
+        lat: 57.7,
+        lng: 11.9,
+      }),
+    ).rejects.toThrow("verifieras");
     expect(a.calls.every((url) => url.pathname === "/v2/place-details")).toBe(true);
   });
 });

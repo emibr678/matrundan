@@ -707,7 +707,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             ? expandedNameRadiusKm(data.radiusKm)
             : null;
         if (
-          data.searchPhase !== "primary" && data.searchPhase !== "hints" &&
+          data.searchPhase !== "primary" &&
+          data.searchPhase !== "hints" &&
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
           !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
@@ -789,7 +790,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       })().catch(() => ({ results: [], incomplete: true }));
       const sourcesStarted = performance.now();
       const [providerOutcome, internal] = await Promise.all([
-        (data.searchPhase === "recovery" || data.searchPhase === "hints")
+        data.searchPhase === "recovery" || data.searchPhase === "hints"
           ? Promise.resolve({
               ok: true as const,
               value: {
@@ -1114,7 +1115,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
     }),
   );
 
-
 /** Geoapify's geocoding place_id is NOT a verified Places identity. */
 export interface PlaceNameHint {
   placeId: string;
@@ -1199,11 +1199,16 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         if (!p || !foodAmenity(p)) continue;
         const location = p as Parameters<typeof addressFromGeoapify>[0];
         if (
-          typeof p.place_id !== "string" || !p.place_id ||
-          typeof p.name !== "string" || !p.name.trim() ||
-          typeof p.lat !== "number" || !Number.isFinite(p.lat) ||
-          typeof p.lon !== "number" || !Number.isFinite(p.lon)
-        ) continue;
+          typeof p.place_id !== "string" ||
+          !p.place_id ||
+          typeof p.name !== "string" ||
+          !p.name.trim() ||
+          typeof p.lat !== "number" ||
+          !Number.isFinite(p.lat) ||
+          typeof p.lon !== "number" ||
+          !Number.isFinite(p.lon)
+        )
+          continue;
         const candidate = { lat: p.lat, lng: p.lon };
         if (boundary && !placeWithinBoundary(candidate, boundary)) continue;
         const distance = distanceKm(center, candidate);
@@ -1265,9 +1270,14 @@ export const resolvePlaceNameHint = createServerFn({ method: "POST" })
       .map((feature) =>
         normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
       )
-      .find((place) => place && normalizePlaceIdentity(place.name) === normalizePlaceIdentity(data.name) &&
-        place.lat != null && place.lng != null &&
-        placeDistanceKm({ lat: place.lat, lng: place.lng }, data) <= 0.15);
+      .find(
+        (place) =>
+          place &&
+          normalizePlaceIdentity(place.name) === normalizePlaceIdentity(data.name) &&
+          place.lat != null &&
+          place.lng != null &&
+          placeDistanceKm({ lat: place.lat, lng: place.lng }, data) <= 0.15,
+      );
     if (!verified) throw new Error("Matstället kunde inte verifieras. Sök igen.");
     const source = JSON.parse(verified.raw) as { osmType?: string; osmId?: string };
     if (!source.osmType || !source.osmId) {
@@ -1287,18 +1297,28 @@ export const resolvePlaceNameHint = createServerFn({ method: "POST" })
       search.searchParams.set("lang", "sv");
       search.searchParams.set("apiKey", readKey());
       const page = await callGeoapify(search);
-      selected = (page.features ?? [])
-        .map((feature) =>
-          normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
-        )
-        .find((place) => {
-          if (!place || place.lat == null || place.lng == null ||
-              placeDistanceKm({ lat: place.lat, lng: place.lng }, {
-                lat: verified.lat!, lng: verified.lng!,
-              }) > 0.15) return false;
-          const next = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
-          return source.osmType === next.osmType && source.osmId === next.osmId;
-        }) ?? undefined;
+      selected =
+        (page.features ?? [])
+          .map((feature) =>
+            normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
+          )
+          .find((place) => {
+            if (
+              !place ||
+              place.lat == null ||
+              place.lng == null ||
+              placeDistanceKm(
+                { lat: place.lat, lng: place.lng },
+                {
+                  lat: verified.lat!,
+                  lng: verified.lng!,
+                },
+              ) > 0.15
+            )
+              return false;
+            const next = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+            return source.osmType === next.osmType && source.osmId === next.osmId;
+          }) ?? undefined;
       if (selected || (page.features?.length ?? 0) < 50) break;
     }
     if (!selected) throw new Error("Matställets identitet kunde inte bekräftas.");
@@ -1306,23 +1326,27 @@ export const resolvePlaceNameHint = createServerFn({ method: "POST" })
     const sourceDetails = JSON.parse(selected.raw) as { osmType?: string; osmId?: string };
     const reviewed = await context.supabase.rpc("match_place_discovery_candidates_v1", {
       _group_id: data.groupId,
-      _items: [{
-        externalId: selected.externalId,
-        name: selected.name,
-        category: selected.category,
-        cuisines: selected.cuisines,
-        address: selected.address,
-        area: selected.area ?? null,
-        city: selected.city,
-        lat: selected.lat ?? null,
-        lng: selected.lng ?? null,
-        osmType: sourceDetails.osmType ?? null,
-        osmId: sourceDetails.osmId ?? null,
-      }],
+      _items: [
+        {
+          externalId: selected.externalId,
+          name: selected.name,
+          category: selected.category,
+          cuisines: selected.cuisines,
+          address: selected.address,
+          area: selected.area ?? null,
+          city: selected.city,
+          lat: selected.lat ?? null,
+          lng: selected.lng ?? null,
+          osmType: sourceDetails.osmType ?? null,
+          osmId: sourceDetails.osmId ?? null,
+        },
+      ],
     });
     // Never convert an identity-check failure to an unreviewed "safe" result.
     if (reviewed.error) throw new Error("Matstället kunde inte kontrolleras mot gruppen.");
-    const review = z.array(providerIdentityReviewSchema).parse(reviewed.data)
+    const review = z
+      .array(providerIdentityReviewSchema)
+      .parse(reviewed.data)
       .find((item) => item.providerPlaceId === selected.externalId);
     if (!review) throw new Error("Matstället kunde inte identitetskontrolleras.");
 
