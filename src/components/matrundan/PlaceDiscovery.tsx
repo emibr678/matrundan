@@ -212,9 +212,8 @@ export function PlaceDiscovery({
     temporaryAreas.map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
   ]);
   const currentNameHintsKey = currentSearchKey + (includeDistantNameHints ? ":distant" : ":nearby");
-  const cachedNameHintsOnReturnRef = React.useRef(
-    snapshot?.nameHintsKey === currentNameHintsKey &&
-      ((snapshot?.nameHints?.length ?? 0) > 0 || (snapshot?.canonicalHints?.length ?? 0) > 0),
+  const loadedNameHintsKeyRef = React.useRef<string | null>(
+    snapshot?.nameHintsKey === currentNameHintsKey ? currentNameHintsKey : null,
   );
   const [resultsForSearchKey, setResultsForSearchKey] = React.useState(
     snapshot?.resultsForSearchKey ?? currentSearchKey,
@@ -321,6 +320,7 @@ export function PlaceDiscovery({
   // group's existing authenticated read-model for private canonical hints.
   React.useEffect(() => {
     if (!nameHintsActive || !groupId || activeAreas.length === 0) {
+      loadedNameHintsKeyRef.current = null;
       setNameHints([]);
       setCanonicalHints([]);
       setNameHintsError(null);
@@ -328,12 +328,9 @@ export function PlaceDiscovery({
       setNameHintsKey("");
       return;
     }
-    // Returning from the detail dialog should restore the exact suggestions
-    // (including "Sök längre bort") without another provider round trip.
-    if (cachedNameHintsOnReturnRef.current) {
-      cachedNameHintsOnReturnRef.current = false;
-      return;
-    }
+    // Only a changed query/area/search horizon needs another provider call.
+    // Returning from a detail dialog reuses already completed suggestions.
+    if (loadedNameHintsKeyRef.current === currentNameHintsKey) return;
     let active = true;
     setNameHintsLoading(true);
     setNameHintsError(null);
@@ -373,6 +370,9 @@ export function PlaceDiscovery({
         }),
       ]);
       if (!active) return;
+      if (settled.every((outcome) => outcome.status === "fulfilled")) {
+        loadedNameHintsKeyRef.current = key;
+      }
       if (settled[0].status === "fulfilled") setNameHints(settled[0].value);
       if (settled[1].status === "fulfilled") {
         setCanonicalHints(settled[1].value.results.filter((result) => result.kind === "canonical"));
