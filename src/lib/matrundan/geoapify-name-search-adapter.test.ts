@@ -1498,7 +1498,13 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
 describe("explicit valt kök kontra fri text genom Places-servern (#465)", () => {
   test("exakt Pizza som namnsökning når provider som namnsökning", async () => {
     const a = adapter(() => ({ features: [] }));
-    await a.multi({ text: "Pizza", intentMode: "literal", centers: [area], radiusKm: 1, searchPhase: "primary" });
+    await a.multi({
+      text: "Pizza",
+      intentMode: "literal",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "primary",
+    });
     const places = a.calls.filter((url) => url.pathname === "/v2/places");
     expect(places).toHaveLength(1);
     expect(places[0].searchParams.get("name")?.toLocaleLowerCase()).toBe("pizza");
@@ -1509,7 +1515,9 @@ describe("explicit valt kök kontra fri text genom Places-servern (#465)", () =>
     await a.multi({
       text: "Pizza",
       selectedFilter: { kind: "food-tag", id: "specialty:pizza" },
-      centers: [area], radiusKm: 1, searchPhase: "primary",
+      centers: [area],
+      radiusKm: 1,
+      searchPhase: "primary",
     });
     const places = a.calls.filter((url) => url.pathname === "/v2/places");
     expect(places).toHaveLength(1);
@@ -1518,11 +1526,14 @@ describe("explicit valt kök kontra fri text genom Places-servern (#465)", () =>
 
   test("fel filteridentitet avvisas innan något provideranrop sker", async () => {
     const a = adapter(() => ({ features: [] }));
-    await expect(a.multi({
-      text: "Pizza",
-      selectedFilter: { kind: "food-tag", id: "cuisine:italian" },
-      centers: [area], radiusKm: 1,
-    })).rejects.toThrow("verifieras");
+    await expect(
+      a.multi({
+        text: "Pizza",
+        selectedFilter: { kind: "food-tag", id: "cuisine:italian" },
+        centers: [area],
+        radiusKm: 1,
+      }),
+    ).rejects.toThrow("verifieras");
     expect(a.calls).toHaveLength(0);
   });
 });

@@ -347,9 +347,7 @@ test("mobil sökträff väljs med touch utan oavsiktlig Google Maps-navigering",
   await expect(page).toHaveURL(/\/matstallen/);
 });
 
-test("mobil inriktningsval leder till full resultatlista med synligt filter", async ({
-  page,
-}) => {
+test("mobil inriktningsval leder till full resultatlista med synligt filter", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen?demo=1");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -469,7 +467,9 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
   await expectNoHorizontalOverflow(page, "Återgång från sökning");
 });
 
-test("valt kök är ett riktigt filter med återgång till full lista, inte autofyll (#465)", async ({ page }) => {
+test("valt kök är ett riktigt filter med återgång till full lista, inte autofyll (#465)", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen?demo=1");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -499,8 +499,11 @@ test("valt kök är ett riktigt filter med återgång till full lista, inte auto
   await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
   await expect(dialog.getByTestId("active-place-search-filter")).toHaveCount(0);
   await expect(
-    dialog.getByRole("listbox").getByRole("group", { name: "Kök och typer" })
-      .getByRole("option").filter({ hasText: "Pizza" }),
+    dialog
+      .getByRole("listbox")
+      .getByRole("group", { name: "Kök och typer" })
+      .getByRole("option")
+      .filter({ hasText: "Pizza" }),
   ).toBeVisible();
   await expectNoHorizontalOverflow(page, "Exakt namn utan automatiskt inriktningsfilter");
 });

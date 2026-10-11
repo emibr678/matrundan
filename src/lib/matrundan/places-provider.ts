@@ -11,7 +11,11 @@ import {
   type CanonicalPlaceCandidate,
   type ProviderIdentityReview,
 } from "./place-discovery";
-import { matchesPlaceSearchIntent, resolveDiscoverySearchIntent, type SelectedPlaceSearchFilter } from "./place-search-intent";
+import {
+  matchesPlaceSearchIntent,
+  resolveDiscoverySearchIntent,
+  type SelectedPlaceSearchFilter,
+} from "./place-search-intent";
 import type {
   PlaceCategory,
   SearchArea,

@@ -170,9 +170,7 @@ export function PlaceDiscovery({
   );
   const effectiveQuery = selectedFilter?.label ?? query.trim();
   const filterSelection = React.useMemo(
-    () => selectedFilter
-      ? { kind: selectedFilter.kind, id: selectedFilter.id }
-      : undefined,
+    () => (selectedFilter ? { kind: selectedFilter.kind, id: selectedFilter.id } : undefined),
     [selectedFilter],
   );
   const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>([]);
@@ -296,10 +294,7 @@ export function PlaceDiscovery({
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
 
   const nameHintsActive =
-    isLive &&
-    !selectedFilter &&
-    mobileMode === "search" &&
-    query.trim().length >= 3;
+    isLive && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
 
   // Two independent reads run in parallel: Geoapify for discovery, the
   // group's existing authenticated read-model for private canonical hints.
@@ -1173,7 +1168,7 @@ export function PlaceDiscovery({
     />
   );
   const genericSuggestions = React.useMemo(
-    () => selectedFilter ? [] : genericPlaceSearchSuggestions(query, 4),
+    () => (selectedFilter ? [] : genericPlaceSearchSuggestions(query, 4)),
     [query, selectedFilter],
   );
   const placeAutocompleteSuggestions = React.useMemo(
@@ -1647,7 +1642,13 @@ function Empty({ text }: { text: string }) {
 }
 
 type PlaceSearchOption =
-  | { kind: "generic"; key: string; label: string; meta: string; suggestion: GenericPlaceSearchSuggestion }
+  | {
+      kind: "generic";
+      key: string;
+      label: string;
+      meta: string;
+      suggestion: GenericPlaceSearchSuggestion;
+    }
   | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion }
   | { kind: "hint"; key: string; label: string; meta: string; hint: PlaceNameHint };
 

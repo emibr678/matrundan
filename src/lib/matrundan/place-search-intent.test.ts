@@ -122,18 +122,24 @@ describe("matställessökningens intent", () => {
       kind: "text",
       query: "Italienskt",
     });
-    expect(resolveDiscoverySearchIntent("Pizza", "auto", {
-      kind: "food-tag",
-      id: "specialty:pizza",
-    })).toMatchObject({ kind: "food-tag", tagId: "specialty:pizza" });
-    expect(resolveDiscoverySearchIntent("Italienskt", "auto", {
-      kind: "food-tag",
-      id: "cuisine:italian",
-    })).toMatchObject({ kind: "food-tag", tagId: "cuisine:italian" });
-    expect(resolveDiscoverySearchIntent("café", "auto", {
-      kind: "category",
-      id: "category:café",
-    })).toMatchObject({ kind: "category", category: "café" });
+    expect(
+      resolveDiscoverySearchIntent("Pizza", "auto", {
+        kind: "food-tag",
+        id: "specialty:pizza",
+      }),
+    ).toMatchObject({ kind: "food-tag", tagId: "specialty:pizza" });
+    expect(
+      resolveDiscoverySearchIntent("Italienskt", "auto", {
+        kind: "food-tag",
+        id: "cuisine:italian",
+      }),
+    ).toMatchObject({ kind: "food-tag", tagId: "cuisine:italian" });
+    expect(
+      resolveDiscoverySearchIntent("café", "auto", {
+        kind: "category",
+        id: "category:café",
+      }),
+    ).toMatchObject({ kind: "category", category: "café" });
   });
 
   test("falskt eller omväxlat filter-ID avvisas; aldrig tyst fritext eller annan kategori", () => {
