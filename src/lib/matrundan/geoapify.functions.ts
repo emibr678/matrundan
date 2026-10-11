@@ -1197,6 +1197,7 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
       for (const feature of features) {
         const p = (feature as GeoapifyFeature)?.properties;
         if (!p || !foodAmenity(p)) continue;
+        const location = p as Parameters<typeof addressFromGeoapify>[0];
         if (
           typeof p.place_id !== "string" || !p.place_id ||
           typeof p.name !== "string" || !p.name.trim() ||
@@ -1212,9 +1213,9 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         const match: PlaceNameHint = {
           placeId: p.place_id,
           name: p.name.trim(),
-          address: addressFromGeoapify(p, p.name),
-          city: cityFromGeoapify(p),
-          area: areaFromGeoapify(p),
+          address: addressFromGeoapify(location, p.name),
+          city: cityFromGeoapify(location),
+          area: areaFromGeoapify(location),
           lat: p.lat,
           lng: p.lon,
           nearestAreaLabel: center.label,
@@ -1297,7 +1298,7 @@ export const resolvePlaceNameHint = createServerFn({ method: "POST" })
               }) > 0.15) return false;
           const next = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
           return source.osmType === next.osmType && source.osmId === next.osmId;
-        });
+        }) ?? undefined;
       if (selected || (page.features?.length ?? 0) < 50) break;
     }
     if (!selected) throw new Error("Matställets identitet kunde inte bekräftas.");
