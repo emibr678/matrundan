@@ -37,7 +37,6 @@ import {
   geoapifyLoadSearchAreaBoundaries,
   searchPlaceDiscovery,
   searchPlaceNameHints,
-  resolvePlaceNameHint,
   type PlaceNameHint,
 } from "@/lib/matrundan/geoapify.functions";
 import {
@@ -130,6 +129,7 @@ export function PlaceDiscovery({
   onClearSelected,
   onAddSelected,
   onBeginAdd,
+  onBeginNameHint,
   onLinkSource,
   onMissingPlace,
   onClose,
@@ -147,6 +147,7 @@ export function PlaceDiscovery({
   onClearSelected: () => void;
   onAddSelected: () => void;
   onBeginAdd: (suggestion: PlaceSuggestion) => void;
+  onBeginNameHint: (hint: PlaceNameHint, hiddenKeys: Set<string>) => void;
   onLinkSource: (match: SourceMatchResult) => void;
   onMissingPlace: () => void;
   onClose: () => void;
@@ -179,8 +180,6 @@ export function PlaceDiscovery({
   const [nameHintsLoading, setNameHintsLoading] = React.useState(false);
   const [nameHintsError, setNameHintsError] = React.useState<string | null>(null);
   const [includeDistantNameHints, setIncludeDistantNameHints] = React.useState(false);
-  const [verifyingNameHint, setVerifyingNameHint] = React.useState(false);
-  const nameHintSelectionRef = React.useRef(false);
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -1237,35 +1236,6 @@ export function PlaceDiscovery({
     onBeginAdd(suggestion);
   };
 
-  const activateNameHint = async (hint: PlaceNameHint) => {
-    if (!groupId || nameHintSelectionRef.current) return;
-    nameHintSelectionRef.current = true;
-    setVerifyingNameHint(true);
-    try {
-      const selected = await resolvePlaceNameHint({
-        data: {
-          groupId,
-          placeId: hint.placeId,
-          name: hint.name,
-          lat: hint.lat,
-          lng: hint.lng,
-        },
-      });
-      if (hiddenKeys.has(hiddenPlaceSuggestionKey(selected))) {
-        toast.info("Stället är dolt för gruppen.");
-        return;
-      }
-      activateSearchSuggestion(selected);
-    } catch (caught) {
-      toast.error(providerMessage(caught), {
-        description: "Inget har lagts till i gruppen. Välj ett annat förslag eller försök igen.",
-      });
-    } finally {
-      nameHintSelectionRef.current = false;
-      setVerifyingNameHint(false);
-    }
-  };
-
   return (
     <div
       className={showingMobileSuggestions ? "space-y-3 lg:space-y-4" : "space-y-4"}
@@ -1358,7 +1328,7 @@ export function PlaceDiscovery({
           }}
           loading={
             nameHintsActive
-              ? nameHintsLoading || nameHintsKey !== currentNameHintsKey || verifyingNameHint
+              ? nameHintsLoading || nameHintsKey !== currentNameHintsKey
               : searchInFlight
           }
           error={nameHintsActive ? nameHintsError : error}
@@ -1387,7 +1357,7 @@ export function PlaceDiscovery({
           focused={showingMobileSuggestions}
           onFocusChange={(focused) => onMobileModeChange(focused ? "search" : "browse")}
           onSelectPlace={activateSearchSuggestion}
-          onSelectHint={(hint) => void activateNameHint(hint)}
+          onSelectHint={(hint) => onBeginNameHint(hint, hiddenKeys)}
           onMissingPlace={onMissingPlace}
         />
       </div>
