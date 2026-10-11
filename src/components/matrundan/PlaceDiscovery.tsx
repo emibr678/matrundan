@@ -1255,7 +1255,7 @@ export function PlaceDiscovery({
           {editingMobileAreas ? "Sökområden" : searchAreaSummary}
         </span>
         {showRadiusInSummary && !editingMobileAreas ? (
-          <span className="shrink-0 text-xs text-muted-foreground">Inom {radiusKm ?? 50} km</span>
+          <span className="shrink-0 text-xs text-muted-foreground">{radiusKm ?? 50} km</span>
         ) : null}
         <ChevronDown
           className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${editingMobileAreas ? "rotate-180" : ""}`}
@@ -1266,7 +1266,7 @@ export function PlaceDiscovery({
         id="mobile-search-area-editor"
         className={
           editingMobileAreas
-            ? "border-b border-border/60 px-1 pb-3 lg:border-0 lg:p-0"
+            ? "space-y-3 rounded-xl border border-border/70 bg-muted/10 p-3 lg:border-0 lg:bg-transparent lg:p-0"
             : "hidden lg:block"
         }
       >
@@ -1293,20 +1293,8 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
           mobileEditorOpen={editingMobileAreas}
         />
-        {editingMobileAreas ? (
-          <Button
-            type="button"
-            className="mt-4 min-h-11 w-full lg:hidden"
-            onClick={() => {
-              document.getElementById("search-area-query")?.blur();
-              onMobileModeChange("browse");
-            }}
-          >
-            Klar
-          </Button>
-        ) : null}
       </div>
-      <div className={editingMobileAreas ? "hidden lg:block" : "min-w-0"}>
+      <div className="min-w-0">
         <PlaceSearchCombobox
           query={query}
           onQueryChange={(value) => {
