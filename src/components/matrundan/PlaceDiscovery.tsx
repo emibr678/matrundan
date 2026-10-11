@@ -188,11 +188,6 @@ export function PlaceDiscovery({
   const [includeDistantNameHints, setIncludeDistantNameHints] = React.useState(
     snapshot?.includeDistantNameHints ?? false,
   );
-  const [clientTiming, setClientTiming] = React.useState<{
-    firstResultMs?: number;
-    completedMs?: number;
-  } | null>(null);
-  const [searchObservation, setSearchObservation] = React.useState<unknown>(null);
   const [selectedAreaIds, setSelectedAreaIds] = React.useState<string[]>(
     snapshot?.selectedAreaIds ?? savedAreas.map((area) => area.id),
   );
@@ -570,7 +565,6 @@ export function PlaceDiscovery({
       let remaining: SearchBudget = { ...startBudget };
       let pages = 0;
       let recoveryPending = false;
-      const observations: unknown[] = [];
 
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const isRecoveryPass: boolean = recoveryPending;
@@ -601,14 +595,6 @@ export function PlaceDiscovery({
             },
           });
         if (isStale()) return null;
-        observations.push({
-          stage: isRecoveryPass ? "recovery" : "primary",
-          ...response.observation,
-          budgetUsage: response.budgetUsage,
-          resultsReturned: response.results.length,
-          pendingRecovery: response.pendingRecovery,
-        });
-        setSearchObservation(observations);
         pages += 1;
         remaining = {
           requests: Math.max(0, remaining.requests - response.budgetUsage.requests),
@@ -686,8 +672,6 @@ export function PlaceDiscovery({
       setNextOffset(0);
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
-      setSearchObservation(null);
-      setClientTiming(null);
       return;
     }
     if (activeAreas.length === 0) {
@@ -704,9 +688,6 @@ export function PlaceDiscovery({
       return;
     }
     const requestId = ++requestRef.current;
-    const queuedAt = performance.now();
-    let firstResultRecorded = false;
-    setClientTiming(null);
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError(null);
@@ -730,10 +711,6 @@ export function PlaceDiscovery({
               if (requestId !== requestRef.current) return;
               setResults(currentResults);
               setResultsForSearchKey(currentSearchKey);
-              if (!firstResultRecorded && currentResults.length > 0) {
-                firstResultRecorded = true;
-                setClientTiming({ firstResultMs: Math.round(performance.now() - queuedAt) });
-              }
             },
           });
           if (!filled) return;
@@ -781,10 +758,6 @@ export function PlaceDiscovery({
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
         setResultsForSearchKey(currentSearchKey);
-        setClientTiming((previous) => ({
-          ...previous,
-          completedMs: Math.round(performance.now() - queuedAt),
-        }));
         setFailedAreas(nextFailedAreas);
         setDisplayLimit(RESULT_PAGE_SIZE);
         setHasMore(moreAvailable);
@@ -1224,9 +1197,6 @@ export function PlaceDiscovery({
           : filteredResults.slice(0, 6),
     [canonicalHints, filteredResults, hiddenKeys, nameHintsActive, query],
   );
-  const debugEnabled =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("searchDebug") === "1";
   const searchAreaSummary =
     activeAreas.length === 1
       ? shortSearchAreaLabel(activeAreas[0].label)
@@ -1267,7 +1237,6 @@ export function PlaceDiscovery({
       className={showingMobileSuggestions ? "space-y-3 lg:space-y-4" : "space-y-4"}
       data-mobile-place-mode={mobileMode}
       data-search-area-editing={editingMobileAreas ? "true" : "false"}
-      data-search-observation={JSON.stringify({ server: searchObservation, client: clientTiming })}
     >
       <button
         type="button"
@@ -1420,18 +1389,6 @@ export function PlaceDiscovery({
         >
           Visa alla resultat <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
-      ) : null}
-
-      {!editingMobileAreas && debugEnabled ? (
-        <details
-          data-testid="place-search-debug"
-          className="rounded-xl border border-border/70 bg-muted/20 p-2 text-xs"
-        >
-          <summary className="cursor-pointer font-medium">Sökdiagnostik · antal och tider</summary>
-          <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all text-[11px]">
-            {JSON.stringify({ server: searchObservation, client: clientTiming }, null, 2)}
-          </pre>
-        </details>
       ) : null}
 
       <div className={mobileMode !== "browse" ? "hidden lg:block" : "lg:overflow-visible"}>
