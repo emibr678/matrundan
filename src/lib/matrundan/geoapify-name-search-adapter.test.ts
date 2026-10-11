@@ -140,7 +140,7 @@ function adapter(
   const functions = load(resolve(import.meta.dir, "geoapify.functions.ts"));
   return {
     calls,
-    hints: (input: Pick<SearchInput, "text" | "centers" | "radiusKm">) =>
+    hints: (input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean }) =>
       (
         functions.searchPlaceNameHints as (args: {
           data: typeof input & { groupId: string };
@@ -1402,24 +1402,32 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
     });
   }
 
-  test("Geoapify bias används utan cirkel-/place-filter eller godtyckligt avståndstak", async () => {
+  test("vanliga namnförslag filtreras av Geoapify vid 100 km; explicit val kan söka längre bort", async () => {
+    const near = hint("near", "Restaurang i Stockholm", stockholm.lat + 0.002, stockholm.lng);
+    const far = hint("far", "Restaurang i Stuttgart", 48.78, 9.18);
     const a = adapter(
-      () => ({
-        features: [
-          hint("far", "Restaurang i Uppsala", 60.1, 18.07),
-          hint("near", "Restaurang i Stockholm", stockholm.lat + 0.002, stockholm.lng),
-        ],
-      }),
+      (url) => ({ features: url.searchParams.has("filter") ? [near] : [far, near] }),
       ctx,
     );
-    const result = await a.hints({ text: "Restaurang sökning", centers: [area], radiusKm: 1 });
-    expect(result.map((h) => h.placeId)).toEqual(["near", "far"]);
-    expect(result.map((h) => h.outsideArea)).toEqual([false, true]);
-    expect(result[1].distanceKm).toBeGreaterThan(50);
-    expect(a.calls).toHaveLength(1);
+    const normal = await a.hints({ text: "Restaurang sökning", centers: [area], radiusKm: 1 });
+    expect(normal.map((h) => h.placeId)).toEqual(["near"]);
     expect(a.calls[0].searchParams.get("bias")).toBe(centerBias);
-    expect(a.calls[0].searchParams.has("filter")).toBe(false);
-    expect(a.calls[0].pathname).toBe("/v1/geocode/autocomplete");
+    expect(a.calls[0].searchParams.get("filter")).toBe(
+      "circle:" + stockholm.lng + "," + stockholm.lat + ",100000",
+    );
+    const expanded = await a.hints({
+      text: "Restaurang sökning",
+      centers: [area],
+      radiusKm: 1,
+      includeDistant: true,
+    });
+    expect(expanded.map((h) => h.placeId)).toEqual(["near", "far"]);
+    expect(expanded.map((h) => h.outsideArea)).toEqual([false, true]);
+    expect(expanded[1].distanceKm).toBeGreaterThan(100);
+    expect(a.calls).toHaveLength(2);
+    expect(a.calls[1].searchParams.has("filter")).toBe(false);
+    expect(a.calls[1].searchParams.get("bias")).toBe(centerBias);
+    expect(a.calls[1].pathname).toBe("/v1/geocode/autocomplete");
   });
 
   test("Geoapifys rangordning behålls inom gruppen även om distansen skiljer sig", async () => {
@@ -1452,6 +1460,10 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
     expect(results[0].distanceKm).toBe(0);
     expect(a.calls).toHaveLength(2);
     expect(a.calls.map((url) => url.searchParams.get("bias"))).toEqual([centerBias, oxBias]);
+    expect(a.calls.map((url) => url.searchParams.get("filter"))).toEqual([
+      "circle:" + stockholm.lng + "," + stockholm.lat + ",100000",
+      "circle:" + oxLan.lng + "," + oxLan.lat + ",100000",
+    ]);
   });
 
   test("boundary används endast för gruppering, inte för att dölja förslag utanför den", async () => {
@@ -1491,7 +1503,9 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
       "/v2/place-details",
       "/v1/geocode/autocomplete",
     ]);
-    expect(a.calls[1].searchParams.has("filter")).toBe(false);
+    expect(a.calls[1].searchParams.get("filter")).toBe(
+      "circle:" + stockholm.lng + "," + stockholm.lat + ",100000",
+    );
   });
 });
 
