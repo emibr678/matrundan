@@ -904,8 +904,10 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill("Ox Lan");
+  const option = search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" });
+  await expect(option).toBeVisible();
   const hintCountBeforeSelection = mocked.getHintSearchCount();
-  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" }).click();
+  await option.click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible({ timeout: 1000 });
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
