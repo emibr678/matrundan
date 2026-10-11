@@ -8,6 +8,7 @@ on:
       - src/lib/matrundan/geoapify.functions.ts
       - src/lib/matrundan/geoapify-name-search-adapter.test.ts
       - src/components/matrundan/PlaceDiscovery.tsx
+      - tests/e2e/issue-389-canonical-place-discovery.spec.ts
   workflow_dispatch:
 
 permissions:
@@ -44,6 +45,8 @@ jobs:
         run: bunx playwright install --with-deps chromium
       - name: Exercise mobile search and touch at 360 px
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=mobile-chromium --retries=0 --max-failures=1
+      - name: Grouped live-name hints in fixture browser at 360 px
+        run: bunx playwright test tests/e2e/issue-389-canonical-place-discovery.spec.ts --project=mobile-chromium --grep="namnförslag grupperas" --retries=0
       - name: Exercise desktop search without mobile-only touch scenario
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=desktop-chromium --grep-invert="mobil sökträff väljs med touch" --retries=0 --max-failures=1
       - name: Visual smoke 360 px and desktop
