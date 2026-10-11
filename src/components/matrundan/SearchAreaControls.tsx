@@ -186,6 +186,12 @@ export function SearchAreaControls({
     }
   }, [atLimit]);
 
+  React.useEffect(() => {
+    if (mobileEditorOpen && addingArea) {
+      document.getElementById("search-area-query")?.focus();
+    }
+  }, [mobileEditorOpen, addingArea]);
+
   function addArea(area: SearchArea) {
     if (activeAreas.some((current) => sameSearchArea(current, area))) {
       toast.message("Platsen är redan vald.");
