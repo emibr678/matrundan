@@ -42,8 +42,10 @@ jobs:
         run: bun run build
       - name: Install Chromium for focused visual verification
         run: bunx playwright install --with-deps chromium
-      - name: Exercise search, keyboard and map flows at 360 px and desktop
-        run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=mobile-chromium --project=desktop-chromium --retries=0 --max-failures=1
+      - name: Exercise mobile search and touch at 360 px
+        run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=mobile-chromium --retries=0 --max-failures=1
+      - name: Exercise desktop search without mobile-only touch scenario
+        run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=desktop-chromium --grep-invert="mobil sökträff väljs med touch" --retries=0 --max-failures=1
       - name: Visual smoke 360 px and desktop
         run: bun run test:visual-smoke -- '/matstallen?demo=1' --desktop
       # Read-only code-format proposal. Runner never pushes to GitHub.
