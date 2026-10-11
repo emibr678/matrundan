@@ -465,3 +465,39 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
   await expect(dialog).toHaveAttribute("data-search-shell", "browse");
   await expectNoHorizontalOverflow(page, "Återgång från sökning");
 });
+
+test("valt kök är ett riktigt filter med återgång till full lista, inte autofyll (#465)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+
+  await input.fill("Pizz");
+  const kitchen = dialog.getByRole("listbox").getByRole("group", { name: "Kök och typer" });
+  const pizza = kitchen.getByRole("option").filter({ hasText: "Pizza" });
+  await expect(pizza).toBeVisible();
+  await pizza.click();
+
+  await expect(dialog).toHaveAttribute("data-search-mode", "normal");
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(input).toHaveValue("");
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Inriktning:");
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Pizza");
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Filterval till full lista");
+
+  await dialog.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
+  await expect(dialog.getByTestId("active-place-search-filter")).toHaveCount(0);
+  await expect(input).toHaveValue("");
+
+  // The identical full word remains a typed name, not an implicit filter.
+  await input.fill("Pizza");
+  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
+  await expect(dialog.getByTestId("active-place-search-filter")).toHaveCount(0);
+  await expect(
+    dialog.getByRole("listbox").getByRole("group", { name: "Kök och typer" })
+      .getByRole("option").filter({ hasText: "Pizza" }),
+  ).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Exakt namn utan automatiskt inriktningsfilter");
+});
