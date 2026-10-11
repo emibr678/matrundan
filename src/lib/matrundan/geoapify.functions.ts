@@ -9,6 +9,9 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   normalizeLocationFeature,
   normalizePlaceFeature,
+  addressFromGeoapify,
+  cityFromGeoapify,
+  areaFromGeoapify,
   type NormalizedLocationSuggestion,
   type NormalizedPlaceSuggestion,
 } from "./geoapify-normalize";
@@ -457,7 +460,7 @@ const multiAreaInputSchema = z.object({
   exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
   providerRequestLimit: z.number().int().min(0).max(25).optional(),
   providerCreditLimit: z.number().int().min(0).max(40).optional(),
-  searchPhase: z.enum(["primary", "recovery", "complete"]).optional(),
+  searchPhase: z.enum(["primary", "recovery", "complete", "hints"]).optional(),
 });
 
 async function searchProviderAreas(
@@ -704,7 +707,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             ? expandedNameRadiusKm(data.radiusKm)
             : null;
         if (
-          data.searchPhase !== "primary" &&
+          data.searchPhase !== "primary" && data.searchPhase !== "hints" &&
           intent.kind === "text" &&
           isSpecificPlaceName(intent.query) &&
           !rows.some((row) => matchesSpecificPlaceName(intent.query, row.name))
@@ -786,7 +789,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       })().catch(() => ({ results: [], incomplete: true }));
       const sourcesStarted = performance.now();
       const [providerOutcome, internal] = await Promise.all([
-        data.searchPhase === "recovery"
+        (data.searchPhase === "recovery" || data.searchPhase === "hints")
           ? Promise.resolve({
               ok: true as const,
               value: {
@@ -1110,6 +1113,226 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       };
     }),
   );
+
+
+/** Geoapify's geocoding place_id is NOT a verified Places identity. */
+export interface PlaceNameHint {
+  placeId: string;
+  name: string;
+  address: string;
+  city: string;
+  area?: string;
+  lat: number;
+  lng: number;
+  nearestAreaLabel: string;
+  distanceKm?: number;
+  outsideArea: boolean;
+}
+
+const nameHintSchema = multiAreaInputSchema.pick({ centers: true, radiusKm: true }).extend({
+  groupId: z.string().uuid(),
+  text: z.string().trim().min(3).max(80),
+});
+
+function foodAmenity(properties: Record<string, unknown>): boolean {
+  if (properties.result_type !== "amenity") return false;
+  const categories = [
+    ...(Array.isArray(properties.categories) ? properties.categories : []),
+    properties.category,
+  ];
+  return categories.some(
+    (category) =>
+      typeof category === "string" &&
+      GEOAPIFY_DISCOVERY_CATEGORIES.some(
+        (allowed) => category === allowed || category.startsWith(allowed + "."),
+      ),
+  );
+}
+
+/**
+ * Lightweight candidate retrieval. No Place Details and no Places name fallback
+ * while typing; both the provider key and raw responses remain server-side.
+ * The existing authenticated discovery RPC supplies private canonical hints.
+ */
+export const searchPlaceNameHints = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => nameHintSchema.parse(input))
+  .handler(async ({ data, context }): Promise<PlaceNameHint[]> => {
+    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
+      _group_id: data.groupId,
+    });
+    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+    if (resolvePlaceSearchIntent(data.text).kind !== "text") return [];
+
+    const responses = await Promise.allSettled(
+      data.centers.map(async (center) => {
+        const boundary =
+          center.searchMode === "boundary" && center.placeId
+            ? await loadBoundary(center.placeId)
+            : null;
+        if (center.searchMode === "boundary" && !boundary) {
+          throw new Error("Sökområdets gräns kunde inte verifieras.");
+        }
+        const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+        url.searchParams.set("text", data.text);
+        url.searchParams.set("type", "amenity");
+        url.searchParams.set("format", "geojson");
+        url.searchParams.set("lang", "sv");
+        url.searchParams.set("limit", "10");
+        url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
+        if (center.searchMode === "boundary") {
+          url.searchParams.set("filter", "place:" + center.placeId);
+        }
+        url.searchParams.set("apiKey", readKey());
+        return { center, boundary, features: (await callGeoapify(url)).features ?? [] };
+      }),
+    );
+    if (responses.every((outcome) => outcome.status === "rejected")) {
+      throw new Error("Sökförslag kunde inte hämtas. Försök igen.");
+    }
+    const unique = new Map<string, PlaceNameHint>();
+    for (const response of responses) {
+      if (response.status !== "fulfilled") continue;
+      const { center, boundary, features } = response.value;
+      for (const feature of features) {
+        const p = (feature as GeoapifyFeature)?.properties;
+        if (!p || !foodAmenity(p)) continue;
+        if (
+          typeof p.place_id !== "string" || !p.place_id ||
+          typeof p.name !== "string" || !p.name.trim() ||
+          typeof p.lat !== "number" || !Number.isFinite(p.lat) ||
+          typeof p.lon !== "number" || !Number.isFinite(p.lon)
+        ) continue;
+        const candidate = { lat: p.lat, lng: p.lon };
+        if (boundary && !placeWithinBoundary(candidate, boundary)) continue;
+        const distance = distanceKm(center, candidate);
+        // A saved area is a ranking origin, not a hard search constraint.
+        // Discard geographically implausible geocoder suggestions.
+        if (!boundary && distance > 50) continue;
+        const match: PlaceNameHint = {
+          placeId: p.place_id,
+          name: p.name.trim(),
+          address: addressFromGeoapify(p, p.name),
+          city: cityFromGeoapify(p),
+          area: areaFromGeoapify(p),
+          lat: p.lat,
+          lng: p.lon,
+          nearestAreaLabel: center.label,
+          distanceKm: boundary ? undefined : distance,
+          outsideArea: !boundary && distance > (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
+        };
+        const previous = unique.get(match.placeId);
+        if (!previous || (match.distanceKm ?? 0) < (previous.distanceKm ?? 0)) {
+          unique.set(match.placeId, match);
+        }
+      }
+    }
+    return [...unique.values()]
+      .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
+      .slice(0, 12);
+  });
+
+const selectedNameHintSchema = z.object({
+  groupId: z.string().uuid(),
+  placeId: z.string().trim().min(1).max(240),
+  name: z.string().trim().min(2).max(180),
+  lat: z.number().min(-90).max(90),
+  lng: z.number().min(-180).max(180),
+});
+
+/**
+ * Selection is not permission to create/link a place. Resolve the geocoding ID
+ * to Place Details, then prove the same OSM object through a nearby Places
+ * record before calling the existing group-scoped identity-review RPC.
+ */
+export const resolvePlaceNameHint = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) => selectedNameHintSchema.parse(input))
+  .handler(async ({ data, context }): Promise<import("./places-provider").PlaceSuggestion> => {
+    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
+      _group_id: data.groupId,
+    });
+    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+
+    const url = new URL("https://api.geoapify.com/v2/place-details");
+    url.searchParams.set("id", data.placeId);
+    url.searchParams.set("features", "details");
+    url.searchParams.set("lang", "sv");
+    url.searchParams.set("apiKey", readKey());
+    const details = await callGeoapify(url);
+    const verified = (details.features ?? [])
+      .map((feature) =>
+        normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
+      )
+      .find((place) => place && normalizePlaceIdentity(place.name) === normalizePlaceIdentity(data.name) &&
+        place.lat != null && place.lng != null &&
+        placeDistanceKm({ lat: place.lat, lng: place.lng }, data) <= 0.15);
+    if (!verified) throw new Error("Matstället kunde inte verifieras. Sök igen.");
+    const source = JSON.parse(verified.raw) as { osmType?: string; osmId?: string };
+    if (!source.osmType || !source.osmId) {
+      throw new Error("Matstället saknar verifierbar källidentitet.");
+    }
+
+    // A tightly bounded spatial lookup is for strict OSM identity verification,
+    // never fuzzy name matching or cross-group source linking.
+    let selected: NormalizedPlaceSuggestion | undefined;
+    for (const offset of [0, 50]) {
+      const search = new URL("https://api.geoapify.com/v2/places");
+      search.searchParams.set("categories", GEOAPIFY_DISCOVERY_CATEGORIES.join(","));
+      search.searchParams.set("filter", "circle:" + verified.lng + "," + verified.lat + ",150");
+      search.searchParams.set("bias", "proximity:" + verified.lng + "," + verified.lat);
+      search.searchParams.set("limit", "50");
+      if (offset) search.searchParams.set("offset", String(offset));
+      search.searchParams.set("lang", "sv");
+      search.searchParams.set("apiKey", readKey());
+      const page = await callGeoapify(search);
+      selected = (page.features ?? [])
+        .map((feature) =>
+          normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
+        )
+        .find((place) => {
+          if (!place || place.lat == null || place.lng == null ||
+              placeDistanceKm({ lat: place.lat, lng: place.lng }, {
+                lat: verified.lat!, lng: verified.lng!,
+              }) > 0.15) return false;
+          const next = JSON.parse(place.raw) as { osmType?: string; osmId?: string };
+          return source.osmType === next.osmType && source.osmId === next.osmId;
+        });
+      if (selected || (page.features?.length ?? 0) < 50) break;
+    }
+    if (!selected) throw new Error("Matställets identitet kunde inte bekräftas.");
+
+    const sourceDetails = JSON.parse(selected.raw) as { osmType?: string; osmId?: string };
+    const reviewed = await context.supabase.rpc("match_place_discovery_candidates_v1", {
+      _group_id: data.groupId,
+      _items: [{
+        externalId: selected.externalId,
+        name: selected.name,
+        category: selected.category,
+        cuisines: selected.cuisines,
+        address: selected.address,
+        area: selected.area ?? null,
+        city: selected.city,
+        lat: selected.lat ?? null,
+        lng: selected.lng ?? null,
+        osmType: sourceDetails.osmType ?? null,
+        osmId: sourceDetails.osmId ?? null,
+      }],
+    });
+    // Never convert an identity-check failure to an unreviewed "safe" result.
+    if (reviewed.error) throw new Error("Matstället kunde inte kontrolleras mot gruppen.");
+    const review = z.array(providerIdentityReviewSchema).parse(reviewed.data)
+      .find((item) => item.providerPlaceId === selected.externalId);
+    if (!review) throw new Error("Matstället kunde inte identitetskontrolleras.");
+
+    const { raw: _raw, ...result } = selected;
+    return {
+      ...result,
+      kind: "provider",
+      resultKey: "provider:geoapify:" + selected.externalId,
+      identity: review,
+    };
+  });
 
 /** Final read-only check at the selected address, never a provider write authority. */
 export const findNearbyPlacesForManualFallback = createServerFn({ method: "POST" })
