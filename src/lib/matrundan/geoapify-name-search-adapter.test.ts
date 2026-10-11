@@ -140,7 +140,9 @@ function adapter(
   const functions = load(resolve(import.meta.dir, "geoapify.functions.ts"));
   return {
     calls,
-    hints: (input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean }) =>
+    hints: (
+      input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean },
+    ) =>
       (
         functions.searchPlaceNameHints as (args: {
           data: typeof input & { groupId: string };

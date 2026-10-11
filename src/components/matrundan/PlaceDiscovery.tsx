@@ -326,7 +326,13 @@ export function PlaceDiscovery({
       }));
       const settled = await Promise.allSettled([
         searchPlaceNameHints({
-          data: { groupId, text: query.trim(), centers, radiusKm, includeDistant: includeDistantNameHints },
+          data: {
+            groupId,
+            text: query.trim(),
+            centers,
+            radiusKm,
+            includeDistant: includeDistantNameHints,
+          },
         }),
         searchPlaceDiscovery({
           data: {
@@ -360,7 +366,16 @@ export function PlaceDiscovery({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [activeAreas, currentNameHintsKey, groupId, includeDistantNameHints, isLive, nameHintsActive, query, radiusKm]);
+  }, [
+    activeAreas,
+    currentNameHintsKey,
+    groupId,
+    includeDistantNameHints,
+    isLive,
+    nameHintsActive,
+    query,
+    radiusKm,
+  ]);
 
   const activeAreasWithGeometry = React.useMemo(
     () =>
@@ -1354,8 +1369,11 @@ export function PlaceDiscovery({
           placeSuggestions={placeAutocompleteSuggestions}
           nameHints={nameHintsActive && nameHintsKey === currentNameHintsKey ? nameHints : []}
           canChangeHintDistance={
-            nameHintsActive && activeAreas.length > 0 && !nameHintsLoading &&
-            nameHintsKey === currentNameHintsKey && !nameHintsError
+            nameHintsActive &&
+            activeAreas.length > 0 &&
+            !nameHintsLoading &&
+            nameHintsKey === currentNameHintsKey &&
+            !nameHintsError
           }
           distantHintsActive={includeDistantNameHints}
           onChangeHintDistance={setIncludeDistantNameHints}
@@ -2069,7 +2087,10 @@ function PlaceSearchCombobox({
                     onClick={() => onChangeHintDistance(!distantHintsActive)}
                   >
                     <span>{distantHintsActive ? "Visa närmare förslag" : "Sök längre bort"}</span>
-                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <ChevronRight
+                      className="h-4 w-4 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
                   </button>
                 </div>
               ) : null}

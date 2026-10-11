@@ -833,10 +833,15 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await input.fill("Ox Lan");
   await expect(list.getByText("Ox Lan längre bort")).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  const fs = await import("node:fs/promises");
+  await fs.mkdir("visual-review", { recursive: true });
+  await list.getByRole("button", { name: "Sök längre bort" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "visual-review/issue-465-autocomplete-near-360.png" });
 
   await list.getByRole("button", { name: "Sök längre bort" }).click();
   await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
   await expect(list.getByRole("button", { name: "Visa närmare förslag" })).toBeVisible();
+  await page.screenshot({ path: "visual-review/issue-465-autocomplete-distant-360.png" });
   await noOverflow(page);
 
   await list.getByRole("button", { name: "Visa närmare förslag" }).click();
