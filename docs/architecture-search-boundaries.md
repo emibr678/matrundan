@@ -47,9 +47,14 @@ Geoapifys **Autocomplete** för namn på matverksamheter, parallellt med
 gruppbehörighetskontrollerade kanoniska Matrundan-kandidater. Autocomplete
 används bara för kandidatupptäckt medan man skriver; den skapar ingen
 platsidentitet eller rätt att dela privata uppgifter. Förslagen rangordnas
-med de valda sökområdena som utgångspunkter, utan att ändra deras radier
-eller boundary-betydelse. Servern begränsar anrop och krediter över alla
-valda områden. Fel skiljs från nollträffar och gamla förslag får inte
+med de valda sökområdena som utgångspunkter (Geoapify proximity-bias).
+Namnförslagen använder inte något hårt cirkel-/boundary-filter eller en lokal
+maxdistans som utesluter specifika namn. Matrundan presenterar träffar inom
+unionen av valda punkt-/boundary-områden före en separat sektion för träffar
+utanför, utan egen namnpoängsättning eller ändring av Geoapifys inbördes
+förslagsrankning. Boundarygeometri används bara för korrekt gruppering av
+namnförslag; Places för geografisk upptäckt fortsätter använda sina riktiga
+områdesfilter. Servern begränsar anrop och krediter över alla valda områden. Fel skiljs från nollträffar och gamla förslag får inte
 visas för en ny söktext.
 
 När användaren väljer ett externt förslag hämtar servern först **Place
