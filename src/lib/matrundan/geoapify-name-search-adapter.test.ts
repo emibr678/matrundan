@@ -1425,7 +1425,7 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
         hint("rank-two", "Restaurang närmare", stockholm.lat + 0.001, stockholm.lng),
       ],
     }), ctx);
-    const result = await a.hints({ text: "Restaurang", centers: [area], radiusKm: 1 });
+    const result = await a.hints({ text: "Udda Restaurang", centers: [area], radiusKm: 1 });
     expect(result.map((h) => h.placeId)).toEqual(["rank-one", "rank-two"]);
     expect(result.every((h) => !h.outsideArea)).toBe(true);
   });
