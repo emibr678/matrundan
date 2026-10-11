@@ -57,11 +57,16 @@ gruppbehörighetskontrollerade kanoniska Matrundan-kandidater. Autocomplete
 används bara för kandidatupptäckt medan man skriver; den skapar ingen
 platsidentitet eller rätt att dela privata uppgifter. Förslagen rangordnas
 med de valda sökområdena som utgångspunkter (Geoapify proximity-bias).
-Namnförslagen använder inte något hårt cirkel-/boundary-filter eller en lokal
-maxdistans som utesluter specifika namn. Matrundan presenterar träffar inom
-unionen av valda punkt-/boundary-områden före en separat sektion för träffar
-utanför, utan egen namnpoängsättning eller ändring av Geoapifys inbördes
-förslagsrankning. Boundarygeometri används bara för korrekt gruppering av
+Geoapifys eget `filter=circle` på **100 km från varje valt sökcentrum**
+avgränsar de automatiska namnförslagen (inte den valda list-/kartradien).
+Användaren kan uttryckligen välja **Sök längre bort**, vilket gör en ny
+autocomplete-hämtning med proximity-bias men utan cirkelfilter för samma text.
+Det är en synlig, borttagbar förslagsbegränsning och **inte** en begränsning av
+sparade sökområden, fullresultatlistan eller vilka ställen gruppen får lägga
+till. En ny söktext eller ändrat sökområde återställer standardhorisonten.
+Matrundan presenterar träffar inom unionen av valda punkt-/boundary-områden
+före en separat sektion för träffar utanför, utan egen namnpoängsättning
+eller ändring av Geoapifys inbördes förslagsrankning. Boundarygeometri används bara för korrekt gruppering av
 namnförslag; Places för geografisk upptäckt fortsätter använda sina riktiga
 områdesfilter. Servern begränsar anrop och krediter över alla valda områden. Fel skiljs från nollträffar och gamla förslag får inte
 visas för en ny söktext.
