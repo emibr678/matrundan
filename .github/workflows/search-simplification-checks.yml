@@ -11,6 +11,8 @@ on:
       - src/lib/matrundan/geoapify.functions.ts
       - src/lib/matrundan/geoapify-name-search-adapter.test.ts
       - src/components/matrundan/PlaceDiscovery.tsx
+      - src/components/matrundan/AddPlaceDialogContent.tsx
+      - src/components/matrundan/AddPlaceResultDialogs.tsx
       - tests/e2e/issue-389-canonical-place-discovery.spec.ts
       - tests/e2e/mobile-search-hygiene.spec.ts
   workflow_dispatch:
@@ -50,7 +52,7 @@ jobs:
       - name: Exercise mobile search and touch at 360 px
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=mobile-chromium --retries=0 --max-failures=1
       - name: Grouped live-name hints in fixture browser at 360 px
-        run: bunx playwright test tests/e2e/issue-389-canonical-place-discovery.spec.ts --project=mobile-chromium --grep="namnförslag grupperas|Sök längre bort kräver" --retries=0
+        run: bunx playwright test tests/e2e/issue-389-canonical-place-discovery.spec.ts --project=mobile-chromium --grep="namnförslag grupperas|Sök längre bort kräver|valt namnförslag öppnar|misslyckad namnverifiering" --retries=0
       - name: Exercise desktop search without mobile-only touch scenario
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=desktop-chromium --grep-invert="mobil sökträff väljs med touch" --retries=0 --max-failures=1
       - name: Visual smoke 360 px and desktop
@@ -69,7 +71,7 @@ jobs:
       - name: Emit exact proposed formatting patch
         if: always()
         run: |
-          bunx prettier --write src/lib/matrundan/place-search-intent.ts src/lib/matrundan/place-search-intent.test.ts src/lib/matrundan/places-provider.ts src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx tests/e2e/mobile-search-hygiene.spec.ts
+          bunx prettier --write src/lib/matrundan/place-search-intent.ts src/lib/matrundan/place-search-intent.test.ts src/lib/matrundan/places-provider.ts src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx src/components/matrundan/AddPlaceDialogContent.tsx src/components/matrundan/AddPlaceResultDialogs.tsx tests/e2e/mobile-search-hygiene.spec.ts
           echo "MATRUNDAN_FORMAT_BEGIN"
           git diff --no-ext-diff -- src/lib/matrundan/place-search-intent.ts src/lib/matrundan/place-search-intent.test.ts src/lib/matrundan/places-provider.ts src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx tests/e2e/mobile-search-hygiene.spec.ts
           echo "MATRUNDAN_FORMAT_END"
