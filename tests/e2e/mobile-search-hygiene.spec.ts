@@ -347,7 +347,7 @@ test("mobil sökträff väljs med touch utan oavsiktlig Google Maps-navigering",
   await expect(page).toHaveURL(/\/matstallen/);
 });
 
-test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad under laddning", async ({
+test("mobil inriktningsval leder till full resultatlista med synligt filter", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 690 });
@@ -362,13 +362,16 @@ test("mobil inriktningsval stannar i sökläget och normal dialog är förankrad
   const cuisine = listbox.getByRole("button", { name: /Italienskt/ });
   await expect(cuisine).toBeVisible();
   await cuisine.click();
-  await expect(input).toHaveValue("Italienskt");
-  await expect(dialog).toHaveAttribute("data-search-mode", "expanded");
-  await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
-  await expectNoHorizontalOverflow(page, "Inriktning vald i mobil sökyta");
-  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(input).toHaveValue("");
   await expect(dialog).toHaveAttribute("data-search-mode", "normal");
   await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Kök:");
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Italienskt");
+  await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toHaveCount(0);
+  await expectNoHorizontalOverflow(page, "Valt kök i resultatlistan");
+  const fs = await import("node:fs/promises");
+  await fs.mkdir("visual-review", { recursive: true });
+  await page.screenshot({ path: "visual-review/issue-465-selected-cuisine-mobile.png" });
   await expectInsideViewport(page, dialog, "Resultatdialog efter inriktningsval");
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
 });
