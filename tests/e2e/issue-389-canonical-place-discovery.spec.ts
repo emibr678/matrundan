@@ -59,6 +59,7 @@ async function setup(
     finalProvider?: "hit" | "none" | "error";
     internalManual?: boolean;
     hintFixtures?: boolean;
+    hintResolution?: "slow" | "fail-once";
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -94,6 +95,7 @@ async function setup(
   let saved = false;
   const confirmations: unknown[] = [];
   const manualRequests: unknown[] = [];
+  let hintResolutionAttempts = 0;
   const ambiguousCandidates = [
     { ...provider.identity.candidates[0], canConfirmSource: false },
     {
@@ -332,6 +334,38 @@ async function setup(
             }]
           : []),
       ];
+    }
+    if (name.startsWith("resolvePlaceNameHint")) {
+      hintResolutionAttempts += 1;
+      if (options.hintResolution) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+      if (options.hintResolution === "fail-once" && hintResolutionAttempts === 1) {
+        await route.abort("failed");
+        return;
+      }
+      reply = {
+        kind: "provider",
+        resultKey: "provider:geoapify:autocomplete-near",
+        externalId: "autocomplete-near",
+        provider: "geoapify",
+        name: "Ox Lan i närheten",
+        category: "restaurang",
+        cuisines: [],
+        address: "Näragatan 1",
+        city: "Teststad",
+        area: "",
+        lat: 59,
+        lng: 18,
+        identity: {
+          providerPlaceId: "autocomplete-near",
+          providerVersion: "a".repeat(32),
+          knownPlace: null,
+          candidates: [],
+          reviewRequired: false,
+          identityConflict: false,
+        },
+      };
     }
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
@@ -853,5 +887,69 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await input.fill("Pelikan");
   await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({ page }) => {
+  await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" }).click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details).toBeVisible({ timeout: 1000 });
+  await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(details.getByText("Näragatan 1")).toBeVisible();
+  await expect(details.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
+  await noOverflow(page);
+
+  const fs = await import("node:fs/promises");
+  await fs.mkdir("visual-review", { recursive: true });
+  await page.screenshot({ path: "visual-review/issue-465-name-hint-loading-360.png" });
+
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({ timeout: 15_000 });
+  await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
+  await expect(details.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
+  await details.getByRole("button", { name: "Stäng" }).click();
+
+  const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(returned).toHaveAttribute("data-search-shell", "focused");
+  await expect(returned.getByRole("combobox", { name: "Sök matställen" })).toHaveValue("Ox Lan");
+  await expect(returned.getByText("Inga matställen hittades")).toHaveCount(0);
+  await expect(returned.getByRole("listbox")).toBeVisible({ timeout: 10_000 });
+  const bounds = await returned.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.y).toBeLessThanOrEqual(20);
+  await noOverflow(page);
+  await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
+});
+
+test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({ page }) => {
+  await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "fail-once" });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" }).click();
+
+  const detail = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(detail.getByRole("alert")).toContainText("Kunde inte öppna stället", { timeout: 15_000 });
+  await expect(detail.getByText("Inget har lagts till i gruppen.")).toBeVisible();
+  await detail.getByRole("button", { name: "Försök igen" }).click();
+  await expect(detail.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await detail.getByRole("button", { name: "Tillbaka till sökningen" }).click();
+
+  await expect(search).toHaveAttribute("data-search-shell", "focused");
+  await expect(input).toHaveValue("Ox Lan");
+  // The now-stale successful retry must be ignored rather than opening a new dialog.
+  await page.waitForTimeout(1600);
+  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toHaveCount(0);
   await noOverflow(page);
 });
