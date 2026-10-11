@@ -215,17 +215,17 @@ async function appTest(search, text, radiusKm) {
 }
 
 /** Exercise the NEW actual server endpoints with live Geoapify, fake auth/DB. */
-async function newNameSearchTest(adapter, text) {
+async function newNameSearchTest(adapter, text, radiusKm = 5) {
   const before = calls.length;
   const started = performance.now();
   const record = {
     mode: "new-server-hints-selection-stubbed-db", label: text,
-    kind: "searchPlaceNameHints+resolvePlaceNameHint", radiusKm: 5,
+    kind: "searchPlaceNameHints+resolvePlaceNameHint", radiusKm,
   };
   try {
     const data = {
       groupId: "38910000-0000-4000-8000-000000000001",
-      text, centers: [center], radiusKm: 5,
+      text, centers: [center], radiusKm,
     };
     const hints = await adapter.hints({ data });
     record.firstHintMs = Math.round(performance.now() - started);
@@ -234,6 +234,7 @@ async function newNameSearchTest(adapter, text) {
     record.matches = matches.length;
     record.exampleNames = hints.slice(0, 4).map((h) => h.name);
     record.outsideAreaCount = hints.filter((hint) => hint.outsideArea).length;
+    record.preview = hints.slice(0, 5).map(({ name, distanceKm, outsideArea }) => ({ name, distanceKm, outsideArea }));
     if (matches.length) {
       const hint = matches[0];
       const selected = await adapter.select({ data: {
@@ -426,9 +427,12 @@ try {
       if (halted) break;
       await appTest(adapter.search, text, radius);
     }
-    for (const text of ["Ox Lan", "Pelikan", "Falloumi", "Pharmarium", "Pel"]) {
+    for (const [text, radiusKm] of [
+      ["Ox Lan", 5], ["Pelikan", 5], ["Falloumi", 5], ["Pharmarium", 5], ["Pel", 5],
+      ["Gamla Enskede matbod", 1], ["Knife", 1], ["The Border", 5],
+    ]) {
       if (halted) break;
-      await newNameSearchTest(adapter, text);
+      await newNameSearchTest(adapter, text, radiusKm);
     }
   }
 } finally {
