@@ -1315,6 +1315,13 @@ export function PlaceDiscovery({
           genericSuggestions={genericSuggestions}
           placeSuggestions={placeAutocompleteSuggestions}
           nameHints={nameHintsActive && nameHintsKey === currentSearchKey ? nameHints : []}
+          outsideHeading={
+            activeAreas.length === 1
+              ? searchAreaMode(activeAreas[0]) === "point"
+                ? "Utanför sökradien"
+                : "Utanför sökområdet"
+              : "Utanför sökområdena"
+          }
           focused={showingMobileSuggestions}
           onFocusChange={(focused) => onMobileModeChange(focused ? "search" : "browse")}
           onSelectPlace={activateSearchSuggestion}
@@ -1619,6 +1626,7 @@ function PlaceSearchCombobox({
   genericSuggestions,
   placeSuggestions,
   nameHints,
+  outsideHeading,
   focused,
   onFocusChange,
   onSelectPlace,
@@ -1635,6 +1643,7 @@ function PlaceSearchCombobox({
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
   nameHints: PlaceNameHint[];
+  outsideHeading: string;
   focused: boolean;
   onFocusChange: (focused: boolean) => void;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
@@ -1676,14 +1685,7 @@ function PlaceSearchCombobox({
       kind: "hint",
       key: hint.placeId,
       label: hint.name,
-      meta: [
-        "Förslag",
-        hint.address || hint.area,
-        hint.city,
-        hint.outsideArea ? "utanför vald radie" : "",
-      ]
-        .filter(Boolean)
-        .join(" · "),
+      meta: [hint.address || hint.area, hint.city].filter(Boolean).join(" · "),
       hint,
     }));
   const isInternalOption = (option: PlaceSearchOption) =>
@@ -1693,7 +1695,14 @@ function PlaceSearchCombobox({
       !!option.suggestion.identity?.knownPlace);
   const internalOptions = placeOptions.filter(isInternalOption);
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
-  const options = [...genericOptions, ...internalOptions, ...hintOptions, ...externalOptions];
+  const nearbyOptions = [
+    ...hintOptions.filter((option) => option.kind === "hint" && !option.hint.outsideArea),
+    ...externalOptions,
+  ];
+  const outsideOptions = hintOptions.filter(
+    (option) => option.kind === "hint" && option.hint.outsideArea,
+  );
+  const options = [...genericOptions, ...internalOptions, ...nearbyOptions, ...outsideOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
@@ -1963,14 +1972,14 @@ function PlaceSearchCombobox({
                   {renderGroup("Kök och typer", genericOptions, 0)}
                   {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
                   {renderGroup(
-                    "Förslag på matställen",
-                    hintOptions,
+                    "Matställen",
+                    nearbyOptions,
                     genericOptions.length + internalOptions.length,
                   )}
                   {renderGroup(
-                    "Matställen",
-                    externalOptions,
-                    genericOptions.length + internalOptions.length + hintOptions.length,
+                    outsideHeading,
+                    outsideOptions,
+                    genericOptions.length + internalOptions.length + nearbyOptions.length,
                   )}
                   {loading ? (
                     <p className="px-2 py-2 text-xs text-muted-foreground">
