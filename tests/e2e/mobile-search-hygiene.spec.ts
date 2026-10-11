@@ -378,50 +378,55 @@ test("mobil inriktningsval leder till full resultatlista med synligt filter", as
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
 });
 
-test("sökområde och radie ändras med expander utan att förlora söktext", async ({ page }) => {
+test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 690 });
   const dialog = await openPlaceSearch(page);
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill("Pelikan");
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
   await expect(dialog).toHaveAttribute("data-search-shell", "browse");
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",
     "true",
   );
-  await expect(input).toBeHidden();
+  await expect(input).toBeVisible();
+  await expect(input).toHaveValue("Pelikan");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
-  await expect(dialog.getByPlaceholder("Lägg till område eller adress")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
+  await expect(dialog.getByPlaceholder("Sök ort, område eller adress")).toBeHidden();
+  await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("region", { name: "Valda områden" })).toBeVisible();
-  await expect(dialog.getByText("Sökradie")).toBeVisible();
+  await expect(dialog.getByText("Runt varje valt område")).toBeVisible();
+
   await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
   await page.getByRole("option", { name: "2 km" }).click();
   await expect(dialog.getByText(/Ort utan verifierad gräns/)).toHaveCount(0);
   const areaEditor = dialog.locator("#mobile-search-area-editor");
-  expect((await areaEditor.boundingBox())!.height).toBeLessThanOrEqual(310);
+  await expect(areaEditor).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Dölj sökområden" })).toHaveAttribute(
     "aria-expanded",
     "true",
   );
-  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+  // The radius is already updated without an extra confirmation.
+  await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",
     "false",
   );
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText("2 km");
   await expect(input).toHaveValue("Pelikan");
-  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
 
-  // Android regression: typing again must collapse the area editor before showing suggestions.
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
-  await expect(areaEditor).toBeVisible();
+  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   const areaInput = dialog.getByRole("combobox", { name: "Lägg till område eller adress" });
+  await expect(areaInput).toBeFocused();
   await areaInput.fill("Enskede");
   await page.setViewportSize({ width: 360, height: 420 });
   await expectInsideViewport(page, areaInput, "Områdessökfält med tangentbord");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
-  await expect(input).toBeHidden();
-  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+  // A tap on the restaurant search is enough to collapse area settings.
   await input.focus();
   await expect(dialog).toHaveAttribute("data-search-shell", "focused");
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
@@ -432,8 +437,7 @@ test("sökområde och radie ändras med expander utan att förlora söktext", as
   await expect(input).toHaveValue("Pelikan");
   await expectInsideViewport(page, input, "Sökfält efter utfällt sökområde");
   await expectInsideViewport(page, dialog.getByRole("listbox"), "Förslag efter områdesbyte");
-  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText("Inom 2 km");
-  await expectNoHorizontalOverflow(page, "Sökning efter kompakt sökområdesexpander");
+  await expectNoHorizontalOverflow(page, "Sökning efter direktverkande sökområdesfilter");
 });
 
 test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas först vid tryck", async ({
