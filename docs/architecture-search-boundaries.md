@@ -42,6 +42,15 @@ Geoapifys proximity-bias får användas för stabil intern rangordning även nä
 
 ## Specifik namnsökning
 
+Att **skriva** ett ord i sökfältet väljer inte automatiskt kök, inriktning
+eller platstyp, även när texten exakt matchar exempelvis `Pizza`. Då används
+fri namnsökning och namnförslag. Ett **aktivt val** av kök, inriktning eller
+typ representeras däremot med sin verifierade filteridentitet, visar filtret
+tydligt i gränssnittet och tar användaren direkt till den paginerade
+resultatlistan (med kartan som alternativ). Filtret kan tas bort utan att
+ändra sökområdena. Servern avvisar filter-ID:n som inte motsvarar den valda
+etiketten, och demo/exempelgrupp använder samma distinktion.
+
 I det **fokuserade namnförslagsläget** hämtar den autentiserade servern
 Geoapifys **Autocomplete** för namn på matverksamheter, parallellt med
 gruppbehörighetskontrollerade kanoniska Matrundan-kandidater. Autocomplete
