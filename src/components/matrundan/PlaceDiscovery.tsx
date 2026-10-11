@@ -36,6 +36,9 @@ import {
 import {
   geoapifyLoadSearchAreaBoundaries,
   searchPlaceDiscovery,
+  searchPlaceNameHints,
+  resolvePlaceNameHint,
+  type PlaceNameHint,
 } from "@/lib/matrundan/geoapify.functions";
 import {
   hiddenPlaceRecordKey,
@@ -54,6 +57,7 @@ import {
 } from "@/lib/matrundan/manual-place-source-links";
 import {
   genericPlaceSearchSuggestions,
+  resolvePlaceSearchIntent,
   type GenericPlaceSearchSuggestion,
 } from "@/lib/matrundan/place-search-intent";
 import {
@@ -161,6 +165,13 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
+  const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>([]);
+  const [canonicalHints, setCanonicalHints] = React.useState<PlaceSuggestion[]>([]);
+  const [nameHintsKey, setNameHintsKey] = React.useState("");
+  const [nameHintsLoading, setNameHintsLoading] = React.useState(false);
+  const [nameHintsError, setNameHintsError] = React.useState<string | null>(null);
+  const [verifyingNameHint, setVerifyingNameHint] = React.useState(false);
+  const nameHintSelectionRef = React.useRef(false);
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -270,6 +281,63 @@ export function PlaceDiscovery({
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return [...selected, ...temporaryAreas].slice(0, 5);
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
+
+  const nameHintsActive =
+    isLive &&
+    mobileMode === "search" &&
+    query.trim().length >= 3 &&
+    resolvePlaceSearchIntent(query).kind === "text";
+
+  // Two independent reads run in parallel: Geoapify for discovery, the
+  // group's existing authenticated read-model for private canonical hints.
+  React.useEffect(() => {
+    if (!nameHintsActive || !groupId || activeAreas.length === 0) {
+      setNameHints([]);
+      setCanonicalHints([]);
+      setNameHintsError(null);
+      setNameHintsLoading(false);
+      setNameHintsKey("");
+      return;
+    }
+    let active = true;
+    setNameHintsLoading(true);
+    setNameHintsError(null);
+    setNameHints([]);
+    setCanonicalHints([]);
+    const key = currentSearchKey;
+    const timer = window.setTimeout(async () => {
+      const centers = activeAreas.map((area) => ({
+        id: area.id,
+        label: area.label,
+        lat: area.lat,
+        lng: area.lng,
+        searchMode: searchAreaMode(area),
+        ...(area.placeId ? { placeId: area.placeId } : {}),
+      }));
+      const settled = await Promise.allSettled([
+        searchPlaceNameHints({ data: { groupId, text: query.trim(), centers, radiusKm } }),
+        searchPlaceDiscovery({ data: {
+          groupId, text: query.trim(), centers, radiusKm, searchPhase: "hints",
+          providerRequestLimit: 5, providerCreditLimit: 10,
+        } }),
+      ]);
+      if (!active) return;
+      if (settled[0].status === "fulfilled") setNameHints(settled[0].value);
+      if (settled[1].status === "fulfilled") {
+        setCanonicalHints(settled[1].value.results.filter((result) => result.kind === "canonical"));
+      }
+      if (settled.some((result) => result.status === "rejected")) {
+        setNameHintsError(
+          settled.every((result) => result.status === "rejected")
+            ? "Sökförslagen kunde inte hämtas. Försök igen."
+            : "Alla sökförslag kunde inte hämtas.",
+        );
+      }
+      setNameHintsKey(key);
+      setNameHintsLoading(false);
+    }, 300);
+    return () => { active = false; window.clearTimeout(timer); };
+  }, [activeAreas, currentSearchKey, groupId, isLive, nameHintsActive, query, radiusKm]);
 
   const activeAreasWithGeometry = React.useMemo(
     () =>
@@ -524,6 +592,17 @@ export function PlaceDiscovery({
     // Vänta in gömda förslag: fyllnaden till 20 handlingsbara träffar räknar mot
     // hiddenKeys, så en sökning som startar under laddningen kan bli underfylld.
     if (hiddenLoading) return;
+    if (nameHintsActive) {
+      // Never launch multi-page Places name recovery while the user types.
+      setResults([]);
+      setResultsForSearchKey(currentSearchKey);
+      setLoading(false);
+      setError(null);
+      setFailedAreas([]);
+      setHasMore(false);
+      setAreaProgress({ offsets: {}, exhaustedIds: [] });
+      return;
+    }
     if (skipInitialSearchRef.current) {
       skipInitialSearchRef.current = false;
       return;
@@ -672,6 +751,7 @@ export function PlaceDiscovery({
     fillProviderPages,
     hiddenLoading,
     isLive,
+    nameHintsActive,
     query,
     radiusKm,
     retry,
@@ -1063,8 +1143,13 @@ export function PlaceDiscovery({
   );
   const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
   const placeAutocompleteSuggestions = React.useMemo(
-    () => (query.trim().length < 2 ? [] : filteredResults.slice(0, 6)),
-    [query, filteredResults],
+    () =>
+      query.trim().length < 2
+        ? []
+        : nameHintsActive
+          ? canonicalHints.filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result)))
+          : filteredResults.slice(0, 6),
+    [canonicalHints, filteredResults, hiddenKeys, nameHintsActive, query],
   );
   const debugEnabled =
     typeof window !== "undefined" &&
@@ -1105,6 +1190,29 @@ export function PlaceDiscovery({
       return;
     }
     onBeginAdd(suggestion);
+  };
+
+  const activateNameHint = async (hint: PlaceNameHint) => {
+    if (!groupId || nameHintSelectionRef.current) return;
+    nameHintSelectionRef.current = true;
+    setVerifyingNameHint(true);
+    try {
+      const selected = await resolvePlaceNameHint({ data: {
+        groupId,
+        placeId: hint.placeId,
+        name: hint.name,
+        lat: hint.lat,
+        lng: hint.lng,
+      } });
+      activateSearchSuggestion(selected);
+    } catch (caught) {
+      toast.error(providerMessage(caught), {
+        description: "Inget har lagts till i gruppen. Välj ett annat förslag eller försök igen.",
+      });
+    } finally {
+      nameHintSelectionRef.current = false;
+      setVerifyingNameHint(false);
+    }
   };
 
   return (
@@ -1177,16 +1285,20 @@ export function PlaceDiscovery({
         <PlaceSearchCombobox
           query={query}
           onQueryChange={setQuery}
-          loading={searchInFlight}
-          error={error}
-          incomplete={failedAreas.length > 0}
+          loading={nameHintsActive
+            ? nameHintsLoading || nameHintsKey !== currentSearchKey || verifyingNameHint
+            : searchInFlight}
+          error={nameHintsActive ? nameHintsError : error}
+          incomplete={!nameHintsActive && failedAreas.length > 0}
           noAreas={activeAreas.length === 0}
           onRetry={() => setRetry((value) => value + 1)}
           genericSuggestions={genericSuggestions}
           placeSuggestions={placeAutocompleteSuggestions}
+          nameHints={nameHintsActive && nameHintsKey === currentSearchKey ? nameHints : []}
           focused={showingMobileSuggestions}
           onFocusChange={(focused) => onMobileModeChange(focused ? "search" : "browse")}
           onSelectPlace={activateSearchSuggestion}
+          onSelectHint={(hint) => void activateNameHint(hint)}
           onMissingPlace={onMissingPlace}
         />
       </div>
@@ -1466,7 +1578,8 @@ function Empty({ text }: { text: string }) {
 
 type PlaceSearchOption =
   | { kind: "generic"; key: string; label: string; meta: string; searchValue: string }
-  | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion };
+  | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion }
+  | { kind: "hint"; key: string; label: string; meta: string; hint: PlaceNameHint };
 
 function placeOptionMeta(suggestion: PlaceSuggestion): string {
   const location = suggestion.address?.trim()
@@ -1485,9 +1598,11 @@ function PlaceSearchCombobox({
   onRetry,
   genericSuggestions,
   placeSuggestions,
+  nameHints,
   focused,
   onFocusChange,
   onSelectPlace,
+  onSelectHint,
   onMissingPlace,
 }: {
   query: string;
@@ -1499,9 +1614,11 @@ function PlaceSearchCombobox({
   onRetry: () => void;
   genericSuggestions: GenericPlaceSearchSuggestion[];
   placeSuggestions: PlaceSuggestion[];
+  nameHints: PlaceNameHint[];
   focused: boolean;
   onFocusChange: (focused: boolean) => void;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
+  onSelectHint: (hint: PlaceNameHint) => void;
   onMissingPlace: () => void;
 }) {
   const [open, setOpen] = React.useState(false);
@@ -1533,6 +1650,20 @@ function PlaceSearchCombobox({
       meta: placeOptionMeta(suggestion),
       suggestion,
     }));
+  const hintOptions: PlaceSearchOption[] = nameHints
+    .slice(0, Math.max(0, (focused ? 3 : 5) - genericOptions.length - placeOptions.length))
+    .map((hint) => ({
+      kind: "hint",
+      key: hint.placeId,
+      label: hint.name,
+      meta: [
+        "Förslag",
+        hint.address || hint.area,
+        hint.city,
+        hint.outsideArea ? "utanför vald radie" : "",
+      ].filter(Boolean).join(" · "),
+      hint,
+    }));
   const isInternalOption = (option: PlaceSearchOption) =>
     option.kind === "place" &&
     (option.suggestion.kind === "canonical" ||
@@ -1540,7 +1671,7 @@ function PlaceSearchCombobox({
       !!option.suggestion.identity?.knownPlace);
   const internalOptions = placeOptions.filter(isInternalOption);
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
-  const options = [...genericOptions, ...internalOptions, ...externalOptions];
+  const options = [...genericOptions, ...internalOptions, ...hintOptions, ...externalOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
@@ -1589,6 +1720,11 @@ function PlaceSearchCombobox({
       onQueryChange(option.label);
       setActiveIx(-1);
       inputRef.current?.focus({ preventScroll: true });
+      return;
+    }
+    if (option.kind === "hint") {
+      onSelectHint(option.hint);
+      setActiveIx(-1);
       return;
     }
     onSelectPlace(option.suggestion);
@@ -1681,7 +1817,7 @@ function PlaceSearchCombobox({
                     </span>
                   ) : null}
                 </span>
-                {option.kind === "place" ? (
+                {option.kind === "place" || option.kind === "hint" ? (
                   <ChevronRight
                     className="h-4 w-4 shrink-0 text-muted-foreground"
                     aria-hidden="true"
@@ -1716,7 +1852,7 @@ function PlaceSearchCombobox({
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
             blurTimeoutRef.current = null;
             setOpen(true);
-            if (window.matchMedia("(max-width: 1023px)").matches) onFocusChange(true);
+            onFocusChange(true);
           }}
           onBlur={() => {
             if (blurTimeoutRef.current != null) window.clearTimeout(blurTimeoutRef.current);
@@ -1798,10 +1934,11 @@ function PlaceSearchCombobox({
                 <>
                   {renderGroup("Kök och typer", genericOptions, 0)}
                   {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
+                  {renderGroup("Förslag på matställen", hintOptions, genericOptions.length + internalOptions.length)}
                   {renderGroup(
                     "Matställen",
                     externalOptions,
-                    genericOptions.length + internalOptions.length,
+                    genericOptions.length + internalOptions.length + hintOptions.length,
                   )}
                   {loading ? (
                     <p className="px-2 py-2 text-xs text-muted-foreground">
