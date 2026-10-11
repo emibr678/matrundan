@@ -210,7 +210,10 @@ export function SearchAreaControls({
       onTemporaryAreasChange([...temporaryAreas, area]);
     }
     setAreaQuery("");
-    if (mobileEditorOpen) setAddingArea(false);
+    if (mobileEditorOpen) {
+      document.getElementById("search-area-query")?.blur();
+      setAddingArea(false);
+    }
   }
 
   function addVerifiedArea(value: VerifiedLocationSelection) {

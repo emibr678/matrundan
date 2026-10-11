@@ -394,6 +394,7 @@ test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({
   await expect(input).toBeVisible();
   await expect(input).toHaveValue("Pelikan");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
+  await expect(dialog.getByRole("listbox")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
   await expect(dialog.getByPlaceholder("Sök ort, område eller adress")).toBeHidden();
   await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toHaveCount(0);
