@@ -94,6 +94,10 @@ const EXPLICIT_MORE_BUDGET: SearchBudget = { requests: 5, credits: 20 };
 
 export interface PlaceDiscoverySnapshot {
   query: string;
+  nameHints?: PlaceNameHint[];
+  canonicalHints?: PlaceSuggestion[];
+  nameHintsKey?: string;
+  includeDistantNameHints?: boolean;
   selectedFilter?: GenericPlaceSearchSuggestion | null;
   selectedAreaIds: string[];
   temporaryAreas: SearchArea[];
@@ -174,12 +178,16 @@ export function PlaceDiscovery({
     () => (selectedFilter ? { kind: selectedFilter.kind, id: selectedFilter.id } : undefined),
     [selectedFilter],
   );
-  const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>([]);
-  const [canonicalHints, setCanonicalHints] = React.useState<PlaceSuggestion[]>([]);
-  const [nameHintsKey, setNameHintsKey] = React.useState("");
+  const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>(snapshot?.nameHints ?? []);
+  const [canonicalHints, setCanonicalHints] = React.useState<PlaceSuggestion[]>(
+    snapshot?.canonicalHints ?? [],
+  );
+  const [nameHintsKey, setNameHintsKey] = React.useState(snapshot?.nameHintsKey ?? "");
   const [nameHintsLoading, setNameHintsLoading] = React.useState(false);
   const [nameHintsError, setNameHintsError] = React.useState<string | null>(null);
-  const [includeDistantNameHints, setIncludeDistantNameHints] = React.useState(false);
+  const [includeDistantNameHints, setIncludeDistantNameHints] = React.useState(
+    snapshot?.includeDistantNameHints ?? false,
+  );
   const [clientTiming, setClientTiming] = React.useState<{
     firstResultMs?: number;
     completedMs?: number;
@@ -204,6 +212,10 @@ export function PlaceDiscovery({
     temporaryAreas.map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
   ]);
   const currentNameHintsKey = currentSearchKey + (includeDistantNameHints ? ":distant" : ":nearby");
+  const cachedNameHintsOnReturnRef = React.useRef(
+    snapshot?.nameHintsKey === currentNameHintsKey &&
+      ((snapshot?.nameHints?.length ?? 0) > 0 || (snapshot?.canonicalHints?.length ?? 0) > 0),
+  );
   const [resultsForSearchKey, setResultsForSearchKey] = React.useState(
     snapshot?.resultsForSearchKey ?? currentSearchKey,
   );
@@ -249,6 +261,10 @@ export function PlaceDiscovery({
   React.useEffect(() => {
     onSnapshotChange?.({
       query,
+      nameHints,
+      canonicalHints,
+      nameHintsKey,
+      includeDistantNameHints,
       selectedFilter,
       selectedAreaIds,
       temporaryAreas,
@@ -271,11 +287,15 @@ export function PlaceDiscovery({
     areaProgress,
     budgetRemaining,
     bulkMode,
+    canonicalHints,
     displayLimit,
     error,
     existingOpen,
     failedAreas,
     hasMore,
+    includeDistantNameHints,
+    nameHints,
+    nameHintsKey,
     nextOffset,
     onSnapshotChange,
     query,
@@ -306,6 +326,12 @@ export function PlaceDiscovery({
       setNameHintsError(null);
       setNameHintsLoading(false);
       setNameHintsKey("");
+      return;
+    }
+    // Returning from the detail dialog should restore the exact suggestions
+    // (including "Sök längre bort") without another provider round trip.
+    if (cachedNameHintsOnReturnRef.current) {
+      cachedNameHintsOnReturnRef.current = false;
       return;
     }
     let active = true;
