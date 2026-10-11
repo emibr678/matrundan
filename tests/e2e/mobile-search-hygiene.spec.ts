@@ -399,7 +399,8 @@ test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({
   await expect(dialog.getByPlaceholder("Sök ort, område eller adress")).toBeHidden();
   await expect(dialog.getByRole("button", { name: "Klar", exact: true })).toHaveCount(0);
   await expect(dialog.getByRole("region", { name: "Valda områden" })).toBeVisible();
-  await expect(dialog.getByText("Runt varje valt område")).toBeVisible();
+  await expect(dialog.getByText("Avstånd", { exact: true })).toBeVisible();
+  await expect(dialog.getByText(/^Runt /)).toBeVisible();
 
   await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
   await page.getByRole("option", { name: "2 km" }).click();
