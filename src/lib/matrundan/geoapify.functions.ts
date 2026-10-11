@@ -1144,9 +1144,13 @@ export interface PlaceNameHint {
   outsideArea: boolean;
 }
 
+/** Wider than the user's chosen browse radius, but not an invisible search limit. */
+const AUTOCOMPLETE_NEARBY_RADIUS_METERS = 100_000;
+
 const nameHintSchema = multiAreaInputSchema.pick({ centers: true, radiusKm: true }).extend({
   groupId: z.string().uuid(),
   text: z.string().trim().min(3).max(80),
+  includeDistant: z.boolean().optional().default(false),
 });
 
 function foodAmenity(properties: Record<string, unknown>): boolean {
@@ -1198,6 +1202,12 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
             url.searchParams.set("lang", "sv");
             url.searchParams.set("limit", "10");
             url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
+            if (!data.includeDistant) {
+              url.searchParams.set(
+                "filter",
+                "circle:" + center.lng + "," + center.lat + "," + AUTOCOMPLETE_NEARBY_RADIUS_METERS,
+              );
+            }
             url.searchParams.set("apiKey", readKey());
             return { center, boundary, features: (await callGeoapify(url)).features ?? [] };
           }),
