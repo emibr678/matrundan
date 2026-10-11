@@ -178,6 +178,7 @@ export function PlaceDiscovery({
   const [nameHintsKey, setNameHintsKey] = React.useState("");
   const [nameHintsLoading, setNameHintsLoading] = React.useState(false);
   const [nameHintsError, setNameHintsError] = React.useState<string | null>(null);
+  const [includeDistantNameHints, setIncludeDistantNameHints] = React.useState(false);
   const [verifyingNameHint, setVerifyingNameHint] = React.useState(false);
   const nameHintSelectionRef = React.useRef(false);
   const [clientTiming, setClientTiming] = React.useState<{
@@ -203,6 +204,7 @@ export function PlaceDiscovery({
       .map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
     temporaryAreas.map((area) => [area.id, area.lat, area.lng, searchAreaMode(area), area.placeId]),
   ]);
+  const currentNameHintsKey = currentSearchKey + (includeDistantNameHints ? ":distant" : ":nearby");
   const [resultsForSearchKey, setResultsForSearchKey] = React.useState(
     snapshot?.resultsForSearchKey ?? currentSearchKey,
   );
@@ -312,7 +314,7 @@ export function PlaceDiscovery({
     setNameHintsError(null);
     setNameHints([]);
     setCanonicalHints([]);
-    const key = currentSearchKey;
+    const key = currentNameHintsKey;
     const timer = window.setTimeout(async () => {
       const centers = activeAreas.map((area) => ({
         id: area.id,
@@ -323,7 +325,9 @@ export function PlaceDiscovery({
         ...(area.placeId ? { placeId: area.placeId } : {}),
       }));
       const settled = await Promise.allSettled([
-        searchPlaceNameHints({ data: { groupId, text: query.trim(), centers, radiusKm } }),
+        searchPlaceNameHints({
+          data: { groupId, text: query.trim(), centers, radiusKm, includeDistant: includeDistantNameHints },
+        }),
         searchPlaceDiscovery({
           data: {
             groupId,
@@ -356,7 +360,7 @@ export function PlaceDiscovery({
       active = false;
       window.clearTimeout(timer);
     };
-  }, [activeAreas, currentSearchKey, groupId, isLive, nameHintsActive, query, radiusKm]);
+  }, [activeAreas, currentNameHintsKey, groupId, includeDistantNameHints, isLive, nameHintsActive, query, radiusKm]);
 
   const activeAreasWithGeometry = React.useMemo(
     () =>
@@ -1319,16 +1323,18 @@ export function PlaceDiscovery({
           onQueryChange={(value) => {
             setQuery(value);
             setSelectedFilter(null);
+            setIncludeDistantNameHints(false);
           }}
           onSelectFilter={(selection) => {
             setSelectedFilter(selection);
             setQuery("");
+            setIncludeDistantNameHints(false);
             setResultView("lista");
             onMobileModeChange("browse");
           }}
           loading={
             nameHintsActive
-              ? nameHintsLoading || nameHintsKey !== currentSearchKey || verifyingNameHint
+              ? nameHintsLoading || nameHintsKey !== currentNameHintsKey || verifyingNameHint
               : searchInFlight
           }
           error={nameHintsActive ? nameHintsError : error}
@@ -1337,7 +1343,13 @@ export function PlaceDiscovery({
           onRetry={() => setRetry((value) => value + 1)}
           genericSuggestions={genericSuggestions}
           placeSuggestions={placeAutocompleteSuggestions}
-          nameHints={nameHintsActive && nameHintsKey === currentSearchKey ? nameHints : []}
+          nameHints={nameHintsActive && nameHintsKey === currentNameHintsKey ? nameHints : []}
+          canChangeHintDistance={
+            nameHintsActive && activeAreas.length > 0 && !nameHintsLoading &&
+            nameHintsKey === currentNameHintsKey && !nameHintsError
+          }
+          distantHintsActive={includeDistantNameHints}
+          onChangeHintDistance={setIncludeDistantNameHints}
           outsideHeading={
             activeAreas.length === 1
               ? searchAreaMode(activeAreas[0]) === "point"
@@ -1672,6 +1684,9 @@ function PlaceSearchCombobox({
   placeSuggestions,
   nameHints,
   outsideHeading,
+  canChangeHintDistance,
+  distantHintsActive,
+  onChangeHintDistance,
   focused,
   onFocusChange,
   onSelectPlace,
@@ -1690,6 +1705,9 @@ function PlaceSearchCombobox({
   placeSuggestions: PlaceSuggestion[];
   nameHints: PlaceNameHint[];
   outsideHeading: string;
+  canChangeHintDistance: boolean;
+  distantHintsActive: boolean;
+  onChangeHintDistance: (includeDistant: boolean) => void;
   focused: boolean;
   onFocusChange: (focused: boolean) => void;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
@@ -2033,6 +2051,19 @@ function PlaceSearchCombobox({
                   ) : null}
                 </>
               )}
+              {canChangeHintDistance ? (
+                <div className="mt-1 border-t border-border/60 px-1 pt-1">
+                  <button
+                    type="button"
+                    className="flex min-h-11 w-full items-center justify-between gap-2 rounded px-2 text-left text-sm font-medium text-foreground hover:bg-accent"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => onChangeHintDistance(!distantHintsActive)}
+                  >
+                    <span>{distantHintsActive ? "Visa närmare förslag" : "Sök längre bort"}</span>
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  </button>
+                </div>
+              ) : null}
               {options.length === 0 && canOfferMissing && !focused ? (
                 <div role="presentation" className="mt-1 border-t border-border/60 pt-1">
                   <p className="px-2 pt-1 text-xs text-muted-foreground">
