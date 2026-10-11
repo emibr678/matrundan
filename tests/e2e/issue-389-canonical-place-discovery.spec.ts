@@ -789,7 +789,7 @@ test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", a
   const { mkdir } = await import("node:fs/promises");
   await mkdir("visual-review", { recursive: true });
   await page.screenshot({
-    path: \`visual-review/issue-465-area-groups-\${info.project.name}.png\`,
+    path: `visual-review/issue-465-area-groups-${info.project.name}.png`,
     fullPage: false,
   });
 });

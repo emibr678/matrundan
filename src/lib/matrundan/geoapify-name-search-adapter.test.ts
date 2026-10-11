@@ -1381,7 +1381,6 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
   });
 });
 
-
 describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", () => {
   const ctx: FixtureContext = {
     supabase: {
@@ -1402,12 +1401,15 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
   }
 
   test("Geoapify bias används utan cirkel-/place-filter eller godtyckligt avståndstak", async () => {
-    const a = adapter(() => ({
-      features: [
-        hint("far", "Restaurang i Uppsala", 60.1, 18.07),
-        hint("near", "Restaurang i Stockholm", stockholm.lat + 0.002, stockholm.lng),
-      ],
-    }), ctx);
+    const a = adapter(
+      () => ({
+        features: [
+          hint("far", "Restaurang i Uppsala", 60.1, 18.07),
+          hint("near", "Restaurang i Stockholm", stockholm.lat + 0.002, stockholm.lng),
+        ],
+      }),
+      ctx,
+    );
     const result = await a.hints({ text: "Restaurang sökning", centers: [area], radiusKm: 1 });
     expect(result.map((h) => h.placeId)).toEqual(["near", "far"]);
     expect(result.map((h) => h.outsideArea)).toEqual([false, true]);
@@ -1419,12 +1421,15 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
   });
 
   test("Geoapifys rangordning behålls inom gruppen även om distansen skiljer sig", async () => {
-    const a = adapter(() => ({
-      features: [
-        hint("rank-one", "Restaurang längre bort", stockholm.lat + 0.006, stockholm.lng),
-        hint("rank-two", "Restaurang närmare", stockholm.lat + 0.001, stockholm.lng),
-      ],
-    }), ctx);
+    const a = adapter(
+      () => ({
+        features: [
+          hint("rank-one", "Restaurang längre bort", stockholm.lat + 0.006, stockholm.lng),
+          hint("rank-two", "Restaurang närmare", stockholm.lat + 0.001, stockholm.lng),
+        ],
+      }),
+      ctx,
+    );
     const result = await a.hints({ text: "Udda Restaurang", centers: [area], radiusKm: 1 });
     expect(result.map((h) => h.placeId)).toEqual(["rank-one", "rank-two"]);
     expect(result.every((h) => !h.outsideArea)).toBe(true);
@@ -1432,9 +1437,12 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
 
   test("samma kandidat kan ligga utanför ett valt punktområde men inom ett annat", async () => {
     const near = { ...area, id: "near-ox", label: "Sveavägen", ...oxLan };
-    const a = adapter(() => ({
-      features: [hint("same-id", "Ox Lan", oxLan.lat, oxLan.lng)],
-    }), ctx);
+    const a = adapter(
+      () => ({
+        features: [hint("same-id", "Ox Lan", oxLan.lat, oxLan.lng)],
+      }),
+      ctx,
+    );
     const results = await a.hints({ text: "Ox Lan", centers: [area, near], radiusKm: 1 });
     expect(results).toHaveLength(1);
     expect(results[0].outsideArea).toBe(false);
@@ -1454,22 +1462,32 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
     };
     const polygon = {
       type: "Polygon",
-      coordinates: [[[18.04, 59.33], [18.08, 59.33], [18.08, 59.36], [18.04, 59.36], [18.04, 59.33]]],
+      coordinates: [
+        [
+          [18.04, 59.33],
+          [18.08, 59.33],
+          [18.08, 59.36],
+          [18.04, 59.36],
+          [18.04, 59.33],
+        ],
+      ],
     };
     const a = adapter((url) => {
-      if (url.pathname === "/v2/place-details")
-        return { features: [{ geometry: polygon }] };
-      return { features: [
-        hint("inside", "Ox Lan", oxLan.lat, oxLan.lng),
-        hint("outside", "Restaurang längre bort", 60.1, 18.07),
-      ] };
+      if (url.pathname === "/v2/place-details") return { features: [{ geometry: polygon }] };
+      return {
+        features: [
+          hint("inside", "Ox Lan", oxLan.lat, oxLan.lng),
+          hint("outside", "Restaurang längre bort", 60.1, 18.07),
+        ],
+      };
     }, ctx);
     const hits = await a.hints({ text: "Ox Lan", centers: [boundary], radiusKm: 1 });
     expect(hits.map((h) => h.placeId)).toEqual(["inside", "outside"]);
     expect(hits.map((h) => h.outsideArea)).toEqual([false, true]);
     expect(hits[0].distanceKm).toBeUndefined();
     expect(a.calls.map((url) => url.pathname)).toEqual([
-      "/v2/place-details", "/v1/geocode/autocomplete",
+      "/v2/place-details",
+      "/v1/geocode/autocomplete",
     ]);
     expect(a.calls[1].searchParams.has("filter")).toBe(false);
   });

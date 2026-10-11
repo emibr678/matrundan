@@ -1262,7 +1262,7 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
             lng: position.lng,
             nearestAreaLabel: withinPoint
               ? nearestPoint.center.label
-              : boundaryArea?.center.label ?? nearestPoint?.center.label ?? areas[0].center.label,
+              : (boundaryArea?.center.label ?? nearestPoint?.center.label ?? areas[0].center.label),
             distanceKm: nearestPoint?.distanceKm,
             // If boundary geometry failed, do not misleadingly classify a hit
             // as outside a boundary that could not be checked.
