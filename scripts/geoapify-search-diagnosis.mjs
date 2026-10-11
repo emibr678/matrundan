@@ -7,6 +7,7 @@ import { dirname, resolve } from "node:path";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
 import { z } from "zod";
+import { GEOAPIFY_DISCOVERY_CATEGORIES } from "../src/lib/matrundan/geoapify-place-search.ts";
 
 const secret = process.env.GEOAPIFY_DIAGNOSTIC_KEY?.trim();
 if (!secret) throw new Error("Staging Geoapify key unavailable: no requests made.");
@@ -20,7 +21,7 @@ const sample = [
   ["Pel", 1], ["Pelikann", 1], ["MatrundanzzIngenRiktigRestaurang", 3], ["restaurang", 1],
 ];
 const kinds = ["places", "geocoding", "autocomplete"];
-const categories = "catering.restaurant,catering.cafe,catering.fast_food,catering.pub,catering.bar,catering.bakery";
+const categories = GEOAPIFY_DISCOVERY_CATEGORIES.join(",");
 const measurements = [];
 const calls = [];
 let reserved = 0;
@@ -251,4 +252,8 @@ try {
   report();
 }
 if (halted) throw new Error("Provider authentication/rate limit or diagnostic budget stopped the study.");
+const brokenDirectPlaces = measurements.filter((m) => m.mode === "direct" && m.kind === "places" && m.error);
+if (brokenDirectPlaces.length) {
+  throw new Error("Direct Places contract failures: " + brokenDirectPlaces.map((m) => m.label).join(", ") + ". Review diagnostic artifact.");
+}
 if (!measurements.some((m) => !m.error)) throw new Error("All probes failed. Check staging key and provider access.");
