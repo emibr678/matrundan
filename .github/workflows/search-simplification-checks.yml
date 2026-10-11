@@ -48,6 +48,8 @@ jobs:
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=desktop-chromium --grep-invert="mobil sökträff väljs med touch" --retries=0 --max-failures=1
       - name: Visual smoke 360 px and desktop
         run: bun run test:visual-smoke -- '/matstallen?demo=1' --desktop
+      - name: Capture focused search dialog 360 px and desktop
+        run: bunx playwright test tests/visual-review/issue-465-name-search.spec.ts --config=playwright.visual.config.ts --project=mobile-360 --project=desktop-1280 --retries=0
       - name: Upload demo visual review screenshots
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
