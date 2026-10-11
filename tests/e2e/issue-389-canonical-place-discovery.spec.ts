@@ -323,17 +323,19 @@ async function setup(
           outsideArea: true,
         },
         ...(request.data.includeDistant
-          ? [{
-              placeId: "autocomplete-international",
-              name: "Ox Lan i Stuttgart",
-              address: "Teststraße 1",
-              city: "Stuttgart",
-              lat: 48.78,
-              lng: 9.18,
-              nearestAreaLabel: "Teststad",
-              distanceKm: 1300,
-              outsideArea: true,
-            }]
+          ? [
+              {
+                placeId: "autocomplete-international",
+                name: "Ox Lan i Stuttgart",
+                address: "Teststraße 1",
+                city: "Stuttgart",
+                lat: 48.78,
+                lng: 9.18,
+                nearestAreaLabel: "Teststad",
+                distanceKm: 1300,
+                outsideArea: true,
+              },
+            ]
           : []),
       ];
     }
@@ -357,7 +359,8 @@ async function setup(
         name: requested.data.name,
         category: "restaurang",
         cuisines: [],
-        address: requested.data.placeId === "autocomplete-international" ? "Teststraße 1" : "Näragatan 1",
+        address:
+          requested.data.placeId === "autocomplete-international" ? "Teststraße 1" : "Näragatan 1",
         city: requested.data.placeId === "autocomplete-international" ? "Stuttgart" : "Teststad",
         area: "",
         lat: requested.data.lat,
@@ -823,8 +826,9 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
   expect(writes).toEqual([]);
 });
 
-
-test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", async ({ page }, info) => {
+test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", async ({
+  page,
+}, info) => {
   await setup(page, { hintFixtures: true });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -860,8 +864,9 @@ test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", a
   });
 });
 
-
-test("Sök längre bort kräver eget val och går att återställa vid 360 px (#465)", async ({ page }) => {
+test("Sök längre bort kräver eget val och går att återställa vid 360 px (#465)", async ({
+  page,
+}) => {
   await setup(page, { hintFixtures: true, providerOnly: true });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
@@ -895,8 +900,14 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await noOverflow(page);
 });
 
-test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({ page }) => {
-  const mocked = await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
+test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintResolution: "slow",
+  });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -904,7 +915,10 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill("Ox Lan");
-  const option = search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" });
+  const option = search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" });
   await expect(option).toBeVisible();
   const hintCountBeforeSelection = mocked.getHintSearchCount();
   await option.click();
@@ -913,16 +927,22 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
   await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
   await expect(details.getByText("Näragatan 1")).toBeVisible();
-  await expect(details.getByRole("button", { name: "Lägg till i gruppen", exact: true })).toHaveCount(0);
+  await expect(
+    details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
+  ).toHaveCount(0);
   await noOverflow(page);
 
   const fs = await import("node:fs/promises");
   await fs.mkdir("visual-review", { recursive: true });
   await page.screenshot({ path: "visual-review/issue-465-name-hint-loading-360.png" });
 
-  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({ timeout: 15_000 });
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({
+    timeout: 15_000,
+  });
   await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
-  await expect(details.getByRole("button", { name: "Lägg till i gruppen", exact: true })).toBeVisible();
+  await expect(
+    details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
+  ).toBeVisible();
   await details.getByRole("button", { name: "Stäng", exact: true }).click();
 
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
@@ -939,7 +959,9 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
 });
 
-test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({ page }) => {
+test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({
+  page,
+}) => {
   await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "fail-once" });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
@@ -947,10 +969,16 @@ test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill("Ox Lan");
-  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" }).click();
+  await search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" })
+    .click();
 
   const detail = page.getByRole("dialog", { name: "Lägg till i gruppen" });
-  await expect(detail.getByRole("alert")).toContainText("Kunde inte öppna stället", { timeout: 15_000 });
+  await expect(detail.getByRole("alert")).toContainText("Kunde inte öppna stället", {
+    timeout: 15_000,
+  });
   await expect(detail.getByText("Inget har lagts till i gruppen.")).toBeVisible();
   await detail.getByRole("button", { name: "Försök igen" }).click();
   await expect(detail.getByTestId("pending-name-hint-loading")).toBeVisible();
@@ -964,8 +992,14 @@ test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte
   await noOverflow(page);
 });
 
-test("breddad namnsökning bevaras efter öppning och stängning av stället (#465)", async ({ page }) => {
-  const mocked = await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
+test("breddad namnsökning bevaras efter öppning och stängning av stället (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintResolution: "slow",
+  });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -979,7 +1013,9 @@ test("breddad namnsökning bevaras efter öppning och stängning av stället (#4
   await list.getByRole("option").filter({ hasText: "Ox Lan i Stuttgart" }).click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
-  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({ timeout: 15_000 });
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({
+    timeout: 15_000,
+  });
   await details.getByRole("button", { name: "Stäng", exact: true }).click();
 
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
