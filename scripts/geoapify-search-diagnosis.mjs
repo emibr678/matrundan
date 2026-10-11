@@ -35,6 +35,7 @@ function normalize(v) {
 }
 function apiKind(url) {
   if (url.pathname === "/v2/places") return "places";
+  if (url.pathname === "/v2/place-details") return "details";
   if (url.pathname === "/v1/geocode/search") return "geocoding";
   if (url.pathname === "/v1/geocode/autocomplete") return "autocomplete";
   return "other";
@@ -205,6 +206,99 @@ async function appTest(search, text, radiusKm) {
     });
   }
 }
+
+function distanceKm(a, b) {
+  if (![a?.lat, a?.lon, b?.lat, b?.lon].every((x) => typeof x === "number" && Number.isFinite(x))) return Infinity;
+  const rad = Math.PI / 180;
+  const dLat = (a.lat - b.lat) * rad;
+  const dLon = (a.lon - b.lon) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+function openStreetMapSource(properties) {
+  const raw = properties?.datasource?.raw;
+  const type = String(raw?.osm_type || "").toLowerCase();
+  const id = String(raw?.osm_id || "");
+  if (!/^(n|w|r|node|way|relation)$/.test(type) || !/^[1-9][0-9]*$/.test(id)) return null;
+  return { type: ({ n: "node", w: "way", r: "relation" })[type] || type, id };
+}
+function hasFoodCategory(properties) {
+  return (properties?.categories || []).some((category) =>
+    typeof category === "string" && GEOAPIFY_DISCOVERY_CATEGORIES.some((allowed) =>
+      category === allowed || category.startsWith(allowed + "."),
+    ),
+  );
+}
+/** Distinguish fast candidate retrieval from strict, server-side canonical identity verification. */
+async function autocompleteToDetails(text, expectedName) {
+  const before = calls.length;
+  const started = performance.now();
+  const record = {
+    mode: "autocomplete-to-details", kind: "details-chain", label: text, radiusKm: "-",
+    expectedName, resultCategory: null, candidateDistanceKm: null,
+    detailsCategoryAccepted: false, matchingName: false, providerIdChanged: null,
+    osmIdentity: "unknown", coordinatesGapMeters: null,
+  };
+  try {
+    const autocomplete = await providerFetch(makeUrl("autocomplete", text, 5));
+    const matches = (autocomplete.features || [])
+      .filter((feature) => {
+        const p = feature?.properties;
+        return p?.place_id && normalize(p.name).trim() === normalize(expectedName).trim() &&
+          distanceKm({ lat: center.lat, lon: center.lng }, p) < 35;
+      })
+      .sort((a, b) => distanceKm({ lat: center.lat, lon: center.lng }, a.properties) -
+        distanceKm({ lat: center.lat, lon: center.lng }, b.properties));
+    record.autocompleteCandidates = (autocomplete.features || []).length;
+    record.autocompleteNameMatches = matches.length;
+    const candidate = matches[0]?.properties;
+    if (!candidate) {
+      record.resultCategory = "no-relevant-candidate";
+      record.total = 0;
+      record.matches = 0;
+    } else {
+      record.candidateDistanceKm = Math.round(distanceKm({ lat: center.lat, lon: center.lng }, candidate) * 10) / 10;
+      record.candidateFoodCategory = hasFoodCategory(candidate);
+      const url = new URL("https://api.geoapify.com/v2/place-details");
+      url.searchParams.set("id", candidate.place_id);
+      url.searchParams.set("features", "details");
+      url.searchParams.set("lang", "sv");
+      const details = await providerFetch(url);
+      const primary = (details.features || []).find((f) => f?.properties?.feature_type === "details")?.properties;
+      record.total = primary ? 1 : 0;
+      record.matches = primary && normalize(primary.name).trim() === normalize(expectedName).trim() ? 1 : 0;
+      record.matchingName = Boolean(record.matches);
+      record.detailsCategoryAccepted = hasFoodCategory(primary);
+      record.providerIdChanged = primary?.place_id ? candidate.place_id !== primary.place_id : null;
+      record.coordinatesGapMeters = Number.isFinite(distanceKm(candidate, primary))
+        ? Math.round(distanceKm(candidate, primary) * 1000) : null;
+      const from = openStreetMapSource(candidate);
+      const to = openStreetMapSource(primary);
+      record.autocompleteOsmAvailable = Boolean(from);
+      record.detailsOsmAvailable = Boolean(to);
+      record.osmIdentity = from && to ? (from.id === to.id && from.type === to.type ? "same" : "different") : "unknown";
+      record.resultCategory = !primary ? "no-details" :
+        !record.detailsCategoryAccepted ? "not-food-place" :
+        !record.matchingName ? "different-name" :
+        record.osmIdentity === "different" ? "different-osm" :
+        "candidate-confirmed-needs-canonical-resolution";
+    }
+  } catch (error) {
+    record.error = String(error?.message || error);
+    record.resultCategory = "provider-error";
+  }
+  record.ms = Math.round(performance.now() - started);
+  record.calls = calls.slice(before);
+  measurements.push(record);
+}
+/** Same name, multiple search radii: discriminate actual circle filtering from poor name retrieval. */
+async function radiusSweep(text, radii) {
+  for (const radiusKm of radii) {
+    if (halted) break;
+    await direct("places", text, radiusKm, "Radie " + radiusKm + " km: " + text);
+  }
+}
+
 function report() {
   const outputDir = process.env.DIAGNOSTIC_OUTPUT_DIR || "search-diagnostic";
   mkdirSync(outputDir, { recursive: true });
@@ -219,6 +313,7 @@ function report() {
     "# Geoapify – samlad sökdiagnostik",
     "",
     "Read-only provideranrop och faktisk serveradapter med mockad auth/databas. **Inte autentiserat E2E-test.**",
+    "Autocomplete till Details provas bara för ett utvalt namnförslag per fall. OSM-identitet och skillnader i Place ID finns i JSON-artefakten.",
     "",
     "Anrop: " + count + ". Reserverade krediter (konservativ uppskattning): " + reserved + ".",
     "",
@@ -241,6 +336,18 @@ try {
     }
   }
   if (!halted) await direct("places", "Ox Lan", 5, "Ox Lan venue bias");
+  // Equal-radius comparisons prevent conflating a valid geography filter with a provider name miss.
+  if (!halted) await radiusSweep("Ox Lan", [1, 2, 3, 25]);
+  if (!halted) await radiusSweep("Pelikan", [2, 3, 5, 25]);
+  if (!halted) await radiusSweep("Falloumi", [2, 3, 5, 25]);
+  // Check only selected candidates: do not request Place Details on every keystroke.
+  for (const [input, expected] of [
+    ["Ox Lan", "Ox Lan"], ["Pelikan", "Pelikan"], ["Falloumi", "Falloumi"],
+    ["Pharmarium", "Pharmarium"], ["Pel", "Pelikan"], ["Pelikann", "Pelikan"],
+  ]) {
+    if (halted) break;
+    await autocompleteToDetails(input, expected);
+  }
   if (!halted) {
     const search = makeServerAdapter();
     for (const [text, radius] of sample) {
