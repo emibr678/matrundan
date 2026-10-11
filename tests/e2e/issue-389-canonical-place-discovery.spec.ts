@@ -291,7 +291,10 @@ async function setup(
         budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
         observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
-    if (options.hintFixtures && name.startsWith("searchPlaceNameHints"))
+    if (options.hintFixtures && name.startsWith("searchPlaceNameHints")) {
+      const request = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: { includeDistant?: boolean };
+      };
       reply = [
         {
           placeId: "autocomplete-near",
@@ -315,7 +318,21 @@ async function setup(
           distanceKm: 80,
           outsideArea: true,
         },
+        ...(request.data.includeDistant
+          ? [{
+              placeId: "autocomplete-international",
+              name: "Ox Lan i Stuttgart",
+              address: "Teststraße 1",
+              city: "Stuttgart",
+              lat: 48.78,
+              lng: 9.18,
+              nearestAreaLabel: "Teststad",
+              distanceKm: 1300,
+              outsideArea: true,
+            }]
+          : []),
       ];
+    }
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
         await route.abort("failed");
@@ -802,4 +819,34 @@ test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", a
     path: `visual-review/issue-465-area-groups-${info.project.name}.png`,
     fullPage: false,
   });
+});
+
+
+test("Sök längre bort kräver eget val och går att återställa vid 360 px (#465)", async ({ page }) => {
+  await setup(page, { hintFixtures: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const list = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await input.fill("Ox Lan");
+  await expect(list.getByText("Ox Lan längre bort")).toBeVisible();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await expect(list.getByRole("button", { name: "Visa närmare förslag" })).toBeVisible();
+  await noOverflow(page);
+
+  await list.getByRole("button", { name: "Visa närmare förslag" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
+
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await input.fill("Pelikan");
+  await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await noOverflow(page);
 });
