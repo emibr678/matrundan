@@ -1188,9 +1188,6 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
             url.searchParams.set("lang", "sv");
             url.searchParams.set("limit", "10");
             url.searchParams.set("bias", "proximity:" + center.lng + "," + center.lat);
-            if (center.searchMode === "boundary") {
-              url.searchParams.set("filter", "place:" + center.placeId);
-            }
             url.searchParams.set("apiKey", readKey());
             return { center, boundary, features: (await callGeoapify(url)).features ?? [] };
           }),
@@ -1198,15 +1195,25 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         if (responses.every((outcome) => outcome.status === "rejected")) {
           throw new Error("Sökförslag kunde inte hämtas. Försök igen.");
         }
-        const unique = new Map<string, PlaceNameHint>();
-        for (const response of responses) {
-          if (response.status !== "fulfilled") continue;
-          const { center, boundary, features } = response.value;
-          for (const feature of features) {
+        // Keep Geoapify's ranking within each area. Only classify results by
+        // the union of chosen search areas; never treat an origin as a filter.
+        const areas = responses.flatMap((outcome) =>
+          outcome.status === "fulfilled" ? [outcome.value] : [],
+        );
+        const unresolvedBoundary = responses.some(
+          (outcome, index) =>
+            outcome.status === "rejected" && data.centers[index].searchMode === "boundary",
+        );
+        const unique = new Map<
+          string,
+          { properties: GeoapifyFeature["properties"]; providerRank: number }
+        >();
+        for (const area of areas) {
+          for (const [providerRank, feature] of area.features.entries()) {
             const p = (feature as GeoapifyFeature)?.properties;
-            if (!p || !foodAmenity(p)) continue;
-            const location = p as Parameters<typeof addressFromGeoapify>[0];
             if (
+              !p ||
+              !foodAmenity(p) ||
               typeof p.place_id !== "string" ||
               !p.place_id ||
               typeof p.name !== "string" ||
@@ -1217,34 +1224,62 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
               !Number.isFinite(p.lon)
             )
               continue;
-            const candidate = { lat: p.lat, lng: p.lon };
-            if (boundary && !placeWithinBoundary(candidate, boundary)) continue;
-            const distance = distanceKm(center, candidate);
-            // A saved area is a ranking origin, not a hard search constraint.
-            // Discard geographically implausible geocoder suggestions.
-            if (!boundary && distance > 50) continue;
-            const match: PlaceNameHint = {
-              placeId: p.place_id,
-              name: p.name.trim(),
-              address: addressFromGeoapify(location, p.name),
-              city: cityFromGeoapify(location),
-              area: areaFromGeoapify(location),
-              lat: p.lat,
-              lng: p.lon,
-              nearestAreaLabel: center.label,
-              distanceKm: boundary ? undefined : distance,
-              outsideArea: !boundary && distance > (data.radiusKm ?? WIDE_AREA_RADIUS_KM),
-            };
-            const previous = unique.get(match.placeId);
-            if (!previous || (match.distanceKm ?? 0) < (previous.distanceKm ?? 0)) {
-              unique.set(match.placeId, match);
+            const existing = unique.get(p.place_id);
+            if (!existing || providerRank < existing.providerRank) {
+              unique.set(p.place_id, { properties: p, providerRank });
             }
           }
         }
+        const radius = data.radiusKm ?? WIDE_AREA_RADIUS_KM;
+        const hints = [...unique.values()].map(({ properties: p, providerRank }) => {
+          const position = { lat: p.lat as number, lng: p.lon as number };
+          const pointAreas = areas
+            .filter(({ center }) => center.searchMode !== "boundary")
+            .map(({ center }) => ({ center, distanceKm: distanceKm(center, position) }))
+            .sort((a, b) => a.distanceKm - b.distanceKm);
+          const withinPoint = pointAreas.some(({ distanceKm: distance }) => distance <= radius);
+          const withinBoundary = areas.some(
+            ({ center, boundary }) =>
+              center.searchMode === "boundary" &&
+              boundary &&
+              placeWithinBoundary(position, boundary),
+          );
+          const boundaryArea = areas.find(
+            ({ center, boundary }) =>
+              center.searchMode === "boundary" &&
+              boundary &&
+              placeWithinBoundary(position, boundary),
+          );
+          const nearestPoint = pointAreas[0];
+          const location = p as Parameters<typeof addressFromGeoapify>[0];
+          const hint: PlaceNameHint = {
+            placeId: p.place_id as string,
+            name: (p.name as string).trim(),
+            address: addressFromGeoapify(location, p.name as string),
+            city: cityFromGeoapify(location),
+            area: areaFromGeoapify(location),
+            lat: position.lat,
+            lng: position.lng,
+            nearestAreaLabel: withinPoint
+              ? nearestPoint.center.label
+              : boundaryArea?.center.label ?? nearestPoint?.center.label ?? areas[0].center.label,
+            distanceKm: nearestPoint?.distanceKm,
+            // If boundary geometry failed, do not misleadingly classify a hit
+            // as outside a boundary that could not be checked.
+            outsideArea: !withinPoint && !withinBoundary && !unresolvedBoundary,
+          };
+          return { hint, providerRank };
+        });
         return {
-          hints: [...unique.values()]
-            .sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0))
-            .slice(0, 12),
+          hints: hints
+            .sort(
+              (a, b) =>
+                Number(a.hint.outsideArea) - Number(b.hint.outsideArea) ||
+                a.providerRank - b.providerRank ||
+                (a.hint.distanceKm ?? 0) - (b.hint.distanceKm ?? 0),
+            )
+            .slice(0, 12)
+            .map(({ hint }) => hint),
         };
       })
     ).hints;
