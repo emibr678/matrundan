@@ -1338,6 +1338,7 @@ export function PlaceDiscovery({
               : "Utanför sökområdena"
           }
           focused={showingMobileSuggestions}
+          suppressSuggestions={editingMobileAreas}
           onFocusChange={(focused) => onMobileModeChange(focused ? "search" : "browse")}
           onSelectPlace={activateSearchSuggestion}
           onSelectHint={(hint) => onBeginNameHint(hint, hiddenKeys)}
@@ -1656,6 +1657,7 @@ function PlaceSearchCombobox({
   distantHintsActive,
   onChangeHintDistance,
   focused,
+  suppressSuggestions,
   onFocusChange,
   onSelectPlace,
   onSelectHint,
@@ -1677,6 +1679,7 @@ function PlaceSearchCombobox({
   distantHintsActive: boolean;
   onChangeHintDistance: (includeDistant: boolean) => void;
   focused: boolean;
+  suppressSuggestions: boolean;
   onFocusChange: (focused: boolean) => void;
   onSelectPlace: (suggestion: PlaceSuggestion) => void;
   onSelectHint: (hint: PlaceNameHint) => void;
@@ -1735,7 +1738,7 @@ function PlaceSearchCombobox({
   ];
   const options = [...genericOptions, ...internalOptions, ...nearbyOptions, ...outsideOptions];
   const hasQuery = query.trim().length >= 2;
-  const showList = (open || focused) && hasQuery;
+  const showList = !suppressSuggestions && (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
 
   React.useLayoutEffect(() => {
