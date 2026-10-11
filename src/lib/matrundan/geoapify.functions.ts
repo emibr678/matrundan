@@ -825,6 +825,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       const expansionRadius = expandedNameRadiusKm(data.radiusKm);
       const primaryOnly = data.searchPhase === "primary";
       const recoveryEligible =
+        data.searchPhase !== "hints" &&
         (data.offset ?? 0) === 0 &&
         (!page.hasMore || page.results.length === 0) &&
         !page.failedAreaIds.length &&
