@@ -38,10 +38,18 @@ jobs:
         run: |
           bun run typecheck:unit
           bun run typecheck:e2e
-      - name: Formatting of changed source
-        run: bunx prettier --check src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx
       - name: Build application
         run: bun run build
+      # Read-only code-format proposal. Runner never pushes to GitHub.
+      - name: Emit exact proposed formatting patch
+        if: always()
+        run: |
+          bunx prettier --write src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx
+          echo "MATRUNDAN_FORMAT_BEGIN"
+          git diff --no-ext-diff -- src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx
+          echo "MATRUNDAN_FORMAT_END"
+      - name: Enforce checked-in formatting
+        run: git diff --exit-code -- src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx
       - name: Report checked commit
         if: always()
         run: echo "Search simplification checks for $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
