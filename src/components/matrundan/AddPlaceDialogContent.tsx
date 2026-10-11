@@ -1,5 +1,9 @@
 import * as React from "react";
-import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
+import { useNavigate } from "@tanstack/react-router";
+import {
+  unambiguousPlaceCandidate,
+  type PlaceResolution,
+} from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
@@ -27,7 +31,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import {
+  emojiForCategory,
+  matchingPlace,
+  providerMessage,
+} from "@/lib/matrundan/add-place-utils";
+import {
+  resolvePlaceNameHint,
+  type PlaceNameHint,
+} from "@/lib/matrundan/geoapify.functions";
+import { hasActiveProviderSource } from "@/lib/matrundan/manual-place-source-linking";
 import {
   completedBulkExternalIds,
   remainingBulkSelections,
@@ -72,11 +85,18 @@ export function AddPlaceDialogContent({
   initialQuery?: string;
 }) {
   const { state, addPlace } = useStore();
+  const navigate = useNavigate();
   const { mode, activeGroupId, exampleMode } = useSession();
   const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
   const [mobileMode, setMobileMode] = React.useState<PlaceDiscoveryMobileMode>("browse");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
+  const [pendingNameHint, setPendingNameHint] = React.useState<{
+    hint: PlaceNameHint;
+    error: string | null;
+  } | null>(null);
+  const nameHintAttemptRef = React.useRef(0);
+  const nameHintHiddenKeysRef = React.useRef<Set<string>>(new Set());
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
   );
@@ -133,6 +153,8 @@ export function AddPlaceDialogContent({
   }
 
   React.useEffect(() => {
+    nameHintAttemptRef.current += 1;
+    setPendingNameHint(null);
     setPending(null);
     setPendingSourceMatch(null);
     setSelectedResults([]);
@@ -144,8 +166,11 @@ export function AddPlaceDialogContent({
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && (pending != null || pendingSourceMatch != null)) return;
+    if (!nextOpen && (pending != null || pendingNameHint != null || pendingSourceMatch != null))
+      return;
     if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
+      nameHintAttemptRef.current += 1;
+      setPendingNameHint(null);
       setPending(null);
       setPendingSourceMatch(null);
       setSelectedResults([]);
@@ -163,6 +188,71 @@ export function AddPlaceDialogContent({
   function rememberSearchPosition() {
     searchScrollTopRef.current = searchDialogRef.current?.scrollTop ?? 0;
     returningToSearchRef.current = true;
+  }
+
+  function cancelNameHint() {
+    nameHintAttemptRef.current += 1;
+    setPendingNameHint(null);
+  }
+
+  async function beginNameHint(hint: PlaceNameHint, hiddenKeys: Set<string>) {
+    // Only the existing, authenticated group may resolve a real provider identity.
+    const groupId = mode === "live" ? activeGroupId : null;
+    const request = ++nameHintAttemptRef.current;
+    const scope = { ...currentScopeRef.current };
+    nameHintHiddenKeysRef.current = new Set(hiddenKeys);
+    rememberSearchPosition();
+    setPendingNameHint({ hint, error: null });
+
+    if (!groupId) {
+      setPendingNameHint({ hint, error: "Ingen aktiv grupp att söka i." });
+      return;
+    }
+
+    const stale = () =>
+      request !== nameHintAttemptRef.current ||
+      scope.mode !== currentScopeRef.current.mode ||
+      scope.groupId !== currentScopeRef.current.groupId;
+
+    try {
+      const selected = await resolvePlaceNameHint({
+        data: { groupId, placeId: hint.placeId, name: hint.name, lat: hint.lat, lng: hint.lng },
+      });
+      if (stale()) return;
+      if (nameHintHiddenKeysRef.current.has(hiddenPlaceSuggestionKey(selected))) {
+        setPendingNameHint({
+          hint,
+          error: "Stället är dolt för gruppen och kan inte väljas här.",
+        });
+        return;
+      }
+
+      const known = selected.canonical ??
+        selected.identity?.knownPlace ??
+        unambiguousPlaceCandidate(selected);
+      const activePlace =
+        state.places.find((place) => hasActiveProviderSource(place, selected)) ??
+        (known ? state.places.find((place) => place.id === known.placeId) : undefined) ??
+        matchingPlace(state.places, selected);
+      const existingPlaceId =
+        activePlace?.collectionStatus === "active"
+          ? activePlace.id
+          : known?.groupStatus === "active"
+            ? known.placeId
+            : null;
+      if (existingPlaceId) {
+        setPendingNameHint(null);
+        void navigate({ to: "/matstallen/$placeId", params: { placeId: existingPlaceId } });
+        return;
+      }
+
+      // Same result dialog stays open while its preliminary content becomes
+      // the verified place. No actions are rendered before this state.
+      setPending(selected);
+      setPendingNameHint(null);
+    } catch (error) {
+      if (!stale()) setPendingNameHint({ hint, error: providerMessage(error) });
+    }
   }
 
   function beginAdd(suggestion: PlaceSuggestion) {
@@ -370,7 +460,8 @@ export function AddPlaceDialogContent({
     }
   }
 
-  const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
+  const searchDialogOpen =
+    open && pending == null && pendingNameHint == null && pendingSourceMatch == null;
 
   // Keep the active mobile editor inside the visual viewport, including with Android IME.
   React.useLayoutEffect(() => {
@@ -552,6 +643,7 @@ export function AddPlaceDialogContent({
               onClearSelected={() => setSelectedResults([])}
               onAddSelected={() => void addSelectedResults()}
               onBeginAdd={beginAdd}
+              onBeginNameHint={(hint, hiddenKeys) => void beginNameHint(hint, hiddenKeys)}
               onLinkSource={beginSourceMatch}
               onMissingPlace={() => {
                 setMobileMode("browse");
@@ -584,6 +676,13 @@ export function AddPlaceDialogContent({
         parentOpen={open}
         pending={pending}
         onPendingChange={setPending}
+        pendingNameHint={pendingNameHint}
+        onCancelNameHint={cancelNameHint}
+        onRetryNameHint={() => {
+          if (pendingNameHint) {
+            void beginNameHint(pendingNameHint.hint, nameHintHiddenKeysRef.current);
+          }
+        }}
         onAdded={handleSingleAdded}
       />
       <AlertDialog
