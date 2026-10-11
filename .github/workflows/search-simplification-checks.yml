@@ -40,6 +40,12 @@ jobs:
           bun run typecheck:e2e
       - name: Build application
         run: bun run build
+      - name: Install Chromium for focused visual verification
+        run: bunx playwright install --with-deps chromium
+      - name: Exercise search, keyboard and map flows at 360 px and desktop
+        run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=mobile-chromium --project=desktop-chromium --retries=0 --max-failures=1
+      - name: Visual smoke 360 px and desktop
+        run: bun run test:visual-smoke -- '/matstallen?demo=1' --desktop
       # Read-only code-format proposal. Runner never pushes to GitHub.
       - name: Emit exact proposed formatting patch
         if: always()
