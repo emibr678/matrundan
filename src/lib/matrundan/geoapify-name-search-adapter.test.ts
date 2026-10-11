@@ -46,6 +46,8 @@ function seed() {
 type FixtureResponse = { features: unknown[]; status?: number };
 type SearchInput = {
   text: string;
+  intentMode?: "auto" | "literal";
+  selectedFilter?: { kind: "food-tag" | "category"; id: string };
   centers: Array<typeof stockholm & { searchMode?: "point" | "boundary"; placeId?: string }>;
   radiusKm: 1 | 2 | 5 | 25 | null;
   limit?: number;
@@ -1490,5 +1492,37 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
       "/v1/geocode/autocomplete",
     ]);
     expect(a.calls[1].searchParams.has("filter")).toBe(false);
+  });
+});
+
+describe("explicit valt kök kontra fri text genom Places-servern (#465)", () => {
+  test("exakt Pizza som namnsökning når provider som namnsökning", async () => {
+    const a = adapter(() => ({ features: [] }));
+    await a.multi({ text: "Pizza", intentMode: "literal", centers: [area], radiusKm: 1, searchPhase: "primary" });
+    const places = a.calls.filter((url) => url.pathname === "/v2/places");
+    expect(places).toHaveLength(1);
+    expect(places[0].searchParams.get("name")?.toLocaleLowerCase()).toBe("pizza");
+  });
+
+  test("vald Pizza-inriktning väljer strukturerad providerfråga, inte namnparametern", async () => {
+    const a = adapter(() => ({ features: [] }));
+    await a.multi({
+      text: "Pizza",
+      selectedFilter: { kind: "food-tag", id: "specialty:pizza" },
+      centers: [area], radiusKm: 1, searchPhase: "primary",
+    });
+    const places = a.calls.filter((url) => url.pathname === "/v2/places");
+    expect(places).toHaveLength(1);
+    expect(places[0].searchParams.has("name")).toBe(false);
+  });
+
+  test("fel filteridentitet avvisas innan något provideranrop sker", async () => {
+    const a = adapter(() => ({ features: [] }));
+    await expect(a.multi({
+      text: "Pizza",
+      selectedFilter: { kind: "food-tag", id: "cuisine:italian" },
+      centers: [area], radiusKm: 1,
+    })).rejects.toThrow("verifieras");
+    expect(a.calls).toHaveLength(0);
   });
 });
