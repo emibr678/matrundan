@@ -138,6 +138,16 @@ function adapter(
   const functions = load(resolve(import.meta.dir, "geoapify.functions.ts"));
   return {
     calls,
+    hints: (input: Pick<SearchInput, "text" | "centers" | "radiusKm">) =>
+      (functions.searchPlaceNameHints as (args: { data: typeof input & { groupId: string } }) =>
+        Promise<import("./geoapify.functions").PlaceNameHint[]>)({
+        data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
+      }),
+    resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
+      (functions.resolvePlaceNameHint as (args: { data: typeof input & { groupId: string } }) =>
+        Promise<PlaceSuggestion>)({
+        data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
+      }),
     multi: (input: SearchInput) =>
       (
         functions.geoapifySearchPlacesMulti as (args: {
@@ -1210,4 +1220,117 @@ test("geokodad korrigering av Pelikann måste verifieras med Places innan den vi
     ),
   ).toBe(true);
   expect(primary.budgetUsage.requests + recovery.budgetUsage.requests).toBeLessThanOrEqual(25);
+});
+
+
+describe("autocomplete under skrivning och verifiering först vid val (#465)", () => {
+  const ctx: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: false }, error: null };
+        if (name === "search_canonical_places_v1" ||
+            name === "search_canonical_name_candidates_v1")
+          return { data: [], error: null };
+        if (name === "match_place_discovery_candidates_v1")
+          return {
+            data: [{
+              providerPlaceId: "places-ox", providerVersion: "b".repeat(32),
+              knownPlace: null, candidates: [], reviewRequired: true, identityConflict: false,
+            }], error: null,
+          };
+        throw new Error("Unexpected private RPC: " + name);
+      },
+    },
+  };
+
+  function geocodingHint(name = "Ox Lan") {
+    return place("geocoding-only-id", name, {
+      result_type: "amenity",
+      category: "catering.restaurant",
+      datasource: { raw: {} },
+    });
+  }
+  function detail(id = "details-id", osmId = 12345) {
+    return place(id, "Ox Lan", {
+      feature_type: "details",
+      datasource: { raw: { osm_type: "node", osm_id: osmId } },
+    });
+  }
+
+  test("förslag hämtas via autocomplete utan Places och avslöjar inte oidentifierade providerdata", async () => {
+    const a = adapter((url) =>
+      url.pathname === "/v1/geocode/autocomplete"
+        ? { features: [geocodingHint(), place("irrelevant", "Postkontor", {
+          category: "service.post", result_type: "amenity", categories: ["service.post"],
+        })] }
+        : { features: [] }, ctx);
+    const hints = await a.hints({ text: "Ox Lan", centers: [area], radiusKm: 1 });
+    expect(hints).toHaveLength(1);
+    expect(hints[0].placeId).toBe("geocoding-only-id");
+    expect(hints[0].name).toBe("Ox Lan");
+    expect(hints[0].outsideArea).toBe(true);
+    expect(hints[0].distanceKm).toBeGreaterThan(1);
+    expect(a.calls.map((url) => url.pathname)).toEqual(["/v1/geocode/autocomplete"]);
+    expect(JSON.stringify(hints)).not.toContain("apiKey");
+    expect(JSON.stringify(hints)).not.toContain("osm_id");
+  });
+
+  test("kanoniska skrivförslag passerar bara gruppens RPC, inte Places", async () => {
+    const a = adapter(() => {
+      throw new Error("Should not send HTTP provider requests while typing canonical hints");
+    }, ctx);
+    const result = await a.discovery({ ...basicInput, searchPhase: "hints",
+      providerRequestLimit: 0, providerCreditLimit: 0 });
+    expect(result.results).toHaveLength(0);
+    expect(a.calls).toHaveLength(0);
+  });
+
+  test("vald autocomplete-identitet blir Places-ID först efter OSM-verifiering och privat RPC", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v2/place-details") return { features: [detail()] };
+      if (url.pathname === "/v2/places") return { features: [place()] };
+      return { features: [] };
+    }, ctx);
+    const selected = await a.resolveHint({
+      placeId: "geocoding-only-id", name: "Ox Lan", ...oxLan,
+    });
+    expect(selected.externalId).toBe("places-ox");
+    expect(selected.kind).toBe("provider");
+    expect(selected.identity?.reviewRequired).toBe(true);
+    expect(selected.identity?.providerPlaceId).toBe("places-ox");
+    expect(selected.raw).toBeUndefined();
+    expect(a.calls.map((url) => url.pathname)).toEqual(["/v2/place-details", "/v2/places"]);
+    expect(a.calls[1].searchParams.get("name")).toBeNull();
+    expect(a.calls[1].searchParams.get("filter")).toContain(",150");
+    expect(JSON.stringify(selected)).not.toContain("geocoding-only-id");
+  });
+
+  test("annan OSM-källa med samma namn får aldrig bli vald identitet", async () => {
+    const a = adapter((url) => {
+      if (url.pathname === "/v2/place-details") return { features: [detail()] };
+      if (url.pathname === "/v2/places") return {
+        features: [place("different-real-restaurant", "Ox Lan", {
+          datasource: { raw: { osm_type: "node", osm_id: 54321 } },
+        })],
+      };
+      return { features: [] };
+    }, ctx);
+    await expect(a.resolveHint({
+      placeId: "geocoding-only-id", name: "Ox Lan", ...oxLan,
+    })).rejects.toThrow("identitet");
+  });
+
+  test("valda förslag får inte bytas ut med ett annat namn eller en falsk position", async () => {
+    const a = adapter((url) => ({
+      features: url.pathname === "/v2/place-details" ? [detail()] : [place()],
+    }), ctx);
+    await expect(a.resolveHint({
+      placeId: "geocoding-only-id", name: "Annat matställe", ...oxLan,
+    })).rejects.toThrow("verifieras");
+    await expect(a.resolveHint({
+      placeId: "geocoding-only-id", name: "Ox Lan", lat: 57.7, lng: 11.9,
+    })).rejects.toThrow("verifieras");
+    expect(a.calls.every((url) => url.pathname === "/v2/place-details")).toBe(true);
+  });
 });
