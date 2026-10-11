@@ -33,6 +33,27 @@ test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ pa
 
   await expect(dialog).toBeVisible();
   await page.screenshot({ path: path.join(dir, "issue-465-browse.png"), fullPage: false });
+
+  if (viewport && viewport.width < 1024) {
+    await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+    await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
+    await expect(dialog.getByRole("combobox", { name: "Sök matställen" })).toBeVisible();
+    await page.screenshot({
+      path: path.join(dir, "issue-465-area-filter-expanded.png"),
+      fullPage: false,
+    });
+    await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
+    await expect(
+      dialog.getByRole("combobox", { name: "Lägg till område eller adress" }),
+    ).toBeFocused();
+    await page.screenshot({
+      path: path.join(dir, "issue-465-area-location-input.png"),
+      fullPage: false,
+    });
+    await dialog.getByRole("combobox", { name: "Sök matställen" }).focus();
+    await expect(dialog.locator("#mobile-search-area-editor")).toBeHidden();
+  }
+
   const metrics = await page.evaluate(() => ({
     doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     body: document.body.scrollWidth - document.body.clientWidth,
