@@ -133,9 +133,15 @@ async function direct(kind, text, radiusKm, label = "") {
 }
 function makeServerAdapter() {
   const modules = new Map();
-  const rpc = async (name) => {
+  const rpc = async (name, args) => {
     if (name === "get_place_discovery_context_v1") return { data: { canConfirm: false }, error: null };
-    if (["search_canonical_places_v1", "search_canonical_name_candidates_v1", "match_place_discovery_candidates_v1"].includes(name))
+    if (name === "match_place_discovery_candidates_v1") return {
+      data: (args?._items || []).map((place) => ({
+        providerPlaceId: place.externalId, providerVersion: "a".repeat(32),
+        knownPlace: null, candidates: [], reviewRequired: true, identityConflict: false,
+      })), error: null,
+    };
+    if (["search_canonical_places_v1", "search_canonical_name_candidates_v1"].includes(name))
       return { data: [], error: null };
     throw new Error("Unexpected diagnostic RPC: " + name);
   };
@@ -172,7 +178,8 @@ function makeServerAdapter() {
     }, { filename: path });
     return module.exports;
   }
-  return load(resolve("src/lib/matrundan/geoapify.functions.ts")).searchPlaceDiscovery;
+  const server = load(resolve("src/lib/matrundan/geoapify.functions.ts"));
+  return { search: server.searchPlaceDiscovery, hints: server.searchPlaceNameHints, select: server.resolvePlaceNameHint };
 }
 async function appTest(search, text, radiusKm) {
   const before = calls.length;
@@ -207,6 +214,46 @@ async function appTest(search, text, radiusKm) {
   }
 }
 
+/** Exercise the NEW actual server endpoints with live Geoapify, fake auth/DB. */
+async function newNameSearchTest(adapter, text) {
+  const before = calls.length;
+  const started = performance.now();
+  const record = {
+    mode: "new-server-hints-selection-stubbed-db", label: text,
+    kind: "searchPlaceNameHints+resolvePlaceNameHint", radiusKm: 5,
+  };
+  try {
+    const data = {
+      groupId: "38910000-0000-4000-8000-000000000001",
+      text, centers: [center], radiusKm: 5,
+    };
+    const hints = await adapter.hints({ data });
+    record.firstHintMs = Math.round(performance.now() - started);
+    record.total = hints.length;
+    const matches = hints.filter((hint) => normalize(hint.name).trim() === normalize(text).trim());
+    record.matches = matches.length;
+    record.exampleNames = hints.slice(0, 4).map((h) => h.name);
+    record.outsideAreaCount = hints.filter((hint) => hint.outsideArea).length;
+    if (matches.length) {
+      const hint = matches[0];
+      const selected = await adapter.select({ data: {
+        groupId: data.groupId, placeId: hint.placeId,
+        name: hint.name, lat: hint.lat, lng: hint.lng,
+      } });
+      record.verified = selected.kind === "provider" && selected.identity?.providerPlaceId === selected.externalId;
+      record.verifiedName = selected.name;
+      record.verifiedCanConfirm = Boolean(selected.identity?.reviewRequired === false);
+      if (!record.verified) throw new Error("Selected candidate did not pass real adapter verification");
+    } else {
+      record.verified = false;
+    }
+  } catch(error) {
+    record.error = String(error?.message || error);
+  }
+  record.ms = Math.round(performance.now() - started);
+  record.calls = calls.slice(before);
+  measurements.push(record);
+}
 function distanceKm(a, b) {
   if (![a?.lat, a?.lon, b?.lat, b?.lon].every((x) => typeof x === "number" && Number.isFinite(x))) return Infinity;
   const rad = Math.PI / 180;
@@ -374,10 +421,14 @@ try {
     await autocompleteToDetails(input, expected);
   }
   if (!halted) {
-    const search = makeServerAdapter();
+    const adapter = makeServerAdapter();
     for (const [text, radius] of sample) {
       if (halted) break;
-      await appTest(search, text, radius);
+      await appTest(adapter.search, text, radius);
+    }
+    for (const text of ["Ox Lan", "Pelikan", "Falloumi", "Pharmarium", "Pel"]) {
+      if (halted) break;
+      await newNameSearchTest(adapter, text);
     }
   }
 } finally {
@@ -389,3 +440,9 @@ if (brokenDirectPlaces.length) {
   throw new Error("Direct Places contract failures: " + brokenDirectPlaces.map((m) => m.label).join(", ") + ". Review diagnostic artifact.");
 }
 if (!measurements.some((m) => !m.error)) throw new Error("All probes failed. Check staging key and provider access.");
+
+const successfulNewSelection = measurements.filter((m) =>
+  m.mode === "new-server-hints-selection-stubbed-db" && m.verified === true);
+if (successfulNewSelection.length < 3) {
+  throw new Error("Actual new search adapter verified fewer than 3 named example restaurants. Inspect artifact.");
+}
