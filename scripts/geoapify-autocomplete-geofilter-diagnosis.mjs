@@ -15,7 +15,7 @@ const cases=[
   ["Göteborg","Falloumi"],["Göteborg","Pasta r"],
   ["Göteborg","Pizza"],
 ];
-const radii=[null,25,50,100];
+const radii=[null,25,50,100,"soft50"];
 const observations=[],errors=[];
 let requestCount=0,reservedCredits=0,lastStart=0,stop=false;
 function normalize(s){return String(s||"").normalize("NFKD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("sv-SE").trim();}
@@ -36,7 +36,8 @@ async function probe([city,text],radius){
   url.searchParams.set("lang","sv");
   url.searchParams.set("limit","10");
   url.searchParams.set("bias","proximity:"+point.lon+","+point.lat);
-  if(radius!==null)url.searchParams.set("filter","circle:"+point.lon+","+point.lat+","+(radius*1000));
+  if(radius==="soft50")url.searchParams.set("bias","circle:"+point.lon+","+point.lat+",50000");
+  else if(radius!==null)url.searchParams.set("filter","circle:"+point.lon+","+point.lat+","+(radius*1000));
   url.searchParams.set("apiKey",key);
   const delay=Math.max(0,lastStart+550-Date.now());
   if(delay)await new Promise(r=>setTimeout(r,delay));
@@ -105,7 +106,7 @@ function report(){
     "Anrop: "+requestCount+". Konservativt reserverade krediter: "+reservedCredits+".",
     "","| Centrum | Text | Filter | Tid ms | Träffar | Inom 5 km | Över 100 km | Utländska koder | Exempel (km) |",
     "|---|---|---|---:|---:|---:|---:|---|---|"];
-  for(const o of observations)lines.push("| "+[o.center,o.query,o.radiusKm===null?"endast bias":o.radiusKm+" km",o.ms,o.total,o.within5,o.over100,o.international.join(", "),o.results.slice(0,3).map(x=>x.name+" "+(x.distanceKm??"?")).join("; ")].map(safe).join(" | ")+" |");
+  for(const o of observations)lines.push("| "+[o.center,o.query,o.radiusKm===null?"proximity":o.radiusKm==="soft50"?"mjuk bias 50 km":o.radiusKm+" km",o.ms,o.total,o.within5,o.over100,o.international.join(", "),o.results.slice(0,3).map(x=>x.name+" "+(x.distanceKm??"?")).join("; ")].map(safe).join(" | ")+" |");
   lines.push("","## Lokala träffar från bias-baseline som saknas med filter");
   const lost=comparisons.filter(x=>x.lostLocal.length);
   lines.push(...(lost.length?lost.map(x=>"- "+x.center+" / "+x.query+" / "+x.radiusKm+" km: "+x.lostLocal.map(p=>safe(p.name)+" ("+p.distanceKm+" km)").join(", ")):["- Inga bland testens tio baseline-förslag."]));
