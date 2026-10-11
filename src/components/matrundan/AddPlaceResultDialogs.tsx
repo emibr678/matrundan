@@ -465,9 +465,7 @@ export function AddPlaceResultDialogs({
               <div role="alert" className="space-y-2 rounded-xl border border-destructive/40 p-3">
                 <p className="font-medium">Kunde inte öppna stället</p>
                 <p className="text-sm text-muted-foreground">{pendingNameHint.error}</p>
-                <p className="text-xs text-muted-foreground">
-                  Inget har lagts till i gruppen.
-                </p>
+                <p className="text-xs text-muted-foreground">Inget har lagts till i gruppen.</p>
               </div>
             ) : (
               <div
@@ -476,7 +474,10 @@ export function AddPlaceResultDialogs({
                 data-testid="pending-name-hint-loading"
                 className="flex min-h-16 items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-3"
               >
-                <Loader2 className="h-5 w-5 shrink-0 animate-spin text-muted-foreground" aria-hidden="true" />
+                <Loader2
+                  className="h-5 w-5 shrink-0 animate-spin text-muted-foreground"
+                  aria-hidden="true"
+                />
                 <span className="text-sm">Hämtar uppgifter om stället…</span>
               </div>
             )}
@@ -485,7 +486,9 @@ export function AddPlaceResultDialogs({
                 Tillbaka till sökningen
               </Button>
               {pendingNameHint.error ? (
-                <Button type="button" onClick={onRetryNameHint}>Försök igen</Button>
+                <Button type="button" onClick={onRetryNameHint}>
+                  Försök igen
+                </Button>
               ) : null}
             </DialogFooter>
           </DialogContent>

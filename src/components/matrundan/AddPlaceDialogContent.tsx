@@ -1,9 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  unambiguousPlaceCandidate,
-  type PlaceResolution,
-} from "@/lib/matrundan/place-discovery";
+import { unambiguousPlaceCandidate, type PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
@@ -31,15 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  emojiForCategory,
-  matchingPlace,
-  providerMessage,
-} from "@/lib/matrundan/add-place-utils";
-import {
-  resolvePlaceNameHint,
-  type PlaceNameHint,
-} from "@/lib/matrundan/geoapify.functions";
+import { emojiForCategory, matchingPlace, providerMessage } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceNameHint, type PlaceNameHint } from "@/lib/matrundan/geoapify.functions";
 import { hasActiveProviderSource } from "@/lib/matrundan/manual-place-source-linking";
 import {
   completedBulkExternalIds,
@@ -227,9 +217,8 @@ export function AddPlaceDialogContent({
         return;
       }
 
-      const known = selected.canonical ??
-        selected.identity?.knownPlace ??
-        unambiguousPlaceCandidate(selected);
+      const known =
+        selected.canonical ?? selected.identity?.knownPlace ?? unambiguousPlaceCandidate(selected);
       const activePlace =
         state.places.find((place) => hasActiveProviderSource(place, selected)) ??
         (known ? state.places.find((place) => place.id === known.placeId) : undefined) ??
