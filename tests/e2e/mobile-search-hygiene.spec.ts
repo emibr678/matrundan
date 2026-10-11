@@ -367,9 +367,19 @@ test("mobil inriktningsval leder till full resultatlista med synligt filter", as
   await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Italienskt");
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toHaveCount(0);
   await expectNoHorizontalOverflow(page, "Valt kök i resultatlistan");
+  // Wait for the selected filter's complete result state, not a loading frame.
+  await expect
+    .poll(async () => {
+      const raw = await dialog
+        .locator("[data-search-observation]")
+        .getAttribute("data-search-observation");
+      const observation = JSON.parse(raw || "{}") as { client?: { completedMs?: number } };
+      return typeof observation.client?.completedMs === "number";
+    }, { timeout: 20_000 })
+    .toBe(true);
   const fs = await import("node:fs/promises");
   await fs.mkdir("visual-review", { recursive: true });
-  await page.screenshot({ path: "visual-review/issue-465-selected-cuisine-mobile.png" });
+  await page.screenshot({ path: `visual-review/issue-465-selected-cuisine-${test.info().project.name}.png` });
   await expectInsideViewport(page, dialog, "Resultatdialog efter inriktningsval");
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
 });
