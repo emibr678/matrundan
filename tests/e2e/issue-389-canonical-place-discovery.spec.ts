@@ -823,7 +823,7 @@ test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", a
 
 
 test("Sök längre bort kräver eget val och går att återställa vid 360 px (#465)", async ({ page }) => {
-  await setup(page, { hintFixtures: true });
+  await setup(page, { hintFixtures: true, providerOnly: true });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
