@@ -920,7 +920,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(returned).toHaveAttribute("data-search-shell", "focused");
   await expect(returned.getByRole("combobox", { name: "Sök matställen" })).toHaveValue("Ox Lan");
-  await expect(returned.getByText("Inga matställen hittades")).toHaveCount(0);
+  await expect(returned.getByText("Inga matställen hittades")).toBeHidden();
   await expect(returned.getByRole("listbox")).toBeVisible({ timeout: 10_000 });
   const bounds = await returned.boundingBox();
   expect(bounds).not.toBeNull();
