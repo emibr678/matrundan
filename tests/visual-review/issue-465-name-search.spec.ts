@@ -1,0 +1,42 @@
+import { mkdir } from "node:fs/promises";
+import path from "node:path";
+import { expect, test } from "@playwright/test";
+
+test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ page }, testInfo) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await expect(input).toBeVisible();
+
+  const dir = path.join("visual-review", testInfo.project.name);
+  await mkdir(dir, { recursive: true });
+  await input.fill("Päronträdets");
+  await expect(dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" })).toBeVisible();
+  await expect(
+    dialog.getByRole("listbox").getByText("Päronträdets Trattoria", { exact: true }),
+  ).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await page.screenshot({ path: path.join(dir, "issue-465-focused-search.png"), fullPage: false });
+
+  const viewport = page.viewportSize();
+  if (viewport && viewport.width < 1024) {
+    await page.setViewportSize({ width: 360, height: 420 });
+    await expect(dialog.getByRole("listbox")).toBeVisible();
+    await page.screenshot({ path: path.join(dir, "issue-465-small-keyboard.png"), fullPage: false });
+    await page.setViewportSize({ width: 360, height: 800 });
+    await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  } else {
+    await input.evaluate((element) => (element as HTMLInputElement).blur());
+  }
+
+  await expect(dialog).toBeVisible();
+  await page.screenshot({ path: path.join(dir, "issue-465-browse.png"), fullPage: false });
+  const metrics = await page.evaluate(() => ({
+    doc: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    body: document.body.scrollWidth - document.body.clientWidth,
+  }));
+  expect(metrics.doc).toBeLessThanOrEqual(0);
+  expect(metrics.body).toBeLessThanOrEqual(0);
+});
