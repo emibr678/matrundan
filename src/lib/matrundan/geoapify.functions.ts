@@ -35,13 +35,6 @@ import { expandedNameRadiusKm } from "./place-search-expansion";
 import { matchesTypoPlaceName, typoProviderSearchSeed } from "./place-search-typo";
 import { createShortLivedRequestCache } from "./short-lived-request-cache";
 import {
-  observeProviderRequest,
-  observeSearchWithBudget,
-  recordSearchPhaseMs,
-  recordSearchCandidateCounts,
-  recordSearchCandidateFlow,
-} from "./place-search-observation.server";
-import {
   budgetProviderRequest,
   estimatedGeoapifyCredits,
   withPlaceSearchBudget,
@@ -189,16 +182,7 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
   return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
-    budgetProviderRequest(estimatedGeoapifyCredits(url), () =>
-      observeProviderRequest(
-        () => fetchGeoapify(url),
-        url.pathname === "/v2/places"
-          ? "places"
-          : url.pathname.includes("/geocode/")
-            ? "geocoding"
-            : "other",
-      ),
-    ),
+    budgetProviderRequest(estimatedGeoapifyCredits(url), () => fetchGeoapify(url)),
   );
 }
 
@@ -305,14 +289,12 @@ async function searchPlacesAtArea(
   const rawFeatureCount = json.features?.length ?? 0;
   const seen = new Set<string>();
   const normalized: NormalizedPlaceSuggestion[] = [];
-  let rejectedByIntent = 0;
   for (const feature of json.features ?? []) {
     const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
 
     if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) {
-      rejectedByIntent++;
       continue;
     }
     if (anchor || input.nameBias) {
@@ -332,11 +314,6 @@ async function searchPlacesAtArea(
     const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
-  });
-  recordSearchCandidateFlow({
-    rawPlaces: rawFeatureCount,
-    acceptedPlaces: normalized.length,
-    rejectedByIntent,
   });
 
   return {
@@ -571,15 +548,12 @@ async function searchProviderAreas(
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
     return da - db || a.name.localeCompare(b.name, "sv-SE");
   });
-  let rejectedByNearbyDistance = 0;
-  let rejectedByNearbyName = 0;
   const results: MultiAreaPlaceSuggestion[] = rankedResults.flatMap(
     ({ nearestAreaSearchMode, ...result }) => {
       if (nearestAreaSearchMode === "boundary") return [{ ...result, distanceKm: undefined }];
       if (expandedRadius == null || result.lat == null || result.lng == null) return [result];
       const position = { lat: result.lat, lng: result.lng };
       if (!data.centers.some((center) => distanceKm(center, position) <= expandedRadius)) {
-        rejectedByNearbyDistance++;
         return [];
       }
       const distances = data.centers
@@ -608,7 +582,6 @@ async function searchProviderAreas(
         !fullName.startsWith(inputName) &&
         !matchesSpecificPlaceName(nameIntent.query, result.name)
       ) {
-        rejectedByNearbyName++;
         return [];
       }
       return [
@@ -624,8 +597,6 @@ async function searchProviderAreas(
       ];
     },
   );
-
-  recordSearchCandidateFlow({ rejectedByNearbyDistance, rejectedByNearbyName });
   return {
     results,
     failedAreaLabels,
@@ -647,15 +618,15 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.extend({ groupId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) =>
-    observeSearchWithBudget({
-      requests: data.providerRequestLimit ?? 25,
-      credits: data.providerCreditLimit ?? 40,
-    })(async () => {
-      const accessStarted = performance.now();
+    withPlaceSearchBudget(
+      {
+        requests: data.providerRequestLimit ?? 25,
+        credits: data.providerCreditLimit ?? 40,
+      },
+      async () => {
       const access = await context.supabase.rpc("get_place_discovery_context_v1", {
         _group_id: data.groupId,
       });
-      recordSearchPhaseMs("access", performance.now() - accessStarted);
       if (access.error) throw new Error("Gruppen kunde inte verifieras.");
       const intent = resolveDiscoverySearchIntent(data.text, data.intentMode, data.selectedFilter);
       const explicit = (data.text?.trim().length ?? 0) >= 2;
@@ -802,7 +773,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           incomplete: primaryTruncated || fuzzyIncomplete || valid.length < data.centers.length,
         };
       })().catch(() => ({ results: [], incomplete: true }));
-      const sourcesStarted = performance.now();
       const [providerOutcome, internal] = await Promise.all([
         data.searchPhase === "recovery" || data.searchPhase === "hints"
           ? Promise.resolve({
@@ -822,7 +792,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               .catch(() => ({ ok: false as const })),
         internalPromise,
       ]);
-      recordSearchPhaseMs("sources", performance.now() - sourcesStarted);
       const page = providerOutcome.ok
         ? providerOutcome.value
         : {
@@ -849,7 +818,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         ![...page.results, ...internal.results].some((place) =>
           matchesSpecificPlaceName(intent.query, place.name),
         );
-      const recoveryStarted = performance.now();
       const nearbyCandidates: typeof page.results = [];
       const typoCandidates: typeof page.results = [];
       // One bounded candidate stage: try a broad-enough name prefix before
@@ -987,7 +955,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                         distanceKm({ lat, lng }, { lat: place.lat, lng: place.lng }) > 0.15)
                     )
                       continue;
-                    recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
                     const exact = matchesSpecificPlaceName(intent.query, place.name);
                     const typo = !exact && matchesTypoPlaceName(intent.query, place.name);
                     if (exact || typo) recordCandidate(place, centerIndex, typo);
@@ -1057,7 +1024,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           candidatePages.forEach((outcome, centerIndex) => {
             if (outcome.status !== "fulfilled") return;
             for (const candidate of outcome.value.results) {
-              recordSearchCandidateFlow({ recoveryNamesCompared: 1 });
               const exact = matchesSpecificPlaceName(intent.query, candidate.name);
               const tolerant = !exact && matchesTypoPlaceName(intent.query, candidate.name);
               if (exact || tolerant) recordCandidate(candidate, centerIndex, tolerant);
@@ -1065,13 +1031,6 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           });
         }
       }
-      recordSearchPhaseMs("recovery", performance.now() - recoveryStarted);
-      recordSearchCandidateCounts({
-        primary: page.results.length,
-        canonical: internal.results.length,
-        nearby: nearbyCandidates.length,
-        typo: typoCandidates.length,
-      });
       const allProviderResults = [
         ...page.results,
         ...nearbyCandidates.slice(0, 3),
@@ -1093,14 +1052,12 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
           osmId: source.osmId ?? null,
         };
       });
-      const identityStarted = performance.now();
       const matches = items.length
         ? await context.supabase.rpc("match_place_discovery_candidates_v1", {
             _group_id: data.groupId,
             _items: items,
           })
         : { data: [], error: null };
-      recordSearchPhaseMs("identity", performance.now() - identityStarted);
       const reviews = matches.error
         ? []
         : z.array(providerIdentityReviewSchema).parse(matches.data);
@@ -1127,7 +1084,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
         pendingRecovery: primaryOnly && recoveryEligible,
         canConfirm: (access.data as { canConfirm: boolean }).canConfirm,
       };
-    }),
+      },
+    ),
   );
 
 /** Geoapify's geocoding place_id is NOT a verified Places identity. */
