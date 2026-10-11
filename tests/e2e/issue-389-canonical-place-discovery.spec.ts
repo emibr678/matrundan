@@ -784,6 +784,16 @@ test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", a
   await expect(outside.getByText("Bortagatan 9 · Knivsta")).toBeVisible();
   await expect(list.getByRole("group", { name: "Förslag på matställen" })).toHaveCount(0);
   await expect(list.getByText("utanför vald radie")).toHaveCount(0);
+  const listRect = await list.boundingBox();
+  const outsideRect = await outside.getByRole("option").boundingBox();
+  expect(listRect).not.toBeNull();
+  expect(outsideRect).not.toBeNull();
+  if (listRect && outsideRect) {
+    expect(outsideRect.y).toBeGreaterThanOrEqual(listRect.y - 1);
+    expect(outsideRect.y + outsideRect.height).toBeLessThanOrEqual(
+      listRect.y + listRect.height + 1,
+    );
+  }
   await noOverflow(page);
 
   const { mkdir } = await import("node:fs/promises");
