@@ -96,6 +96,7 @@ async function setup(
   const confirmations: unknown[] = [];
   const manualRequests: unknown[] = [];
   let hintResolutionAttempts = 0;
+  let hintSearches = 0;
   const ambiguousCandidates = [
     { ...provider.identity.candidates[0], canConfirmSource: false },
     {
@@ -294,6 +295,7 @@ async function setup(
         observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
     if (options.hintFixtures && name.startsWith("searchPlaceNameHints")) {
+      hintSearches += 1;
       const request = fromJSON(JSON.parse(route.request().postData()!)) as {
         data: { includeDistant?: boolean };
       };
@@ -336,6 +338,9 @@ async function setup(
       ];
     }
     if (name.startsWith("resolvePlaceNameHint")) {
+      const requested = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: { placeId: string; name: string; lat: number; lng: number };
+      };
       hintResolutionAttempts += 1;
       if (options.hintResolution) {
         await new Promise((resolve) => setTimeout(resolve, 1200));
@@ -346,19 +351,19 @@ async function setup(
       }
       reply = {
         kind: "provider",
-        resultKey: "provider:geoapify:autocomplete-near",
-        externalId: "autocomplete-near",
+        resultKey: "provider:geoapify:" + requested.data.placeId,
+        externalId: requested.data.placeId,
         provider: "geoapify",
-        name: "Ox Lan i närheten",
+        name: requested.data.name,
         category: "restaurang",
         cuisines: [],
-        address: "Näragatan 1",
-        city: "Teststad",
+        address: requested.data.placeId === "autocomplete-international" ? "Teststraße 1" : "Näragatan 1",
+        city: requested.data.placeId === "autocomplete-international" ? "Stuttgart" : "Teststad",
         area: "",
-        lat: 59,
-        lng: 18,
+        lat: requested.data.lat,
+        lng: requested.data.lng,
         identity: {
-          providerPlaceId: "autocomplete-near",
+          providerPlaceId: requested.data.placeId,
           providerVersion: "a".repeat(32),
           knownPlace: null,
           candidates: [],
@@ -417,7 +422,7 @@ async function setup(
       body: JSON.stringify({ result: reply, context: {} }),
     });
   });
-  return { confirmations, manualRequests };
+  return { confirmations, manualRequests, getHintSearchCount: () => hintSearches };
 }
 
 async function noOverflow(page: Page) {
@@ -891,7 +896,7 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
 });
 
 test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({ page }) => {
-  await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
+  const mocked = await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -899,6 +904,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill("Ox Lan");
+  const hintCountBeforeSelection = mocked.getHintSearchCount();
   await search.getByRole("listbox").getByRole("option").filter({ hasText: "Ox Lan i närheten" }).click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible({ timeout: 1000 });
@@ -922,6 +928,8 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(returned.getByRole("combobox", { name: "Sök matställen" })).toHaveValue("Ox Lan");
   await expect(returned.getByText("Inga matställen hittades")).toBeHidden();
   await expect(returned.getByRole("listbox")).toBeVisible({ timeout: 10_000 });
+  await expect(returned.getByText("Ox Lan i närheten")).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(hintCountBeforeSelection);
   const bounds = await returned.boundingBox();
   expect(bounds).not.toBeNull();
   expect(bounds!.y).toBeLessThanOrEqual(20);
@@ -951,5 +959,31 @@ test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte
   // The now-stale successful retry must be ignored rather than opening a new dialog.
   await page.waitForTimeout(1600);
   await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("breddad namnsökning bevaras efter öppning och stängning av stället (#465)", async ({ page }) => {
+  const mocked = await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "slow" });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  const list = search.getByRole("listbox");
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  const before = mocked.getHintSearchCount();
+
+  await list.getByRole("option").filter({ hasText: "Ox Lan i Stuttgart" }).click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({ timeout: 15_000 });
+  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+
+  const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(returned).toHaveAttribute("data-search-shell", "focused");
+  await expect(returned.getByRole("listbox").getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await expect(returned.getByRole("button", { name: "Visa närmare förslag" })).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(before);
   await noOverflow(page);
 });
