@@ -57,7 +57,6 @@ import {
 } from "@/lib/matrundan/manual-place-source-links";
 import {
   genericPlaceSearchSuggestions,
-  resolvePlaceSearchIntent,
   type GenericPlaceSearchSuggestion,
 } from "@/lib/matrundan/place-search-intent";
 import {
@@ -96,6 +95,7 @@ const EXPLICIT_MORE_BUDGET: SearchBudget = { requests: 5, credits: 20 };
 
 export interface PlaceDiscoverySnapshot {
   query: string;
+  selectedFilter?: GenericPlaceSearchSuggestion | null;
   selectedAreaIds: string[];
   temporaryAreas: SearchArea[];
   radiusKm: SearchRadiusKm;
@@ -165,6 +165,13 @@ export function PlaceDiscovery({
     [selectedResults],
   );
   const [query, setQuery] = React.useState(snapshot?.query ?? initialQuery);
+  const [selectedFilter, setSelectedFilter] = React.useState<GenericPlaceSearchSuggestion | null>(
+    snapshot?.selectedFilter ?? null,
+  );
+  const effectiveQuery = selectedFilter?.label ?? query.trim();
+  const filterSelection = selectedFilter
+    ? { kind: selectedFilter.kind, id: selectedFilter.id }
+    : undefined;
   const [nameHints, setNameHints] = React.useState<PlaceNameHint[]>([]);
   const [canonicalHints, setCanonicalHints] = React.useState<PlaceSuggestion[]>([]);
   const [nameHintsKey, setNameHintsKey] = React.useState("");
@@ -188,6 +195,7 @@ export function PlaceDiscovery({
   );
   const currentSearchKey = JSON.stringify([
     query.trim(),
+    selectedFilter?.id ?? null,
     radiusKm,
     savedAreas
       .filter((area) => selectedAreaIds.includes(area.id))
@@ -239,6 +247,7 @@ export function PlaceDiscovery({
   React.useEffect(() => {
     onSnapshotChange?.({
       query,
+      selectedFilter,
       selectedAreaIds,
       temporaryAreas,
       radiusKm,
@@ -271,6 +280,7 @@ export function PlaceDiscovery({
     radiusKm,
     resultView,
     results,
+    selectedFilter,
     resultsForSearchKey,
     selectedAreaIds,
     selectedId,
@@ -284,9 +294,9 @@ export function PlaceDiscovery({
 
   const nameHintsActive =
     isLive &&
+    !selectedFilter &&
     mobileMode === "search" &&
-    query.trim().length >= 3 &&
-    resolvePlaceSearchIntent(query).kind === "text";
+    query.trim().length >= 3;
 
   // Two independent reads run in parallel: Geoapify for discovery, the
   // group's existing authenticated read-model for private canonical hints.
@@ -521,12 +531,14 @@ export function PlaceDiscovery({
 
       while (pages < maxPages && remaining.requests > 0 && remaining.credits > 0) {
         const isRecoveryPass: boolean = recoveryPending;
-        const textSearch = query.trim().length >= 2;
+        const textSearch = effectiveQuery.length >= 2;
         const response: Awaited<ReturnType<typeof searchPlaceDiscovery>> =
           await searchPlaceDiscovery({
             data: {
               groupId: groupId!,
-              text: query.trim() || undefined,
+              text: effectiveQuery || undefined,
+              intentMode: selectedFilter ? "auto" : "literal",
+              selectedFilter: filterSelection,
               centers: activeAreas.map((area) => ({
                 id: area.id,
                 label: shortSearchAreaLabel(area.label),
@@ -595,7 +607,7 @@ export function PlaceDiscovery({
         budgetRemaining: remaining,
       };
     },
-    [activeAreas, groupId, query, radiusKm],
+    [activeAreas, effectiveQuery, filterSelection, groupId, radiusKm, selectedFilter],
   );
 
   React.useEffect(() => {
@@ -620,7 +632,7 @@ export function PlaceDiscovery({
     // A one- or two-letter fragment is not a useful Places query; it would
     // fetch 50 generic POIs and filter them locally. Keep lightweight category
     // suggestions available without spending provider credits per keystroke.
-    if (query.trim().length > 0 && query.trim().length < 3) {
+    if (effectiveQuery.length > 0 && effectiveQuery.length < 3) {
       setResults([]);
       setResultsForSearchKey(currentSearchKey);
       setFailedAreas([]);
@@ -693,7 +705,9 @@ export function PlaceDiscovery({
             activeAreas.map(async (area) => ({
               area,
               results: await getPlacesProvider().search({
-                query: query.trim() || undefined,
+                query: effectiveQuery || undefined,
+                intentMode: selectedFilter ? "auto" : "literal",
+                selectedFilter: filterSelection,
                 center: { lat: area.lat, lng: area.lng },
                 areaLabel: shortSearchAreaLabel(area.label),
                 radiusKm,
@@ -763,6 +777,9 @@ export function PlaceDiscovery({
     isLive,
     nameHintsActive,
     query,
+    effectiveQuery,
+    filterSelection,
+    selectedFilter,
     radiusKm,
     retry,
   ]);
@@ -1151,7 +1168,10 @@ export function PlaceDiscovery({
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
-  const genericSuggestions = React.useMemo(() => genericPlaceSearchSuggestions(query, 4), [query]);
+  const genericSuggestions = React.useMemo(
+    () => selectedFilter ? [] : genericPlaceSearchSuggestions(query, 4),
+    [query, selectedFilter],
+  );
   const placeAutocompleteSuggestions = React.useMemo(
     () =>
       query.trim().length < 2
@@ -1172,12 +1192,7 @@ export function PlaceDiscovery({
     activeAreas.length > 0 && activeAreas.every((area) => searchAreaMode(area) === "point");
   const editingMobileAreas = mobileMode === "areas";
   const showingMobileSuggestions = mobileMode === "search";
-  const visibleGenericSuggestionCount = genericSuggestions
-    .filter(
-      (suggestion) =>
-        suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
-    )
-    .slice(0, 2).length;
+  const visibleGenericSuggestionCount = Math.min(genericSuggestions.length, 2);
   const showFullResultsLink = nameHintsActive
     ? nameHints.length + canonicalHints.length > 3 - visibleGenericSuggestionCount
     : filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
@@ -1302,7 +1317,16 @@ export function PlaceDiscovery({
       <div className={editingMobileAreas ? "hidden lg:block" : "min-w-0"}>
         <PlaceSearchCombobox
           query={query}
-          onQueryChange={setQuery}
+          onQueryChange={(value) => {
+            setQuery(value);
+            setSelectedFilter(null);
+          }}
+          onSelectFilter={(selection) => {
+            setSelectedFilter(selection);
+            setQuery("");
+            setResultView("lista");
+            onMobileModeChange("browse");
+          }}
           loading={
             nameHintsActive
               ? nameHintsLoading || nameHintsKey !== currentSearchKey || verifyingNameHint
@@ -1329,6 +1353,21 @@ export function PlaceDiscovery({
           onMissingPlace={onMissingPlace}
         />
       </div>
+
+      {selectedFilter && !editingMobileAreas ? (
+        <div className="flex min-w-0 items-center gap-2" data-testid="active-place-search-filter">
+          <span className="text-xs text-muted-foreground">{selectedFilter.groupLabel}:</span>
+          <button
+            type="button"
+            className="inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border border-border bg-muted/40 px-3 text-sm font-medium text-foreground hover:bg-muted"
+            aria-label={`Ta bort filtret ${selectedFilter.label}`}
+            onClick={() => setSelectedFilter(null)}
+          >
+            <span className="truncate">{selectedFilter.label}</span>
+            <X className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          </button>
+        </div>
+      ) : null}
 
       {showingMobileSuggestions && query.trim().length < 2 ? (
         <p className="text-sm text-muted-foreground lg:hidden">
@@ -1604,7 +1643,7 @@ function Empty({ text }: { text: string }) {
 }
 
 type PlaceSearchOption =
-  | { kind: "generic"; key: string; label: string; meta: string; searchValue: string }
+  | { kind: "generic"; key: string; label: string; meta: string; suggestion: GenericPlaceSearchSuggestion }
   | { kind: "place"; key: string; label: string; meta: string; suggestion: PlaceSuggestion }
   | { kind: "hint"; key: string; label: string; meta: string; hint: PlaceNameHint };
 
@@ -1618,6 +1657,7 @@ function placeOptionMeta(suggestion: PlaceSuggestion): string {
 function PlaceSearchCombobox({
   query,
   onQueryChange,
+  onSelectFilter,
   loading,
   error,
   incomplete,
@@ -1635,6 +1675,7 @@ function PlaceSearchCombobox({
 }: {
   query: string;
   onQueryChange: (value: string) => void;
+  onSelectFilter: (selection: GenericPlaceSearchSuggestion) => void;
   loading: boolean;
   error: string | null;
   incomplete: boolean;
@@ -1656,19 +1697,13 @@ function PlaceSearchCombobox({
   const blurTimeoutRef = React.useRef<number | null>(null);
   const listboxRef = React.useRef<HTMLDivElement>(null);
   const [canScrollSuggestions, setCanScrollSuggestions] = React.useState(false);
-  const genericOptions: PlaceSearchOption[] = genericSuggestions
-    .filter(
-      (suggestion) =>
-        suggestion.label.toLocaleLowerCase("sv-SE") !== query.trim().toLocaleLowerCase("sv-SE"),
-    )
-    .slice(0, 2)
-    .map((suggestion) => ({
-      kind: "generic",
-      key: suggestion.id,
-      label: suggestion.label,
-      meta: suggestion.groupLabel,
-      searchValue: suggestion.searchValue,
-    }));
+  const genericOptions: PlaceSearchOption[] = genericSuggestions.slice(0, 2).map((suggestion) => ({
+    kind: "generic",
+    key: suggestion.id,
+    label: suggestion.label,
+    meta: `${suggestion.groupLabel} · Visa matställen`,
+    suggestion,
+  }));
   // Keep mobile suggestions concise; all results remain available in browse mode.
   const placeOptions: PlaceSearchOption[] = placeSuggestions
     .slice(0, (focused ? 3 : 5) - genericOptions.length)
@@ -1751,11 +1786,11 @@ function PlaceSearchCombobox({
 
   function select(option: PlaceSearchOption) {
     if (option.kind === "generic") {
-      // Choosing a cuisine/type refines the current search; it is not an exit
-      // from search mode. Keep the input and scrollable suggestions stable.
-      onQueryChange(option.label);
+      onSelectFilter(option.suggestion);
+      setOpen(false);
+      onFocusChange(false);
+      inputRef.current?.blur();
       setActiveIx(-1);
-      inputRef.current?.focus({ preventScroll: true });
       return;
     }
     if (option.kind === "hint") {
