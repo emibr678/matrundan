@@ -26,7 +26,7 @@ test.describe("v1.31 sökområdesgränser", () => {
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
     ).toBeVisible();
 
-    await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+    await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
     await dialog.getByRole("button", { name: "Karta" }).click();
     const map = dialog.getByRole("region", {
       name: "Karta över sökresultat och valda sökområden",
