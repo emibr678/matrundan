@@ -905,7 +905,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
   await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
   await expect(details.getByText("Näragatan 1")).toBeVisible();
-  await expect(details.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(0);
+  await expect(details.getByRole("button", { name: "Lägg till i gruppen", exact: true })).toHaveCount(0);
   await noOverflow(page);
 
   const fs = await import("node:fs/promises");
@@ -914,7 +914,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
 
   await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({ timeout: 15_000 });
   await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
-  await expect(details.getByRole("button", { name: "Lägg till", exact: true })).toBeVisible();
+  await expect(details.getByRole("button", { name: "Lägg till i gruppen", exact: true })).toBeVisible();
   await details.getByRole("button", { name: "Stäng" }).click();
 
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
