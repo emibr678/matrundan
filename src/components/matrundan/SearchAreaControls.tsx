@@ -1,5 +1,6 @@
 import * as React from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { GeoapifyLocationInput, type VerifiedLocationSelection } from "./GeoapifyLocationInput";
 import { SearchAreaPill } from "./SearchAreaPill";
@@ -16,7 +17,7 @@ import { SEARCH_RADIUS_OPTIONS, searchAreaMode } from "@/lib/matrundan/search-ar
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
-const SEARCH_PLACEHOLDER = "Lägg till område eller adress";
+const SEARCH_PLACEHOLDER = "Sök ort, område eller adress";
 
 interface SearchAreaControlsProps {
   heading: string;
@@ -162,9 +163,13 @@ export function SearchAreaControls({
   mobileEditorOpen = false,
 }: SearchAreaControlsProps) {
   const [areaQuery, setAreaQuery] = React.useState("");
+  const [addingArea, setAddingArea] = React.useState(false);
   const wasMobileEditorOpen = React.useRef(mobileEditorOpen);
   React.useEffect(() => {
-    if (wasMobileEditorOpen.current && !mobileEditorOpen) setAreaQuery("");
+    if (wasMobileEditorOpen.current && !mobileEditorOpen) {
+      setAreaQuery("");
+      setAddingArea(false);
+    }
     wasMobileEditorOpen.current = mobileEditorOpen;
   }, [mobileEditorOpen]);
   const selectedSavedAreas = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
@@ -175,7 +180,10 @@ export function SearchAreaControls({
   const pointCount = activeAreas.length - boundaryCount;
 
   React.useEffect(() => {
-    if (atLimit) setAreaQuery("");
+    if (atLimit) {
+      setAreaQuery("");
+      setAddingArea(false);
+    }
   }, [atLimit]);
 
   function addArea(area: SearchArea) {
@@ -196,6 +204,7 @@ export function SearchAreaControls({
       onTemporaryAreasChange([...temporaryAreas, area]);
     }
     setAreaQuery("");
+    if (mobileEditorOpen) setAddingArea(false);
   }
 
   function addVerifiedArea(value: VerifiedLocationSelection) {
@@ -243,28 +252,48 @@ export function SearchAreaControls({
           </span>
         </div>
       ) : (
-        <div className="space-y-1.5">
-          <Label htmlFor="search-area-query" className="sr-only">
-            {addAreaActionLabel}
-          </Label>
-          <SearchAreaField
-            isLive={isLive}
-            query={areaQuery}
-            placeholder={SEARCH_PLACEHOLDER}
-            disabled={false}
-            fallbackCity={fallbackCity}
-            selectedAreaPlaceIds={selectedAreaPlaceIds}
-            onQueryChange={setAreaQuery}
-            onSelect={addVerifiedArea}
-          />
+        <div className="space-y-2">
+          {mobileEditorOpen && !addingArea ? (
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-11 w-full justify-start gap-2 lg:hidden"
+              onClick={() => setAddingArea(true)}
+              aria-controls="search-area-query"
+              aria-expanded={false}
+            >
+              <Plus className="h-4 w-4" />
+              Lägg till sökområde
+            </Button>
+          ) : null}
+          <div className={mobileEditorOpen && !addingArea ? "hidden lg:block" : ""}>
+            <Label htmlFor="search-area-query" className="sr-only">
+              {addAreaActionLabel}
+            </Label>
+            <SearchAreaField
+              isLive={isLive}
+              query={areaQuery}
+              placeholder={SEARCH_PLACEHOLDER}
+              disabled={false}
+              fallbackCity={fallbackCity}
+              selectedAreaPlaceIds={selectedAreaPlaceIds}
+              onQueryChange={setAreaQuery}
+              onSelect={addVerifiedArea}
+            />
+          </div>
         </div>
       )}
 
       {pointCount > 0 ? (
-        <div className="flex min-w-0 items-center justify-between gap-3">
-          <Label htmlFor="place-radius" className="min-w-0 text-sm text-muted-foreground">
-            Sökradie
-          </Label>
+        <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+          <div className="min-w-0 space-y-0.5">
+            <Label htmlFor="place-radius" className="block text-sm font-medium">
+              Sökradie
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              {boundaryCount > 0 ? "Runt valda punkter" : "Runt varje valt område"}
+            </p>
+          </div>
           <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
         </div>
       ) : boundaryCount > 0 ? (
