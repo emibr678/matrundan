@@ -1218,6 +1218,10 @@ export function PlaceDiscovery({
           lng: hint.lng,
         },
       });
+      if (hiddenKeys.has(hiddenPlaceSuggestionKey(selected))) {
+        toast.info("Stället är dolt för gruppen.");
+        return;
+      }
       activateSearchSuggestion(selected);
     } catch (caught) {
       toast.error(providerMessage(caught), {
