@@ -48,6 +48,14 @@ jobs:
         run: bunx playwright test tests/e2e/mobile-search-hygiene.spec.ts --project=desktop-chromium --grep-invert="mobil sökträff väljs med touch" --retries=0 --max-failures=1
       - name: Visual smoke 360 px and desktop
         run: bun run test:visual-smoke -- '/matstallen?demo=1' --desktop
+      - name: Upload demo visual review screenshots
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: search-visual-review
+          path: visual-review/
+          if-no-files-found: warn
+          retention-days: 7
       # Read-only code-format proposal. Runner never pushes to GitHub.
       - name: Emit exact proposed formatting patch
         if: always()
