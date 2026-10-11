@@ -277,6 +277,31 @@ async function autocompleteToDetails(text, expectedName) {
       record.autocompleteOsmAvailable = Boolean(from);
       record.detailsOsmAvailable = Boolean(to);
       record.osmIdentity = from && to ? (from.id === to.id && from.type === to.type ? "same" : "different") : "unknown";
+      // A selected autocomplete candidate must also resolve to a canonical,
+      // externally verifiable venue identity. Never infer identity from name alone.
+      if (primary && ["Ox Lan", "Pelikan", "Falloumi", "Pharmarium"].includes(text)) {
+        const venueUrl = makeUrl("places", expectedName, 25, { lat: primary.lat, lng: primary.lon });
+        const nearVenue = await providerFetch(venueUrl);
+        const verified = (nearVenue.features || [])
+          .map((feature) => feature?.properties)
+          .filter((properties) => Boolean(
+            properties && normalize(properties.name).trim() === normalize(expectedName).trim() &&
+            distanceKm(primary, properties) <= 0.2 && hasFoodCategory(properties),
+          ));
+        const returnedSource = openStreetMapSource(primary);
+        const exactlyMatchedSource = returnedSource
+          ? verified.find((properties) => {
+              const source = openStreetMapSource(properties);
+              return source && source.id === returnedSource.id && source.type === returnedSource.type;
+            })
+          : null;
+        record.venueBiasedPlacesRaw = (nearVenue.features || []).length;
+        record.venueBiasedNameAndGeoMatches = verified.length;
+        record.venueBiasedExactOsmMatches = returnedSource ? Number(Boolean(exactlyMatchedSource)) : null;
+        record.venueBiasedIdMatches = Number(verified.some((properties) => properties.place_id === primary.place_id));
+        record.canonicalProof = exactlyMatchedSource ? "same-osm-across-apis" :
+          verified.some((properties) => properties.place_id === primary.place_id) ? "same-provider-id" : "not-proven";
+      }
       record.resultCategory = !primary ? "no-details" :
         !record.detailsCategoryAccepted ? "not-food-place" :
         !record.matchingName ? "different-name" :
