@@ -13,7 +13,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { transientSearchAreaId } from "@/lib/matrundan/add-place-utils";
-import { SEARCH_RADIUS_OPTIONS, searchAreaMode } from "@/lib/matrundan/search-areas";
+import {
+  SEARCH_RADIUS_OPTIONS,
+  searchAreaMode,
+  shortSearchAreaLabel,
+} from "@/lib/matrundan/search-areas";
 import type { SearchArea, SearchRadiusKm } from "@/lib/matrundan/types";
 
 const MAX_SEARCH_CENTERS = 5;
@@ -176,8 +180,10 @@ export function SearchAreaControls({
   const activeAreas = [...selectedSavedAreas, ...temporaryAreas];
   const atLimit = activeAreas.length >= MAX_SEARCH_CENTERS;
   const selectedAreaPlaceIds = activeAreas.map((area) => area.placeId).filter(Boolean);
-  const boundaryCount = activeAreas.filter((area) => searchAreaMode(area) === "boundary").length;
-  const pointCount = activeAreas.length - boundaryCount;
+  const boundaryAreas = activeAreas.filter((area) => searchAreaMode(area) === "boundary");
+  const pointAreas = activeAreas.filter((area) => searchAreaMode(area) === "point");
+  const boundaryCount = boundaryAreas.length;
+  const pointCount = pointAreas.length;
 
   React.useEffect(() => {
     if (atLimit) {
@@ -265,8 +271,8 @@ export function SearchAreaControls({
           {mobileEditorOpen && !addingArea ? (
             <Button
               type="button"
-              variant="outline"
-              className="min-h-11 w-full justify-start gap-2 lg:hidden"
+              variant="ghost"
+              className="min-h-11 w-full justify-start gap-2 rounded-lg px-2 text-foreground lg:hidden"
               onClick={() => setAddingArea(true)}
               aria-controls="search-area-query"
               aria-expanded={false}
@@ -297,20 +303,28 @@ export function SearchAreaControls({
         <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
           <div className="min-w-0 space-y-0.5">
             <Label htmlFor="place-radius" className="block text-sm font-medium">
-              Sökradie
+              Avstånd
             </Label>
             <p className="text-xs text-muted-foreground">
-              {boundaryCount > 0 ? "Runt valda punkter" : "Runt varje valt område"}
+              {pointCount === 1
+                ? `Runt ${shortSearchAreaLabel(pointAreas[0].label)}`
+                : "Runt valda platser"}
             </p>
           </div>
           <InlineSearchRadius radiusKm={radiusKm} onRadiusChange={onRadiusChange} />
         </div>
       ) : boundaryCount > 0 ? (
-        <p className="text-xs text-muted-foreground">Söker inom de valda områdenas gränser.</p>
+        <p className="text-xs text-muted-foreground">
+          {boundaryCount === 1
+            ? `Vi söker i hela ${shortSearchAreaLabel(boundaryAreas[0].label)}.`
+            : "Vi söker i hela de valda områdena."}
+        </p>
       ) : null}
       {boundaryCount > 0 && pointCount > 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
-          Avståndet gäller bara platser utan områdesgräns.
+          {boundaryCount === 1
+            ? `I ${shortSearchAreaLabel(boundaryAreas[0].label)} söker vi i hela området.`
+            : "Vi söker i hela de andra valda områdena."}
         </p>
       ) : null}
     </section>

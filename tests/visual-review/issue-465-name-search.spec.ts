@@ -9,6 +9,7 @@ test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ pa
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
   await expect(input).toBeVisible();
+  await expect(dialog).toHaveCSS("outline-style", "none");
 
   const dir = path.join("visual-review", testInfo.project.name);
   await mkdir(dir, { recursive: true });
@@ -37,6 +38,7 @@ test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ pa
   if (viewport && viewport.width < 1024) {
     await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
     await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
+    await expect(dialog.getByText("Avstånd", { exact: true })).toBeVisible();
     await expect(dialog.getByRole("combobox", { name: "Sök matställen" })).toBeVisible();
     await page.screenshot({
       path: path.join(dir, "issue-465-area-filter-expanded.png"),

@@ -564,7 +564,7 @@ export function AddPlaceDialogContent({
           data-search-mode={mobileMode === "search" && view === "search" ? "expanded" : "normal"}
           data-search-shell={mobileMode === "search" && view === "search" ? "focused" : "browse"}
           className={[
-            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-5xl sm:rounded-lg",
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none sm:max-w-5xl sm:rounded-lg",
             mobileMode !== "browse" && view === "search"
               ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
               : "",
