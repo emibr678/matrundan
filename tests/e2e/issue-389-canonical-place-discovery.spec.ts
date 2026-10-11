@@ -58,6 +58,7 @@ async function setup(
     active?: boolean;
     finalProvider?: "hit" | "none" | "error";
     internalManual?: boolean;
+    hintFixtures?: boolean;
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -290,6 +291,31 @@ async function setup(
         budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
         observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
+    if (options.hintFixtures && name.startsWith("searchPlaceNameHints"))
+      reply = [
+        {
+          placeId: "autocomplete-near",
+          name: "Ox Lan i närheten",
+          address: "Näragatan 1",
+          city: "Teststad",
+          lat: 59,
+          lng: 18,
+          nearestAreaLabel: "Teststad",
+          distanceKm: 0.3,
+          outsideArea: false,
+        },
+        {
+          placeId: "autocomplete-far",
+          name: "Ox Lan längre bort",
+          address: "Bortagatan 9",
+          city: "Knivsta",
+          lat: 59.7,
+          lng: 17.8,
+          nearestAreaLabel: "Teststad",
+          distanceKm: 80,
+          outsideArea: true,
+        },
+      ];
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
         await route.abort("failed");
@@ -739,4 +765,31 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
   await add.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(add).toBeHidden();
   expect(writes).toEqual([]);
+});
+
+
+test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", async ({ page }, info) => {
+  await setup(page, { hintFixtures: true });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+
+  const list = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  const nearby = list.getByRole("group", { name: "Matställen", exact: true });
+  const outside = list.getByRole("group", { name: "Utanför sökradien", exact: true });
+  await expect(nearby.getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(outside.getByText("Ox Lan längre bort")).toBeVisible();
+  await expect(outside.getByText("Bortagatan 9 · Knivsta")).toBeVisible();
+  await expect(list.getByRole("group", { name: "Förslag på matställen" })).toHaveCount(0);
+  await expect(list.getByText("utanför vald radie")).toHaveCount(0);
+  await noOverflow(page);
+
+  const { mkdir } = await import("node:fs/promises");
+  await mkdir("visual-review", { recursive: true });
+  await page.screenshot({
+    path: \`visual-review/issue-465-area-groups-\${info.project.name}.png\`,
+    fullPage: false,
+  });
 });
