@@ -10,7 +10,9 @@ import { z } from "zod";
 
 const secret = process.env.GEOAPIFY_DIAGNOSTIC_KEY?.trim();
 if (!secret) throw new Error("Staging Geoapify key unavailable: no requests made.");
-const maxCredits = Math.min(500, Math.max(1, Number(process.env.MAX_DIAGNOSTIC_CREDITS || 250)));
+const requestedCredits = Number(process.env.MAX_DIAGNOSTIC_CREDITS || 250);
+if (!Number.isInteger(requestedCredits) || requestedCredits < 1) throw new Error("Invalid positive integer diagnostic budget.");
+const maxCredits = Math.min(500, requestedCredits);
 const maxCalls = 120;
 const center = { id: "stockholm", label: "Stockholm", lat: 59.3251172, lng: 18.0710935, searchMode: "point" };
 const sample = [
@@ -91,8 +93,8 @@ function makeUrl(kind, text, radiusKm, bias = center) {
     "https://api.geoapify.com/v1/geocode/autocomplete",
   );
   if (kind === "places") {
-    url.searchParams.set("categories", categories);
-    url.searchParams.set("name", text);
+    url.searchParams.set("categories", text === "restaurang" ? "catering.restaurant" : categories);
+    if (text !== "restaurang") url.searchParams.set("name", text);
     url.searchParams.set("filter", "circle:" + center.lng + "," + center.lat + "," + radiusKm * 1000);
   } else {
     url.searchParams.set("text", text);
