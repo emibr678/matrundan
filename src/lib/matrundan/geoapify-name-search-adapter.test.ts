@@ -1380,3 +1380,97 @@ describe("autocomplete under skrivning och verifiering först vid val (#465)", (
     expect(a.calls.every((url) => url.pathname === "/v2/place-details")).toBe(true);
   });
 });
+
+
+describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", () => {
+  const ctx: FixtureContext = {
+    supabase: {
+      rpc: async (name) => {
+        if (name === "get_place_discovery_context_v1")
+          return { data: { canConfirm: false }, error: null };
+        throw new Error("Unexpected private RPC: " + name);
+      },
+    },
+  };
+  function hint(id: string, name: string, lat: number, lon: number) {
+    return place(id, name, {
+      result_type: "amenity",
+      category: "catering.restaurant",
+      lat,
+      lon,
+    });
+  }
+
+  test("Geoapify bias används utan cirkel-/place-filter eller godtyckligt avståndstak", async () => {
+    const a = adapter(() => ({
+      features: [
+        hint("far", "Restaurang i Uppsala", 60.1, 18.07),
+        hint("near", "Restaurang i Stockholm", stockholm.lat + 0.002, stockholm.lng),
+      ],
+    }), ctx);
+    const result = await a.hints({ text: "Restaurang sökning", centers: [area], radiusKm: 1 });
+    expect(result.map((h) => h.placeId)).toEqual(["near", "far"]);
+    expect(result.map((h) => h.outsideArea)).toEqual([false, true]);
+    expect(result[1].distanceKm).toBeGreaterThan(50);
+    expect(a.calls).toHaveLength(1);
+    expect(a.calls[0].searchParams.get("bias")).toBe(centerBias);
+    expect(a.calls[0].searchParams.has("filter")).toBe(false);
+    expect(a.calls[0].pathname).toBe("/v1/geocode/autocomplete");
+  });
+
+  test("Geoapifys rangordning behålls inom gruppen även om distansen skiljer sig", async () => {
+    const a = adapter(() => ({
+      features: [
+        hint("rank-one", "Restaurang längre bort", stockholm.lat + 0.006, stockholm.lng),
+        hint("rank-two", "Restaurang närmare", stockholm.lat + 0.001, stockholm.lng),
+      ],
+    }), ctx);
+    const result = await a.hints({ text: "Restaurang", centers: [area], radiusKm: 1 });
+    expect(result.map((h) => h.placeId)).toEqual(["rank-one", "rank-two"]);
+    expect(result.every((h) => !h.outsideArea)).toBe(true);
+  });
+
+  test("samma kandidat kan ligga utanför ett valt punktområde men inom ett annat", async () => {
+    const near = { ...area, id: "near-ox", label: "Sveavägen", ...oxLan };
+    const a = adapter(() => ({
+      features: [hint("same-id", "Ox Lan", oxLan.lat, oxLan.lng)],
+    }), ctx);
+    const results = await a.hints({ text: "Ox Lan", centers: [area, near], radiusKm: 1 });
+    expect(results).toHaveLength(1);
+    expect(results[0].outsideArea).toBe(false);
+    expect(results[0].nearestAreaLabel).toBe("Sveavägen");
+    expect(results[0].distanceKm).toBe(0);
+    expect(a.calls).toHaveLength(2);
+    expect(a.calls.map((url) => url.searchParams.get("bias"))).toEqual([centerBias, oxBias]);
+  });
+
+  test("boundary används endast för gruppering, inte för att dölja förslag utanför den", async () => {
+    const boundary = {
+      ...area,
+      id: "boundary",
+      label: "Stockholms kommun",
+      searchMode: "boundary" as const,
+      placeId: "verified-boundary",
+    };
+    const polygon = {
+      type: "Polygon",
+      coordinates: [[[18.04, 59.33], [18.08, 59.33], [18.08, 59.36], [18.04, 59.36], [18.04, 59.33]]],
+    };
+    const a = adapter((url) => {
+      if (url.pathname === "/v2/place-details")
+        return { features: [{ geometry: polygon }] };
+      return { features: [
+        hint("inside", "Ox Lan", oxLan.lat, oxLan.lng),
+        hint("outside", "Restaurang längre bort", 60.1, 18.07),
+      ] };
+    }, ctx);
+    const hits = await a.hints({ text: "Ox Lan", centers: [boundary], radiusKm: 1 });
+    expect(hits.map((h) => h.placeId)).toEqual(["inside", "outside"]);
+    expect(hits.map((h) => h.outsideArea)).toEqual([false, true]);
+    expect(hits[0].distanceKm).toBeUndefined();
+    expect(a.calls.map((url) => url.pathname)).toEqual([
+      "/v2/place-details", "/v1/geocode/autocomplete",
+    ]);
+    expect(a.calls[1].searchParams.has("filter")).toBe(false);
+  });
+});
