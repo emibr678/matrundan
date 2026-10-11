@@ -1697,11 +1697,16 @@ function PlaceSearchCombobox({
   const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
   const nearbyOptions = [
     ...hintOptions.filter((option) => option.kind === "hint" && !option.hint.outsideArea),
-    ...externalOptions,
+    ...externalOptions.filter(
+      (option) => option.kind === "place" && option.suggestion.searchAreaGroup !== "name-outside",
+    ),
   ];
-  const outsideOptions = hintOptions.filter(
-    (option) => option.kind === "hint" && option.hint.outsideArea,
-  );
+  const outsideOptions = [
+    ...hintOptions.filter((option) => option.kind === "hint" && option.hint.outsideArea),
+    ...externalOptions.filter(
+      (option) => option.kind === "place" && option.suggestion.searchAreaGroup === "name-outside",
+    ),
+  ];
   const options = [...genericOptions, ...internalOptions, ...nearbyOptions, ...outsideOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = (open || focused) && hasQuery;
