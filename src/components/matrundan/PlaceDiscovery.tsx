@@ -333,6 +333,7 @@ export function PlaceDiscovery({
           data: {
             groupId,
             text: query.trim(),
+            intentMode: "literal",
             centers,
             radiusKm,
             searchPhase: "hints",
