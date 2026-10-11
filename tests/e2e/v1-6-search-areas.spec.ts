@@ -68,7 +68,8 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
 
   await areaInput.fill("Majorna, Göteborg");
   await areaInput.press("Enter");
-  await expect(areaInput).toHaveValue("");
+  await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Majorna");
+  await expect(areaInput).toBeHidden();
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Majorna");
   await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   await areaInput.fill("Södermalm, Stockholm");
