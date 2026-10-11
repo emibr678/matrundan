@@ -27,11 +27,12 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await expect(page.getByRole("button", { name: /annan plats/i })).toHaveCount(0);
   await expect(page.getByRole("button", { name: /använd platsen/i })).toHaveCount(0);
 
+  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   const areaInput = dialog.getByRole("combobox", {
     name: "Lägg till område eller adress",
     exact: true,
   });
-  await expect(areaInput).toHaveAttribute("placeholder", "Lägg till område eller adress");
+  await expect(areaInput).toHaveAttribute("placeholder", "Sök ort, område eller adress");
 
   await areaInput.fill("Stavsnäs");
   const stavnas = page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" });
@@ -42,6 +43,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("ArrowDown");
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Stavsnäs");
+  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   await areaInput.fill("Stavsnäs");
   await expect(page.getByRole("button", { name: "Stavsnäs. Ort · Värmdö kommun" })).toHaveCount(0);
   await page.getByRole("button", { name: /Ta bort Stavsnäs.*från sökningen/i }).click();
@@ -68,7 +70,7 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   await areaInput.press("Enter");
   await expect(areaInput).toHaveValue("");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Majorna");
-
+  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   await areaInput.fill("Södermalm, Stockholm");
   await areaInput.press("Enter");
   await expect(page.getByRole("list", { name: "Valda sökområden" })).toContainText("Södermalm");
@@ -92,11 +94,12 @@ test("flera sökområden använder kompakta chips utan horisontell overflow på 
   ).toBeGreaterThanOrEqual(32);
   await removeTarget.click();
   await expect(searchStatus).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
   await expect(
     dialog.getByRole("combobox", { name: "Lägg till område eller adress", exact: true }),
-  ).toHaveAttribute("placeholder", "Lägg till område eller adress");
+  ).toHaveAttribute("placeholder", "Sök ort, område eller adress");
 
-  await dialog.getByRole("button", { name: "Klar", exact: true }).click();
+  await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
   const mapToggle = page.getByRole("button", { name: "Karta", exact: true });
   await mapToggle.click();
   const map = page.getByRole("region", {
