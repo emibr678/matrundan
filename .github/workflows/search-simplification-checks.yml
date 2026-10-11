@@ -1,0 +1,47 @@
+name: Search simplification checks (#465)
+
+on:
+  push:
+    branches: [feature/465-robust-place-search]
+    paths:
+      - .github/workflows/search-simplification-checks.yml
+      - src/lib/matrundan/geoapify.functions.ts
+      - src/lib/matrundan/geoapify-name-search-adapter.test.ts
+      - src/components/matrundan/PlaceDiscovery.tsx
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: search-simplification-checks
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out exact revision
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up pinned Bun
+        uses: ./.github/actions/setup-bun
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Focused server integration-contract tests
+        run: bun test src/lib/matrundan/geoapify-name-search-adapter.test.ts
+      - name: Typecheck application
+        run: bun run typecheck
+      - name: Unit and e2e typechecks
+        run: |
+          bun run typecheck:unit
+          bun run typecheck:e2e
+      - name: Formatting of changed source
+        run: bunx prettier --check src/lib/matrundan/geoapify.functions.ts src/lib/matrundan/geoapify-name-search-adapter.test.ts src/components/matrundan/PlaceDiscovery.tsx
+      - name: Build application
+        run: bun run build
+      - name: Report checked commit
+        if: always()
+        run: echo "Search simplification checks for $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
