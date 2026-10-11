@@ -1295,11 +1295,20 @@ export function PlaceDiscovery({
           addAreaActionLabel="Lägg till område eller adress"
           savedAreas={savedAreas}
           selectedAreaIds={selectedAreaIds}
-          onSelectedAreaIdsChange={setSelectedAreaIds}
+          onSelectedAreaIdsChange={(ids) => {
+            setSelectedAreaIds(ids);
+            setIncludeDistantNameHints(false);
+          }}
           temporaryAreas={temporaryAreas}
-          onTemporaryAreasChange={setTemporaryAreas}
+          onTemporaryAreasChange={(areas) => {
+            setTemporaryAreas(areas);
+            setIncludeDistantNameHints(false);
+          }}
           radiusKm={radiusKm}
-          onRadiusChange={setRadiusKm}
+          onRadiusChange={(radius) => {
+            setRadiusKm(radius);
+            setIncludeDistantNameHints(false);
+          }}
           isLive={isLive}
           fallbackCity={state.group.city}
           mobileEditorOpen={editingMobileAreas}
