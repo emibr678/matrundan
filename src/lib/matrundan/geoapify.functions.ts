@@ -24,7 +24,9 @@ import {
 import {
   genericPlaceSearchSuggestions,
   matchesPlaceSearchIntent,
+  resolveDiscoverySearchIntent,
   resolvePlaceSearchIntent,
+  type SelectedPlaceSearchFilter,
 } from "./place-search-intent";
 import { createGeoapifyNameSearchAnchorResolver } from "./geoapify-name-search.server";
 import { distanceKm } from "./manual-place-source-linking";
@@ -248,6 +250,8 @@ async function resolveSearchAreaBoundary(input: {
 async function searchPlacesAtArea(
   input: SearchAreaInput & {
     text?: string;
+    intentMode?: "auto" | "literal";
+    selectedFilter?: SelectedPlaceSearchFilter;
     limit?: number;
     offset?: number;
     /** The original #464 name recovery is used only for the primary search. */
@@ -257,7 +261,7 @@ async function searchPlacesAtArea(
   },
 ): Promise<PlaceSearchPage> {
   const radiusKm = input.radiusKm ?? WIDE_AREA_RADIUS_KM;
-  const intent = resolvePlaceSearchIntent(input.text);
+  const intent = resolveDiscoverySearchIntent(input.text, input.intentMode, input.selectedFilter);
   const requestedLimit = Math.min(input.limit ?? DISCOVERY_PAGE_SIZE, 50);
   const providerAlreadyAppliedIntent = hasStructuredGeoapifyMapping(intent);
   const nameQuery = geoapifyNameQueryForPlaceSearchIntent(intent);
@@ -444,6 +448,10 @@ export const geoapifySearchPlaces = createServerFn({ method: "POST" })
 
 const multiAreaInputSchema = z.object({
   text: z.string().trim().max(120).optional(),
+  intentMode: z.enum(["auto", "literal"]).optional(),
+  selectedFilter: z
+    .object({ kind: z.enum(["food-tag", "category"]), id: z.string().min(1).max(120) })
+    .optional(),
   centers: z
     .array(
       z.object({
@@ -470,7 +478,7 @@ const multiAreaInputSchema = z.object({
 async function searchProviderAreas(
   data: z.infer<typeof multiAreaInputSchema>,
 ): Promise<MultiAreaSearchResponse> {
-  const nameIntent = resolvePlaceSearchIntent(data.text);
+  const nameIntent = resolveDiscoverySearchIntent(data.text, data.intentMode, data.selectedFilter);
   const expandedRadius =
     data.searchPhase === "primary" &&
     nameIntent.kind === "text" &&
@@ -487,6 +495,8 @@ async function searchProviderAreas(
       center,
       page: await searchPlacesAtArea({
         text: data.text,
+        intentMode: data.intentMode,
+        selectedFilter: data.selectedFilter,
         lat: center.lat,
         lng: center.lng,
         searchMode: center.searchMode ?? "point",
@@ -647,7 +657,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
       });
       recordSearchPhaseMs("access", performance.now() - accessStarted);
       if (access.error) throw new Error("Gruppen kunde inte verifieras.");
-      const intent = resolvePlaceSearchIntent(data.text ?? "");
+      const intent = resolveDiscoverySearchIntent(data.text, data.intentMode, data.selectedFilter);
       const explicit = (data.text?.trim().length ?? 0) >= 2;
       const internalPromise = (async () => {
         if (!explicit || (data.offset ?? 0) > 0)
@@ -1167,8 +1177,8 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
       _group_id: data.groupId,
     });
     if (access.error) throw new Error("Gruppen kunde inte verifieras.");
-    if (resolvePlaceSearchIntent(data.text).kind !== "text") return [];
-
+    // The name itself may equal a cuisine label (Pizza, Italienskt etc.).
+    // Only an explicit filter selection switches the search mode.
     // Bound all cache-miss provider requests across every selected area.
     return (
       await withPlaceSearchBudget({ requests: 25, credits: 40, timeoutMs: 9_000 }, async () => {
