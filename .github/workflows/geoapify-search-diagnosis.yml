@@ -6,6 +6,7 @@ on:
     paths:
       - .github/workflows/geoapify-search-diagnosis.yml
       - scripts/geoapify-search-diagnosis.mjs
+      - scripts/geoapify-autocomplete-geofilter-diagnosis.mjs
   workflow_dispatch:
     inputs:
       max_credits:
@@ -13,6 +14,12 @@ on:
         required: false
         default: '250'
         type: string
+      diagnostic_mode:
+        description: Geo filter comparison (default) or original full adapter diagnosis
+        required: false
+        default: 'geofilter'
+        type: choice
+        options: [geofilter, full]
 
 permissions:
   contents: read
@@ -32,6 +39,7 @@ jobs:
       GEOAPIFY_DIAGNOSTIC_KEY: ${{ secrets.STAGING_GEOAPIFY_API_KEY || vars.STAGING_GEOAPIFY_API_KEY }}
       MAX_DIAGNOSTIC_CREDITS: ${{ inputs.max_credits || '250' }}
       DIAGNOSTIC_OUTPUT_DIR: search-diagnostic
+      GEO_DIAGNOSTIC_MODE: ${{ inputs.diagnostic_mode || 'geofilter' }}
     steps:
       - name: Checkout exact branch
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
@@ -44,8 +52,13 @@ jobs:
       - name: Install frozen dependencies
         run: bun install --frozen-lockfile
 
-      - name: Live provider and real search adapter diagnostics
-        run: bun scripts/geoapify-search-diagnosis.mjs
+      - name: Read-only provider geographic comparison or full adapter diagnosis
+        run: |
+          if [[ "$GEO_DIAGNOSTIC_MODE" == "full" ]]; then
+            bun scripts/geoapify-search-diagnosis.mjs
+          else
+            bun scripts/geoapify-autocomplete-geofilter-diagnosis.mjs
+          fi
 
       - name: Include summary in run
         if: always()
