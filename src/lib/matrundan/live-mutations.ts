@@ -321,9 +321,7 @@ export async function liveCreateOrLinkProviderPlace(
   },
 ): Promise<string> {
   const raw =
-    input.raw && typeof input.raw === "object"
-      ? (input.raw as Record<string, unknown>)
-      : null;
+    input.raw && typeof input.raw === "object" ? (input.raw as Record<string, unknown>) : null;
   const expectedSource =
     ["node", "way", "relation"].includes(String(raw?.osmType)) &&
     typeof raw?.osmId === "string" &&
