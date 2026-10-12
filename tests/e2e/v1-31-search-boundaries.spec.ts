@@ -63,7 +63,9 @@ test.describe("v1.31 sökområdesgränser", () => {
     await removeAddress.click();
 
     await expect(dialog.getByText("Vi söker i hela Värmdö kommun.")).toBeVisible();
-    await expect(dialog.getByRole("list", { name: "Valda sökområden" }).locator("svg.lucide-map-pin")).toHaveCount(0);
+    await expect(
+      dialog.getByRole("list", { name: "Valda sökområden" }).locator("svg.lucide-map-pin"),
+    ).toHaveCount(0);
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
     ).toHaveCount(0);
