@@ -268,7 +268,8 @@ export function ShareVisitDialog({
                     const active = selected.includes(target.groupId);
                     const group = userGroups.find((item) => item.id === target.groupId);
                     const description =
-                      group?.description?.trim() || group?.memberPreviewNames?.slice(0, 2).join(", ");
+                      group?.description?.trim() ||
+                      group?.memberPreviewNames?.slice(0, 2).join(", ");
                     return (
                       <button
                         type="button"

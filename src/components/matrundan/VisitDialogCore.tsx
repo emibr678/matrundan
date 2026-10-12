@@ -939,7 +939,9 @@ export function VisitDialog({
         <AlertDialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-6">
             <AlertDialogHeader className="text-left">
-              <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
+              <AlertDialogTitle>
+                Spara besöket i {shareGroupIds.length + 1} grupper?
+              </AlertDialogTitle>
               <AlertDialogDescription asChild>
                 <div className="space-y-3">
                   <p>Besöket sparas i:</p>
