@@ -908,6 +908,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
     providerOnly: true,
     hintResolution: "slow",
   });
+  await page.emulateMedia({ reducedMotion: "reduce" });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
@@ -925,6 +926,10 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible({ timeout: 1000 });
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await expect(details).toHaveCSS("outline-style", "none");
+  await expect(details).toHaveCSS("top", "12px");
+  const loadingPosition = await details.boundingBox();
+  expect(loadingPosition).not.toBeNull();
   await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
   await expect(details.getByText("Näragatan 1")).toBeVisible();
   await expect(
@@ -940,6 +945,11 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
     timeout: 15_000,
   });
   await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
+  await expect(details).toHaveCSS("outline-style", "none");
+  await expect(details).toHaveCSS("top", "12px");
+  const resolvedPosition = await details.boundingBox();
+  expect(resolvedPosition).not.toBeNull();
+  expect(Math.abs(resolvedPosition!.y - loadingPosition!.y)).toBeLessThanOrEqual(2);
   await expect(
     details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
   ).toBeVisible();

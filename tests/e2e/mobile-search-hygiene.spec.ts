@@ -421,9 +421,12 @@ test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({
   await expect(input).toHaveValue("Pelikan");
 
   await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
-  await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
+  const addAreaButton = dialog.getByRole("button", { name: "Lägg till sökområde" });
+  // One real touch must activate the action, not just move focus to the button.
+  await addAreaButton.tap();
   const areaInput = dialog.getByRole("combobox", { name: "Lägg till område eller adress" });
   await expect(areaInput).toBeFocused();
+  await expect(addAreaButton).toHaveCount(0);
   await areaInput.fill("Enskede");
   await page.setViewportSize({ width: 360, height: 420 });
   await expectInsideViewport(page, areaInput, "Områdessökfält med tangentbord");

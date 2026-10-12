@@ -272,7 +272,8 @@ export function SearchAreaControls({
             <Button
               type="button"
               variant="ghost"
-              className="min-h-11 w-full justify-start gap-2 rounded-lg px-2 text-foreground lg:hidden"
+              className="min-h-11 w-full touch-manipulation justify-start gap-2 rounded-lg px-2 text-foreground hover:bg-transparent active:bg-accent lg:hidden lg:hover:bg-accent"
+              onMouseDown={(event) => event.preventDefault()}
               onClick={() => setAddingArea(true)}
               aria-controls="search-area-query"
               aria-expanded={false}

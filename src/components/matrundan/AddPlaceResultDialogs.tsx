@@ -442,7 +442,7 @@ export function AddPlaceResultDialogs({
         {pendingNameHint && !pending ? (
           <DialogContent
             data-testid="pending-name-hint-dialog"
-            className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg"
+            className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
           >
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
@@ -493,7 +493,7 @@ export function AddPlaceResultDialogs({
             </DialogFooter>
           </DialogContent>
         ) : pending && reportablePending ? (
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg">
+          <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">
                 {review
