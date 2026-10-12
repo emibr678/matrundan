@@ -138,18 +138,20 @@ function adapter(
     return module.exports;
   }
   const functions = load(resolve(import.meta.dir, "geoapify.functions.ts"));
+  const hintsResponse = (
+    input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean },
+  ) =>
+    (
+      functions.searchPlaceNameHints as (args: {
+        data: typeof input & { groupId: string };
+      }) => Promise<import("./geoapify.functions").PlaceNameHintsResponse>
+    )({
+      data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
+    });
   return {
     calls,
-    hints: (
-      input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean },
-    ) =>
-      (
-        functions.searchPlaceNameHints as (args: {
-          data: typeof input & { groupId: string };
-        }) => Promise<import("./geoapify.functions").PlaceNameHint[]>
-      )({
-        data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
-      }),
+    hintsResponse,
+    hints: async (input: Parameters<typeof hintsResponse>[0]) => (await hintsResponse(input)).hints,
     resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
       (
         functions.resolvePlaceNameHint as (args: {
@@ -1462,6 +1464,31 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
       "circle:" + stockholm.lng + "," + stockholm.lat + ",100000",
       "circle:" + oxLan.lng + "," + oxLan.lat + ",100000",
     ]);
+  });
+
+  test("ett trasigt sökområde rapporteras utan att fungerande namnförslag tappas", async () => {
+    const second = { ...area, id: "nacka", label: "Nacka", lat: 59.31, lng: 18.16 };
+    const a = adapter((url) => {
+      if (url.searchParams.get("bias") === `proximity:${second.lng},${second.lat}`) {
+        throw new Error("Geoapify unavailable in one search area");
+      }
+      return { features: [hint("stockholm-hint", "Ox Lan", stockholm.lat, stockholm.lng)] };
+    }, ctx);
+    const response = await a.hintsResponse({
+      text: "Ox Lan",
+      centers: [area, second],
+      radiusKm: 1,
+    });
+    expect(response.hints.map((item) => item.placeId)).toEqual(["stockholm-hint"]);
+    expect(response.failedAreaLabels).toEqual(["Nacka"]);
+    expect(a.calls).toHaveLength(2);
+  });
+
+  test("alla felande sökområden ger ett riktigt providerfel, inte noll förslag", async () => {
+    const a = adapter(() => { throw new Error("Provider unavailable"); }, ctx);
+    await expect(
+      a.hintsResponse({ text: "Ox Lan", centers: [area], radiusKm: 1 }),
+    ).rejects.toThrow("kunde inte hämtas");
   });
 
   test("boundary används endast för gruppering, inte för att dölja förslag utanför den", async () => {
