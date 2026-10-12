@@ -78,7 +78,7 @@ function PendingPlaceSummary({
 
   return (
     <div className="overflow-hidden rounded-3xl border border-border/70 bg-card">
-      <div className="bg-gradient-to-br from-secondary to-secondary/40 p-4 sm:p-5">
+      <div className="bg-gradient-to-br from-secondary to-secondary/40 p-3 sm:p-4">
         <div
           data-testid="pending-place-identity-grid"
           className="grid min-h-16 grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-3 min-[390px]:min-h-20 min-[390px]:grid-cols-[5rem_minmax(0,1fr)] sm:gap-x-4"
@@ -105,7 +105,7 @@ function PendingPlaceSummary({
 
         <div
           data-testid="pending-place-practical-info"
-          className="relative mt-4 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
+          className="relative mt-3 overflow-hidden rounded-2xl border border-border/60 bg-background/35"
         >
           <div className="relative flex min-h-11 items-center px-3">
             <PlaceExternalLink
@@ -216,8 +216,40 @@ export function AddPlaceResultDialogs({
   const syncBatch = useVisitShareBatch();
   const [syncBusy, setSyncBusy] = React.useState(false);
   const isBusy = busy || hideBusy || submitting || syncBusy;
+  const pendingDialogRef = React.useRef<HTMLDivElement>(null);
   const allSyncVisitsSelected =
     syncVisits.length > 0 && syncVisits.every((visit) => syncVisitIds.includes(visit.visitId));
+
+  // Android keyboards can shrink the visual viewport without changing 100dvh.
+  // Give the scrollable content a real height so the actions stay in view.
+  React.useLayoutEffect(() => {
+    if (!pending) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      const dialog = pendingDialogRef.current;
+      if (!dialog) return;
+      if (window.innerWidth >= 1024) {
+        dialog.style.removeProperty("height");
+        dialog.style.removeProperty("max-height");
+        dialog.style.removeProperty("top");
+        return;
+      }
+      const visibleHeight = viewport?.height ?? window.innerHeight;
+      const height = Math.max(180, Math.min(visibleHeight * 0.9, visibleHeight - 24));
+      dialog.style.height = `${height}px`;
+      dialog.style.maxHeight = `${height}px`;
+      dialog.style.top = `${(viewport?.offsetTop ?? 0) + 12}px`;
+    };
+    update();
+    window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [pending]);
 
   React.useEffect(() => {
     if (!pending) return;
@@ -497,8 +529,12 @@ export function AddPlaceResultDialogs({
             </DialogFooter>
           </DialogContent>
         ) : pending && reportablePending ? (
-          <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg">
-            <DialogHeader>
+          <DialogContent
+            ref={pendingDialogRef}
+            data-testid="pending-place-dialog"
+            className="flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
+          >
+            <DialogHeader className="shrink-0 px-4 pb-3 pr-10 pt-5 sm:px-6 sm:pt-6">
               <DialogTitle className="font-display text-2xl">
                 {review
                   ? "Är det samma ställe?"
@@ -511,199 +547,216 @@ export function AddPlaceResultDialogs({
               </DialogDescription>
             </DialogHeader>
 
-            {pending.kind === "canonical" || simpleCandidate ? (
-              <div className="space-y-1 rounded-xl border p-4">
-                <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
-                  <MatrundanBrand variant="mark" size="xs" />
-                  Finns i Matrundan
-                </p>
-                <h2 className="break-words font-display text-2xl">
-                  {simpleCandidate?.name ?? pending.name}
-                </h2>
-                <p className="break-words text-sm text-muted-foreground">
-                  {formatPlaceAddressWithCity(
-                    simpleCandidate?.address ?? pending.address,
-                    simpleCandidate?.city ?? pending.city,
-                  )}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Stället som redan finns används. Gruppens egna uppgifter läggs till separat.
-                </p>
-              </div>
-            ) : review ? (
-              <div className="space-y-1 rounded-xl border bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">Sökträff</p>
-                <h2 className="break-words font-display text-xl">
-                  {(review.provider ?? pending).name}
-                </h2>
-                <p className="break-words text-sm text-muted-foreground">
-                  {formatPlaceAddressWithCity(
-                    (review.provider ?? pending).address,
-                    (review.provider ?? pending).city,
-                    ", ",
-                  )}
-                </p>
-              </div>
-            ) : (
-              <PendingPlaceSummary
-                pending={pending}
-                cuisines={cuisines}
-                reportablePending={reportablePending}
-              />
-            )}
-            {simpleCandidate && canConfirmIdentity ? (
-              <p className="text-xs text-muted-foreground">
-                När du lägger till stället bekräftas också att kartträffen hör hit.
-              </p>
-            ) : null}
-            {conflictMessage ? (
-              <p role="alert" className="rounded-xl border p-3 text-sm">
-                {conflictMessage}
-              </p>
-            ) : null}
-            {review ? (
-              <div className="space-y-3" aria-label="Granska möjlig matchning">
-                <p className="text-sm text-muted-foreground">
-                  Kartträffen kan redan finnas i Matrundan. Välj stället som stämmer. Besök och
-                  gruppuppgifter ligger kvar.
-                </p>
-                <div role="radiogroup" aria-label="Välj stället som stämmer" className="space-y-2">
-                  {(review.candidates ?? []).map((candidate) => (
-                    <label
-                      key={candidate.placeId}
-                      className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left focus-within:ring-2 focus-within:ring-ring ${selectedCandidateId === candidate.placeId ? "border-primary bg-primary/5" : "border-border"}`}
-                    >
-                      <input
-                        type="radio"
-                        name="reuse-place"
-                        value={candidate.placeId}
-                        checked={selectedCandidateId === candidate.placeId}
-                        aria-label={`Välj ${candidate.name}`}
-                        disabled={isBusy || !!conflictMessage}
-                        onChange={() => setSelectedCandidateId(candidate.placeId)}
-                        className="mt-1 h-4 w-4 shrink-0 accent-primary"
-                      />
-                      <div className="min-w-0 space-y-1">
-                        <p className="text-xs text-muted-foreground">Redan i Matrundan</p>
-                        <p className="break-words font-medium">{candidate.name}</p>
-                        <p className="break-words text-sm text-muted-foreground">
-                          {formatPlaceAddressWithCity(candidate.address, candidate.city)} ·{" "}
-                          {Math.round(candidate.distanceKm * 1000)} m bort
-                        </p>
-                      </div>
-                    </label>
-                  ))}
-                </div>
-                {review.candidates?.length ? (
-                  <>
-                    <Button
-                      className="min-h-11 w-full whitespace-normal"
-                      disabled={isBusy || !!conflictMessage || !chosenCandidate}
-                      onClick={() =>
-                        chosenCandidate &&
-                        void confirmAdd(
-                          chosenCandidate.canConfirmSource === true && canConfirmIdentity
-                            ? "link"
-                            : "auto",
-                          chosenCandidate,
-                          !(chosenCandidate.canConfirmSource === true && canConfirmIdentity),
-                        )
-                      }
-                    >
-                      Ja, använd stället som redan finns
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      {chosenCandidate?.canConfirmSource === true && canConfirmIdentity
-                        ? "När du fortsätter bekräftas också att kartträffen hör hit."
-                        : "Stället används utan att kartkällan kopplas."}
-                    </p>
-                  </>
-                ) : null}
-                {!review.candidates?.length ? (
-                  <p className="text-sm">
-                    Matchningen behöver kontrolleras igen. Gå tillbaka och sök på nytt.
+            <div
+              data-testid="pending-place-scroll"
+              className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pb-5 sm:px-6"
+            >
+              {pending.kind === "canonical" || simpleCandidate ? (
+                <div className="space-y-1 rounded-xl border p-4">
+                  <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <MatrundanBrand variant="mark" size="xs" />
+                    Finns i Matrundan
                   </p>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="min-h-11 w-full whitespace-normal"
-                    disabled={isBusy || !!conflictMessage}
-                    onClick={() => void confirmAdd("separate")}
+                  <h2 className="break-words font-display text-2xl">
+                    {simpleCandidate?.name ?? pending.name}
+                  </h2>
+                  <p className="break-words text-sm text-muted-foreground">
+                    {formatPlaceAddressWithCity(
+                      simpleCandidate?.address ?? pending.address,
+                      simpleCandidate?.city ?? pending.city,
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Stället som redan finns används. Gruppens egna uppgifter läggs till separat.
+                  </p>
+                </div>
+              ) : review ? (
+                <div className="space-y-1 rounded-xl border bg-secondary/40 p-3">
+                  <p className="text-xs text-muted-foreground">Sökträff</p>
+                  <h2 className="break-words font-display text-xl">
+                    {(review.provider ?? pending).name}
+                  </h2>
+                  <p className="break-words text-sm text-muted-foreground">
+                    {formatPlaceAddressWithCity(
+                      (review.provider ?? pending).address,
+                      (review.provider ?? pending).city,
+                      ", ",
+                    )}
+                  </p>
+                </div>
+              ) : (
+                <PendingPlaceSummary
+                  pending={pending}
+                  cuisines={cuisines}
+                  reportablePending={reportablePending}
+                />
+              )}
+              {simpleCandidate && canConfirmIdentity ? (
+                <p className="text-xs text-muted-foreground">
+                  När du lägger till stället bekräftas också att kartträffen hör hit.
+                </p>
+              ) : null}
+              {conflictMessage ? (
+                <p role="alert" className="rounded-xl border p-3 text-sm">
+                  {conflictMessage}
+                </p>
+              ) : null}
+              {review ? (
+                <div className="space-y-3" aria-label="Granska möjlig matchning">
+                  <p className="text-sm text-muted-foreground">
+                    Kartträffen kan redan finnas i Matrundan. Välj stället som stämmer. Besök och
+                    gruppuppgifter ligger kvar.
+                  </p>
+                  <div
+                    role="radiogroup"
+                    aria-label="Välj stället som stämmer"
+                    className="space-y-2"
                   >
-                    Nej, det är ett annat ställe
-                  </Button>
-                )}
-              </div>
-            ) : null}
-            {!review ? (
-              <Collapsible
-                key={pending.externalId}
-                defaultOpen={!simpleCandidate && pending.kind !== "canonical"}
-                className="border-t border-border/60 pt-3"
-              >
-                <CollapsibleTrigger asChild>
-                  <Button variant="ghost" className="min-h-11 w-full justify-between px-0">
-                    Lägg till uppgifter (valfritt)
-                  </Button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-5 pt-3">
-                  {isLive ? (
-                    <p className="text-sm text-muted-foreground">
-                      {cuisines.length
-                        ? cuisines.join(" · ")
-                        : "Kök och inriktning kan kompletteras senare."}
+                    {(review.candidates ?? []).map((candidate) => (
+                      <label
+                        key={candidate.placeId}
+                        className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left focus-within:ring-2 focus-within:ring-ring ${selectedCandidateId === candidate.placeId ? "border-primary bg-primary/5" : "border-border"}`}
+                      >
+                        <input
+                          type="radio"
+                          name="reuse-place"
+                          value={candidate.placeId}
+                          checked={selectedCandidateId === candidate.placeId}
+                          aria-label={`Välj ${candidate.name}`}
+                          disabled={isBusy || !!conflictMessage}
+                          onChange={() => setSelectedCandidateId(candidate.placeId)}
+                          className="mt-1 h-4 w-4 shrink-0 accent-primary"
+                        />
+                        <div className="min-w-0 space-y-1">
+                          <p className="text-xs text-muted-foreground">Redan i Matrundan</p>
+                          <p className="break-words font-medium">{candidate.name}</p>
+                          <p className="break-words text-sm text-muted-foreground">
+                            {formatPlaceAddressWithCity(candidate.address, candidate.city)} ·{" "}
+                            {Math.round(candidate.distanceKm * 1000)} m bort
+                          </p>
+                        </div>
+                      </label>
+                    ))}
+                  </div>
+                  {review.candidates?.length ? (
+                    <>
+                      <Button
+                        className="min-h-11 w-full whitespace-normal"
+                        disabled={isBusy || !!conflictMessage || !chosenCandidate}
+                        onClick={() =>
+                          chosenCandidate &&
+                          void confirmAdd(
+                            chosenCandidate.canConfirmSource === true && canConfirmIdentity
+                              ? "link"
+                              : "auto",
+                            chosenCandidate,
+                            !(chosenCandidate.canConfirmSource === true && canConfirmIdentity),
+                          )
+                        }
+                      >
+                        Ja, använd stället som redan finns
+                      </Button>
+                      <p className="text-xs text-muted-foreground">
+                        {chosenCandidate?.canConfirmSource === true && canConfirmIdentity
+                          ? "När du fortsätter bekräftas också att kartträffen hör hit."
+                          : "Stället används utan att kartkällan kopplas."}
+                      </p>
+                    </>
+                  ) : null}
+                  {!review.candidates?.length ? (
+                    <p className="text-sm">
+                      Matchningen behöver kontrolleras igen. Gå tillbaka och sök på nytt.
                     </p>
                   ) : (
-                    <FoodTagMultiSelect
-                      id="pending-food-tags"
-                      label="Kök och inriktning (valfritt)"
-                      value={cuisines}
-                      onChange={setCuisines}
-                    />
+                    <Button
+                      variant="outline"
+                      className="min-h-11 w-full whitespace-normal"
+                      disabled={isBusy || !!conflictMessage}
+                      onClick={() => void confirmAdd("separate")}
+                    >
+                      Nej, det är ett annat ställe
+                    </Button>
                   )}
-                  <OccasionPicker
-                    id="pending-occasions"
-                    value={occasions}
-                    onChange={setOccasions}
-                    description="Valfritt – kan fyllas i efter ett besök."
+                </div>
+              ) : null}
+              {!review ? (
+                <Collapsible
+                  key={pending.externalId}
+                  defaultOpen={!simpleCandidate && pending.kind !== "canonical"}
+                  className="border-t border-border/60 pt-3"
+                >
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="min-h-11 w-full justify-between px-0">
+                      Lägg till uppgifter (valfritt)
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-5 pt-3">
+                    {isLive ? (
+                      <p className="text-sm text-muted-foreground">
+                        {cuisines.length
+                          ? cuisines.join(" · ")
+                          : "Kök och inriktning kan kompletteras senare."}
+                      </p>
+                    ) : (
+                      <FoodTagMultiSelect
+                        id="pending-food-tags"
+                        label="Kök och inriktning (valfritt)"
+                        value={cuisines}
+                        onChange={setCuisines}
+                      />
+                    )}
+                    <OccasionPicker
+                      id="pending-occasions"
+                      value={occasions}
+                      onChange={setOccasions}
+                      description="Valfritt – kan fyllas i efter ett besök."
+                    />
+                    <div className="space-y-1.5">
+                      <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
+                      <Textarea
+                        id="pending-notes"
+                        value={notes}
+                        onChange={(event) => setNotes(event.target.value)}
+                        rows={2}
+                      />
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              ) : null}
+              {pending.kind !== "canonical" && !review && !simpleCandidate ? (
+                <>
+                  <PendingPlaceSignalStatus
+                    reportablePending={reportablePending}
+                    disabled={isBusy || state.group.lifecycleStatus === "archived"}
                   />
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pending-notes">Anteckning till gruppen (valfritt)</Label>
-                    <Textarea
-                      id="pending-notes"
-                      value={notes}
-                      onChange={(event) => setNotes(event.target.value)}
-                      rows={2}
+
+                  <div className="border-t border-border/60 pt-1">
+                    <PlaceSuggestionReportDialog
+                      suggestion={reportablePending}
+                      canHide={canHideSuggestion}
+                      disabled={isBusy || state.group.lifecycleStatus === "archived"}
+                      onHide={() => hideFromReport(pending)}
+                      onHidden={resetPending}
                     />
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            ) : null}
-            {pending.kind !== "canonical" && !review && !simpleCandidate ? (
-              <>
-                <PendingPlaceSignalStatus
-                  reportablePending={reportablePending}
-                  disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                />
-
-                <div className="border-t border-border/60 pt-1">
-                  <PlaceSuggestionReportDialog
-                    suggestion={reportablePending}
-                    canHide={canHideSuggestion}
-                    disabled={isBusy || state.group.lifecycleStatus === "archived"}
-                    onHide={() => hideFromReport(pending)}
-                    onHidden={resetPending}
-                  />
-                </div>
-              </>
-            ) : null}
-            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button variant="ghost" className="min-h-11" disabled={isBusy} onClick={closePending}>
+                </>
+              ) : null}
+            </div>
+            <DialogFooter
+              data-testid="pending-place-actions"
+              className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border/60 bg-background px-4 py-3 sm:px-6"
+            >
+              <Button
+                variant="ghost"
+                className="min-h-11 shrink-0 px-2 sm:px-4"
+                disabled={isBusy}
+                onClick={closePending}
+              >
                 <ArrowLeft className="h-4 w-4" /> Tillbaka
               </Button>
               {!review && !conflictMessage ? (
                 <Button
-                  className="min-h-11"
+                  className="min-h-11 min-w-0 flex-1 sm:flex-none"
                   disabled={isBusy}
                   onClick={() =>
                     void confirmAdd(
