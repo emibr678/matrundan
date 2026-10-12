@@ -212,7 +212,7 @@ export function ShareVisitDialog({
           if (!submitting) onOpenChange(next);
         }}
       >
-        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md sm:rounded-lg">
+        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden rounded-[16px] p-0 sm:max-w-md sm:rounded-lg">
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle>Lägg till besöket i fler grupper</DialogTitle>
             <DialogDescription>
