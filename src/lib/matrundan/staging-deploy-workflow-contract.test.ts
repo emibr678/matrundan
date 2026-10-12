@@ -15,7 +15,6 @@ describe("staging-deployens kontrakt", () => {
     expect(workflow).toContain("--env staging");
   });
 
-
   test("anropas direkt av samma CI-DAG och deployar endast current main", () => {
     expect(workflow).toContain("workflow_call:");
     expect(workflow).not.toContain("workflow_run:");
