@@ -135,6 +135,9 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   await expect(quickButton).toBeDisabled();
   await expectNoHorizontalOverflow(page, "Manuellt tillägg med kategorier");
   await addButton.click();
+  await manualDialog
+    .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
+    .click();
 
   const placeLink = page.getByRole("link", { name: /Testköket/ });
   await expect(placeLink).toBeVisible();

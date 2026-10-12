@@ -76,6 +76,9 @@ test("ställe utan besök tas bort från aktiva flöden och kan läggas tillbaka
     .getByRole("button", { name: "Typ av upplevelse: Något extra", exact: true })
     .click();
   await addDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await addDialog
+    .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
+    .click();
 
   const restoredLink = page.getByRole("link", { name: /Glöd & Grönska/ });
   await expect(restoredLink).toHaveCount(1);

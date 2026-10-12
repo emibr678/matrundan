@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import {
   genericPlaceSearchSuggestions,
   matchesPlaceSearchIntent,
+  resolveDiscoverySearchIntent,
   resolvePlaceSearchIntent,
 } from "./place-search-intent";
 
@@ -110,6 +111,50 @@ describe("matställessökningens intent", () => {
         resolvePlaceSearchIntent("Vasastan"),
       ),
     ).toBe(true);
+  });
+
+  test("exakt Pizza och Italienskt är fria namnfrågor tills användaren väljer en inriktning", () => {
+    expect(resolveDiscoverySearchIntent("Pizza", "literal")).toEqual({
+      kind: "text",
+      query: "Pizza",
+    });
+    expect(resolveDiscoverySearchIntent("Italienskt", "literal")).toEqual({
+      kind: "text",
+      query: "Italienskt",
+    });
+    expect(
+      resolveDiscoverySearchIntent("Pizza", "auto", {
+        kind: "food-tag",
+        id: "specialty:pizza",
+      }),
+    ).toMatchObject({ kind: "food-tag", tagId: "specialty:pizza" });
+    expect(
+      resolveDiscoverySearchIntent("Italienskt", "auto", {
+        kind: "food-tag",
+        id: "cuisine:italian",
+      }),
+    ).toMatchObject({ kind: "food-tag", tagId: "cuisine:italian" });
+    expect(
+      resolveDiscoverySearchIntent("café", "auto", {
+        kind: "category",
+        id: "category:café",
+      }),
+    ).toMatchObject({ kind: "category", category: "café" });
+  });
+
+  test("falskt eller omväxlat filter-ID avvisas; aldrig tyst fritext eller annan kategori", () => {
+    expect(() =>
+      resolveDiscoverySearchIntent("Pizza", "auto", {
+        kind: "food-tag",
+        id: "cuisine:italian",
+      }),
+    ).toThrow("verifieras");
+    expect(() =>
+      resolveDiscoverySearchIntent("Pizza", "auto", {
+        kind: "category",
+        id: "category:restaurang",
+      }),
+    ).toThrow("verifieras");
   });
 
   test("autocomplete kan föreslå både kök/inriktning och Matrundan-typ", () => {

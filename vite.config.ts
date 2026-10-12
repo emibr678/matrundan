@@ -1,4 +1,5 @@
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import { cloudflarePreviewMapGuard } from "./scripts/cloudflare-preview-map-guard.ts";
 
 const releaseSha =
   process.env.WORKERS_CI_COMMIT_SHA ??
@@ -13,6 +14,7 @@ const deployedAt = process.env.MATRUNDAN_DEPLOYED_AT?.trim() ?? "";
 
 export default defineConfig({
   vite: {
+    plugins: [cloudflarePreviewMapGuard()],
     define: {
       "import.meta.env.VITE_MATRUNDAN_RELEASE_SHA": JSON.stringify(releaseSha),
       "import.meta.env.VITE_MATRUNDAN_ENVIRONMENT": JSON.stringify(appEnvironment),

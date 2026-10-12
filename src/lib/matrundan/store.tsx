@@ -233,6 +233,11 @@ interface StoreContextValue {
     providerPlaceId: string;
     place: Omit<Place, "id" | "addedAt">;
     raw: unknown;
+    canonicalPlaceId?: string;
+    choice?: "auto" | "link" | "separate";
+    decisions?: import("./place-discovery").CandidateDecision[];
+    providerVersion?: string;
+    identityPlaceId?: string;
   }) => Promise<Place>;
   toggleFavorite: (placeId: string) => Promise<void>;
   addVisit: (visit: VisitMutationInput) => Promise<Visit>;
@@ -424,7 +429,17 @@ export function StoreProvider({
         return place;
       },
 
-      addProviderPlace: async ({ provider, providerPlaceId, place, raw }) => {
+      addProviderPlace: async ({
+        provider,
+        providerPlaceId,
+        place,
+        raw,
+        canonicalPlaceId,
+        choice,
+        decisions,
+        providerVersion,
+        identityPlaceId,
+      }) => {
         if (mode !== "live") {
           throw new Error("Extern platssök är bara tillgänglig i live-läge (inloggad).");
         }
@@ -449,6 +464,11 @@ export function StoreProvider({
             notes: normalizedPlace.notes,
             photo: normalizedPlace.photo,
             raw,
+            canonicalPlaceId,
+            choice,
+            decisions,
+            providerVersion,
+            identityPlaceId,
           }),
         );
         return {

@@ -1,4 +1,5 @@
 <!-- LOVABLE:BEGIN -->
+
 > [!IMPORTANT]
 > This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
 > published git history — force pushing, or rebasing/amending/squashing commits
@@ -7,6 +8,7 @@
 >
 > Commits pushed to the branch currently selected in Lovable sync back to the
 > editor. Keep that branch buildable and verify the selected branch before edits.
+
 <!-- LOVABLE:END -->
 
 # Matrundan agent instructions
@@ -130,6 +132,16 @@ iteration. A Cloudflare branch preview may be handed off as **iterationspreview 
 full CI ej körd** after targeted self-review; do not make early user feedback wait
 for candidate CI.
 
+Use the stable Cloudflare Branch Preview URL **root path** for interactive
+browser and user tests; reuse the signed-in session across pushes. Check
+`/api/health` separately to verify the release against the current PR head.
+If health fails or is unreachable, diagnose it but also try the app root: a
+health failure alone does not prove the UI is unavailable. Exploratory UI testing
+may continue, explicitly labelled **head/version unverified**, but must not be
+reported as verified for the current PR head or merge-ready. For requested user
+tests, actually navigate and interact with the app; health is not a user test.
+Use the immutable commit preview for final exact-SHA verification.
+
 When the PR is ready, follow the current head SHA and the canonical **CI /
 required** gate rather than polling every sub-workflow. On failure, diagnose the
 failed job immediately; when a newer head replaces the run, stop following the
@@ -160,9 +172,12 @@ After a candidate or merge, use the visually structured chat receipt in
 `docs/development-workflow.md` and report the relevant evidence without blending
 merge, Lovable, database or publication status. Always include the `Preview:`
 field. Before handing off a GUI candidate, read the canonical `Mobile PR handoff`
-comment for the current PR head and use its exact verified preview URL; if the
-candidate has no rendered surface, state `Preview: Inte relevant` with a short
-reason instead of omitting the field.
+comment for the current PR head and use its verified commit preview for the final
+exact-SHA check. Link the stable branch preview in a verified handoff only after
+its health matches the same head. An exploratory link with failed health must be
+clearly labelled unverified, never **Redo att testa** as an exact candidate.
+If the candidate has no rendered surface, state `Preview: Inte relevant` with a
+short reason instead of omitting the field.
 
 ## Documentation lifecycle
 

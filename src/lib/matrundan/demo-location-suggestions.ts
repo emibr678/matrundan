@@ -4,6 +4,18 @@ import type { SearchAreaBoundaryGeometry } from "./types";
 
 const DEMO_LOCATION_SUGGESTIONS: NormalizedLocationSuggestion[] = [
   {
+    placeId: "demo-location-backstigen-11",
+    label: "Backstigen 11, Göteborg",
+    primaryLabel: "Backstigen 11",
+    secondaryLabel: "Adress · Göteborg",
+    name: "Backstigen 11",
+    city: "Göteborg",
+    area: "Haga",
+    lat: 57.6998,
+    lng: 11.9548,
+    resultType: "building",
+  },
+  {
     placeId: "demo-location-majorna",
     label: "Majorna, Göteborg",
     primaryLabel: "Majorna",

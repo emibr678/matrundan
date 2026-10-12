@@ -32,13 +32,100 @@ Geoapify-anrop sker server-side med serverhemligheten. Klienten skickar använda
 
 För `point` används providerfiltrering med cirkel runt centrum och vald radie.
 
-För `boundary` används provideridentiteten som sökfilter. Providerresultatet är sanningen för vilka matställen som matchar området; kartpolygonen är en presentation och får inte bli en separat säkerhets- eller filtreringsmekanism i live-läget.
+För `boundary` används provideridentiteten som sökfilter för externa träffar. Providerresultatet avgör deras områdesmedlemskap. Interna kanoniska kandidater saknar provideridentitet; för dem verifierar servern medlemskap mot den hämtade Polygon/MultiPolygon-gränsen, inklusive hål och öar. Klientens kartpolygon avgör aldrig live-resultatens medlemskap eller behörighet.
 
 Vid val av en boundary-kandidat skiljer resolverflödet på bred administrativ geografi och övriga boundary-kandidater. Kommuner, län, regioner och andra tydligt breda administrativa val går direkt till Boundaries API `part-of` med administrativ boundary och `geometry_1000`, eftersom Geoapifys autocomplete kan representera sådana namn med en punkt/node även när en separat administrativ boundary finns. Det undviker onödiga Place Details-anrop för exempelvis `Nacka kommun`. Om den direkta Boundaries-vägen inte ger en namnmatchad polygon får Place Details fortfarande fungera som robust fallback. För övriga boundary-kandidater verifieras kandidatens eget Geoapify-`place_id` först via Place Details; `details` är förstahandsval och `details.full_geometry` används bara som tillägg när standarddetaljerna saknar polygon, varefter Boundaries API är fallback. Boundaries-svar får endast accepteras när en Polygon/MultiPolygon har ett namn som motsvarar användarens valda områdesetikett; orten `Nacka` får exempelvis inte automatiskt bli `Nacka kommun`.
 
 När Boundaries API identifierar en separat boundary används boundaryns eget returnerade `place_id` som den kanoniska provideridentiteten för sökområdet. Samma identitet används senare i `filter=place:<place_id>` och för att hämta kartgeometrin igen. Autocomplete-punktens `place_id` får alltså inte sparas som boundaryidentitet när providern har löst den till en annan administrativ boundary. Bred administrativ geografi får inte sparas eller användas som ny punkt om ingen namnmatchad boundary kan verifieras. Mindre lokal geografi kan behålla punktbeteende när ingen gräns finns, eftersom den redan är säker i punkt + radie-modellen.
 
 Geoapifys proximity-bias får användas för stabil intern rangordning även när `filter=place:<place_id>` avgränsar en boundary. Ett sådant bias-avstånd är däremot avståndet till områdets representativa punkt, inte avståndet till kommunen eller dess gräns, och får därför aldrig presenteras som `km från <boundary>`. Användarsynligt avstånd hör bara till en faktisk `point`-match. Om samma matställe matchar både boundary och punkt ska punktmatchningens riktiga avstånd vinna för avståndspresentationen; en boundary-only-träff får i stället bära neutral områdeskontext.
+
+## Specifik namnsökning
+
+Att **skriva** ett ord i sökfältet väljer inte automatiskt kök, inriktning
+eller platstyp, även när texten exakt matchar exempelvis `Pizza`. Då används
+fri namnsökning och namnförslag. Ett **aktivt val** av kök, inriktning eller
+typ representeras däremot med sin verifierade filteridentitet, visar filtret
+tydligt i gränssnittet och tar användaren direkt till den paginerade
+resultatlistan (med kartan som alternativ). Filtret kan tas bort utan att
+ändra sökområdena. Servern avvisar filter-ID:n som inte motsvarar den valda
+etiketten, och demo/exempelgrupp använder samma distinktion.
+
+I det **fokuserade namnförslagsläget** hämtar den autentiserade servern
+Geoapifys **Autocomplete** för namn på matverksamheter, parallellt med
+gruppbehörighetskontrollerade kanoniska Matrundan-kandidater. Autocomplete
+används bara för kandidatupptäckt medan man skriver; den skapar ingen
+platsidentitet eller rätt att dela privata uppgifter. Förslagen rangordnas
+med de valda sökområdena som utgångspunkter (Geoapify proximity-bias).
+Geoapifys eget `filter=circle` på **100 km från varje valt sökcentrum**
+avgränsar de automatiska namnförslagen (inte den valda list-/kartradien).
+Användaren kan uttryckligen välja **Sök längre bort**, vilket gör en ny
+autocomplete-hämtning med proximity-bias men utan cirkelfilter för samma text.
+Det är en synlig, borttagbar förslagsbegränsning och **inte** en begränsning av
+sparade sökområden, fullresultatlistan eller vilka ställen gruppen får lägga
+till. En ny söktext eller ändrat sökområde återställer standardhorisonten.
+Matrundan presenterar träffar inom unionen av valda punkt-/boundary-områden
+före en separat sektion för träffar utanför, utan egen namnpoängsättning
+eller ändring av Geoapifys inbördes förslagsrankning. Boundarygeometri används bara för korrekt gruppering av
+namnförslag; Places för geografisk upptäckt fortsätter använda sina riktiga
+områdesfilter. Servern begränsar anrop och krediter över alla valda områden. Fel skiljs från nollträffar och gamla förslag får inte
+visas för en ny söktext.
+
+När användaren väljer ett externt förslag hämtar servern först **Place
+Details** och kräver ett trovärdigt matställe med matchande namn och position.
+En närliggande Places-kandidat måste dessutom styrkas med **exakt samma
+OSM-typ och OSM-id** innan den kan nå Matrundans befintliga
+gruppscopade identitetsgranskning. Geoapifys Geocoding-`place_id` är
+aldrig samma sak som en verifierad Places-identitet; det kan skilja sig
+även för samma OSM-objekt. Saknas verifierbar OSM-identitet eller bryts
+kontrollerna ska användaren få ett tydligt fel, aldrig en automatisk
+fuzzy-koppling.
+
+**Places är fortfarande primär sökväg för geografisk upptäckt,
+kategori-/köksfilter, paginerad helresultatlista och karta.**
+I den separata fullresultatsökningen kan en enda begränsad
+kandidatradie användas redan i primärhämtningen, med tydlig märkning av
+träffar utanför valt avstånd. Vid utebliven stark träff provas först en
+kort, geografiskt begränsad namnankarsökning via Places. Först om den
+saknar rimliga namn- eller stavfelskandidater får servern använda Geocoding
+för högst tio namnfrön och prova högst tre unika matverksamhetspositioner. Första positionen som verifieras
+genom Places väljer en enda paginerad sökström. Geocoding används bara som
+bias-ankare; både Geocoding och Places behåller ursprungligt circle-/place-filter.
+Resultat, identitet och matmetadata kommer alltid från Places.
+
+Valet cacheas kortlivat per ursprunglig namn-/områdesrequest utan offset eller
+API-nyckel. En fortsättningssida väljer samma ström från första sidan även om
+cachen saknas. En full primärsida utan relevanta träffar behåller ordinarie
+paginering. Avstånd för ankrade Places-träffar räknas från ursprungligt centrum;
+boundary-only-träffar visar fortsatt inget punktavstånd. Sökområdet flyttas eller
+utökas aldrig av namnankaret.
+
+## Gemensam resultatpool, radie och stavfel
+
+Listan behåller 20 handlingsbara träffar per steg. Kartan visar fler av redan
+hämtade kandidater och får fyllas på utan att flytta användarens viewport.
+Providerpaginering förs separat per sökområde så att fel och uttömda sidor
+inte förskjuter andra områden. En automatisk sökomgång begränsas till totalt
+25 cachemiss-anrop och en konservativ reservation på 40 krediter; uttrycklig
+**Visa fler** är en ny användarhandling med egen liten budget. Budgeten är
+inte ett påstående om faktisk providerdebitering.
+
+För ett specifikt verksamhetsnamn utan stark primärträff får ett enda
+begränsat kompletteringssteg söka utanför aktiva punktområdens radie:
+`min(50 km, vald radie + min(vald radie, 2 km))`.
+Namnträffar utanför radien visas separat och ändrar aldrig sparade områden.
+Generiska kategori-/köksfrågor expanderar inte. Boundaries förblir oförändrade
+och blandad punkt/boundary-sökning utökar inte geografin utan verifierat
+medlemskap i hela sökområdesunionen.
+
+Den befintliga **starka kanoniska 50-kilometersregeln** är separat och
+behålls bara för strikt matchade specifika namn. Defensiv stavfelstolerans använder samma begränsade närliggande kandidatgeografi
+som specifik namnsökning för punktområden. En tolerant kandidat utanför vald radie
+visas separat; den blir aldrig en stark kanonisk identitet och ger inte automatisk
+länkning eller sammanslagning. Primär namnfråga får söka inom denna begränsade
+kandidatradie men ska märka de träffar som ligger utanför den valda radien tydligt. Den nya kanoniska
+kandidatfunktionen är en gruppbehörighetskontrollerad read-only-RPC;
+toleranta namn får aldrig påverka identitet, källkoppling eller merge.
 
 ## Blandade områden och deduplicering
 

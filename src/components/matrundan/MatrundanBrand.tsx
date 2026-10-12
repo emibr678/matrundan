@@ -1,17 +1,19 @@
 import { APP_NAME } from "@/lib/matrundan/version";
 
 type BrandVariant = "lockup" | "mark";
-type BrandSize = "sm" | "md" | "lg";
+type BrandSize = "xs" | "sm" | "md" | "lg";
 
 const MARK_SRC = "/brand/matrundan-mark.png";
 
 const markSize: Record<BrandSize, string> = {
+  xs: "h-4 w-4",
   sm: "h-6 w-6",
   md: "h-7 w-7",
   lg: "h-11 w-11",
 };
 
 const labelSize: Record<BrandSize, string> = {
+  xs: "text-base",
   sm: "text-lg",
   md: "text-xl",
   lg: "text-2xl",

@@ -34,7 +34,9 @@ export interface MultiAreaMapItem {
   eyebrow?: string;
   description?: string;
   actionable?: boolean;
+  actionLabel?: string;
   bulkSelected?: boolean;
+  bulkSelectable?: boolean;
 }
 
 export interface MultiAreaMapCenter {
@@ -165,6 +167,7 @@ export function MultiAreaPlaceMap({
   items,
   centers,
   radiusKm,
+  searchContextKey,
   selectedId,
   onSelect,
   onAction,
@@ -175,6 +178,8 @@ export function MultiAreaPlaceMap({
   items: MultiAreaMapItem[];
   centers: MultiAreaMapCenter[];
   radiusKm: number;
+  /** Resets the initial fit only when the search context changes, not on map refill. */
+  searchContextKey?: string;
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   onAction?: (item: MultiAreaMapItem) => void;
@@ -186,11 +191,14 @@ export function MultiAreaPlaceMap({
     () => items.filter((item) => item.lat != null && item.lng != null),
     [items],
   );
-  const selected = mappedItems.find((item) => item.id === selectedId) ?? mappedItems[0] ?? null;
+  const selected = mappedItems.find((item) => item.id === selectedId) ?? null;
   const containerRef = React.useRef<HTMLDivElement>(null);
   const mapRef = React.useRef<MapLibreMap | null>(null);
+  const lastFitContextRef = React.useRef<string | null>(null);
   const selectRef = React.useRef(onSelect);
   const [status, setStatus] = React.useState<"loading" | "ready" | "error">("loading");
+  const [renderedItemCount, setRenderedItemCount] = React.useState(0);
+  const [externalTilesReady, setExternalTilesReady] = React.useState(false);
   const [layersReady, setLayersReady] = React.useState(false);
   const mapsKey = (import.meta as ImportMeta & { env?: { VITE_GEOAPIFY_MAPS_KEY?: string } }).env
     ?.VITE_GEOAPIFY_MAPS_KEY;
@@ -204,7 +212,10 @@ export function MultiAreaPlaceMap({
     if (!element) return;
     let cancelled = false;
     setLayersReady(false);
+    lastFitContextRef.current = null;
     setStatus("loading");
+    setExternalTilesReady(false);
+    setRenderedItemCount(0);
 
     void waitForMapLibre()
       .then((mapLibre) => {
@@ -228,11 +239,33 @@ export function MultiAreaPlaceMap({
         map.on("load", () => {
           if (!cancelled) setStatus("ready");
         });
+        map.on("idle", () => {
+          if (!cancelled && map.getLayer(POINTS) && map.getLayer(CLUSTERS)) {
+            setRenderedItemCount(
+              map.queryRenderedFeatures(undefined, { layers: [POINTS, CLUSTERS] }).length,
+            );
+          }
+          // A loaded overlay or empty style is not evidence of a base map.
+          if (mapsKey && !cancelled && map.isStyleLoaded() && map.areTilesLoaded()) {
+            const baseLayers = map
+              .getStyle()
+              .layers.filter(
+                (layer) => !layer.id.startsWith("multi-area-") && layer.type !== "background",
+              );
+            setExternalTilesReady(
+              baseLayers.length > 0 &&
+                map.queryRenderedFeatures(undefined, {
+                  layers: baseLayers.map((layer) => layer.id),
+                }).length > 0,
+            );
+          }
+        });
         map.on("error", (event) => {
           console.error("[Matrundan] Flerområdeskartan kunde inte laddas:", event.error ?? event);
           if (!cancelled) {
             setLayersReady(false);
             setStatus("error");
+            setExternalTilesReady(false);
           }
         });
         mapRef.current = map;
@@ -441,16 +474,24 @@ export function MultiAreaPlaceMap({
     );
   }, [centers, layersReady, mappedItems, radiusKm, selected, status]);
 
+  const fitContextKey =
+    searchContextKey ??
+    JSON.stringify([radiusKm, centers.map((center) => [center.id, center.lat, center.lng])]);
   React.useEffect(() => {
     const map = mapRef.current;
     if (status !== "ready" || !layersReady || !map) return;
+    // Map refill, point selection and user pan/zoom must not reset the viewport.
+    if (lastFitContextRef.current === fitContextKey) return;
     const points: [number, number][] = [
       ...centers.map((center) => [center.lng, center.lat] as [number, number]),
       ...centers.flatMap(multiAreaBoundaryPositions),
       ...mappedItems.map((item) => [item.lng!, item.lat!] as [number, number]),
     ];
     if (points.length === 0) return;
+    let cancelled = false;
     void waitForMapLibre().then((mapLibre) => {
+      if (cancelled || mapRef.current !== map) return;
+      lastFitContextRef.current = fitContextKey;
       map.resize();
       if (points.length === 1) {
         map.jumpTo({ center: points[0], zoom: 14 });
@@ -466,7 +507,10 @@ export function MultiAreaPlaceMap({
         duration: 0,
       });
     });
-  }, [centers, layersReady, mappedItems, selected, status]);
+    return () => {
+      cancelled = true;
+    };
+  }, [centers, fitContextKey, layersReady, mappedItems, selected, status]);
 
   if (mappedItems.length === 0 && centers.length === 0) {
     return (
@@ -478,8 +522,15 @@ export function MultiAreaPlaceMap({
     );
   }
 
-  const ready = status === "ready" && layersReady;
-  const tileStatus = mapsKey ? (status === "ready" ? "ready" : status) : "missing";
+  const ready =
+    status === "ready" && layersReady && (mappedItems.length === 0 || renderedItemCount > 0);
+  const tileStatus = !mapsKey
+    ? "missing"
+    : status === "error"
+      ? "error"
+      : externalTilesReady
+        ? "ready"
+        : "loading";
   const bulkSelectedCount = mappedItems.filter((item) => item.bulkSelected).length;
   const boundaryCount = centers.filter(
     (center) => center.searchMode === "boundary" && center.boundary,
@@ -492,6 +543,7 @@ export function MultiAreaPlaceMap({
       role="region"
       aria-label="Karta över sökresultat och valda sökområden"
       data-map-ready={ready}
+      data-map-rendered-items={renderedItemCount}
       data-map-renderer="maplibre-vector"
       data-map-tile-status={tileStatus}
       data-map-error-code={status === "error" ? "runtime" : ""}
@@ -549,14 +601,18 @@ export function MultiAreaPlaceMap({
                 {selected.eyebrow}
               </div>
             ) : null}
-            <div className="truncate font-medium">{selected.name}</div>
+            <div className="break-words font-medium">{selected.name}</div>
             {selected.description ? (
-              <div className="truncate text-xs text-muted-foreground">{selected.description}</div>
+              <div className="break-words text-xs text-muted-foreground">
+                {selected.description}
+              </div>
             ) : null}
           </div>
           {selected.actionable !== false ? (
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {onToggleBulkSelection ? (
+            <div
+              className={`mt-3 grid gap-2 ${onToggleBulkSelection && selected.bulkSelectable !== false && onAction ? "grid-cols-2" : "grid-cols-1"}`}
+            >
+              {onToggleBulkSelection && selected.bulkSelectable !== false ? (
                 <Button
                   type="button"
                   size="sm"
@@ -577,7 +633,7 @@ export function MultiAreaPlaceMap({
                   disabled={actionsDisabled}
                   onClick={() => onAction(selected)}
                 >
-                  Granska <ArrowRight className="h-4 w-4" />
+                  {selected.actionLabel ?? "Granska"} <ArrowRight className="h-4 w-4" />
                 </Button>
               ) : null}
             </div>

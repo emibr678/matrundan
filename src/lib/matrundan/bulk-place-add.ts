@@ -1,5 +1,6 @@
 import type { PlaceSuggestion } from "./places-provider";
 import type { PlaceCategory } from "./types";
+import type { PlaceResolution } from "./place-discovery";
 
 export const MAX_BULK_PLACE_COUNT = 50;
 
@@ -21,6 +22,7 @@ export interface ProviderPlaceBatchInput {
 }
 
 export interface BulkPlaceAddItemResult {
+  resolution?: PlaceResolution;
   externalId: string;
   name: string;
   status: BulkPlaceAddStatus;

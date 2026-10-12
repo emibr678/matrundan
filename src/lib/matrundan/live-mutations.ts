@@ -8,6 +8,9 @@
  */
 import { z } from "zod";
 import type { BulkPlaceAddResult, ProviderPlaceBatchInput } from "./bulk-place-add";
+import { PlaceResolutionError, type CandidateDecision } from "./place-discovery";
+import { placeResolutionSchema } from "./place-discovery.schemas";
+import { resolveProviderPlace, resolveProviderPlacesBatch } from "./place-resolution.functions";
 import { MAX_BULK_PLACE_COUNT } from "./bulk-place-add";
 import { createManualPlaceFromFallback, reuseManualPlaceInGroup } from "./reusable-manual-places";
 import type { Occasion, Place, Visit } from "./types";
@@ -24,6 +27,7 @@ import { removeVisitPhotoStoragePaths } from "./visit-photo";
 export type ManualPlaceMutationHints = {
   reusePlaceId?: string;
   declinedReusablePlaceIds?: string[];
+  declinedReusableSnapshots?: CandidateDecision[];
 };
 
 export type VisitMutationInput = Omit<Visit, "id"> & {
@@ -73,22 +77,6 @@ function scheduleNotificationFlush(): void {
 }
 
 const ID_SCHEMA = z.string().min(1);
-const BULK_PLACE_ADD_RESULT_SCHEMA = z.object({
-  items: z.array(
-    z.object({
-      externalId: z.string().min(1),
-      name: z.string(),
-      status: z.enum(["added", "restored", "existing", "failed"]),
-      placeId: z.string().nullable().optional(),
-      message: z.string().nullable().optional(),
-    }),
-  ),
-  added: z.number().int().nonnegative(),
-  restored: z.number().int().nonnegative(),
-  existing: z.number().int().nonnegative(),
-  failed: z.number().int().nonnegative(),
-});
-
 /** Utelämna null-fält så RPC-argumenten blir konsekventa. */
 function nn<T>(value: T | null | undefined): T | undefined {
   return value === null ? undefined : value;
@@ -134,6 +122,7 @@ export async function liveCreatePlace(
       notes: input.notes,
       photo: input.photo,
       declinedPlaceIds: input.declinedReusablePlaceIds,
+      decisions: input.declinedReusableSnapshots,
     });
     return result.placeId;
   }
@@ -324,30 +313,38 @@ export async function liveCreateOrLinkProviderPlace(
     notes?: string;
     photo?: string;
     raw: unknown;
+    canonicalPlaceId?: string;
+    choice?: "auto" | "link" | "separate";
+    decisions?: CandidateDecision[];
+    providerVersion?: string;
+    identityPlaceId?: string;
   },
 ): Promise<string> {
-  return rpcClient.call(
-    "create_or_link_provider_place_v4b",
-    {
-      _group_id: groupId,
-      _provider: input.provider,
-      _provider_place_id: input.providerPlaceId,
-      _name: input.name,
-      _category: input.category,
-      _cuisines: input.cuisines ?? [],
-      _occasions: input.occasions ?? [],
-      _address: input.address ?? "",
-      _area: nn(input.area),
-      _city: input.city ?? "",
-      _lat: nn(input.lat),
-      _lng: nn(input.lng),
-      _notes: nn(input.notes),
-      _photo_url: nn(input.photo),
-      _raw: input.raw ?? {},
-    },
-    ID_SCHEMA,
-    "Kunde inte lägga till matstället.",
-  );
+  const result = input.canonicalPlaceId
+    ? await rpcClient.call(
+        "link_canonical_place_to_group_v1",
+        {
+          _group_id: groupId,
+          _place_id: input.canonicalPlaceId,
+          _occasions: input.occasions,
+          _notes: input.notes,
+        },
+        placeResolutionSchema,
+      )
+    : await resolveProviderPlace({
+        data: {
+          groupId,
+          providerPlaceId: input.providerPlaceId,
+          occasions: input.occasions as Occasion[],
+          notes: input.notes,
+          choice: input.choice,
+          placeId: input.identityPlaceId,
+          decisions: input.decisions,
+          providerVersion: input.providerVersion,
+        },
+      });
+  if (!result.placeId) throw new PlaceResolutionError(result);
+  return result.placeId;
 }
 
 export async function liveCreateOrLinkProviderPlacesBatch(
@@ -359,26 +356,13 @@ export async function liveCreateOrLinkProviderPlacesBatch(
     throw new Error(`Högst ${MAX_BULK_PLACE_COUNT} matställen kan läggas till samtidigt.`);
   }
 
-  return rpcClient.call(
-    "create_or_link_provider_places_batch_v1",
-    {
-      _group_id: groupId,
-      _items: items.map((item) => ({
+  return resolveProviderPlacesBatch({
+    data: {
+      groupId,
+      items: items.map((item) => ({
         externalId: item.externalId,
-        provider: item.provider,
         providerPlaceId: item.providerPlaceId,
-        name: item.name,
-        category: item.category,
-        cuisines: item.cuisines,
-        address: item.address,
-        area: nn(item.area),
-        city: item.city,
-        lat: nn(item.lat),
-        lng: nn(item.lng),
-        raw: item.raw ?? {},
       })),
     },
-    BULK_PLACE_ADD_RESULT_SCHEMA,
-    "Kunde inte tolka resultatet från masstillägget.",
-  );
+  });
 }

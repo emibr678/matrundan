@@ -39,6 +39,9 @@ test("ställen med saknade uppgifter kan filtreras fram och kompletteras", async
   await addDialog.getByLabel("Namn").fill("Ofullständiga Hörnet");
   await addDialog.getByPlaceholder("Sök adress eller plats").fill("Kompletteringsgatan 10");
   await addDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
+  await addDialog
+    .getByRole("button", { name: "Lägg till utan verifierad plats", exact: true })
+    .click();
 
   await applyMissingFilters(page);
   const placeLink = page.getByRole("link", { name: /Ofullständiga Hörnet/ });

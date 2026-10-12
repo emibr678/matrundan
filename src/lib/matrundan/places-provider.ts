@@ -6,7 +6,16 @@
  */
 
 import { normalizeFoodTags } from "./food-tags";
-import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import {
+  matchesSpecificPlaceName,
+  type CanonicalPlaceCandidate,
+  type ProviderIdentityReview,
+} from "./place-discovery";
+import {
+  matchesPlaceSearchIntent,
+  resolveDiscoverySearchIntent,
+  type SelectedPlaceSearchFilter,
+} from "./place-search-intent";
 import type {
   PlaceCategory,
   SearchArea,
@@ -15,6 +24,10 @@ import type {
 } from "./types";
 
 export interface PlaceSuggestion {
+  kind?: "provider" | "canonical";
+  resultKey?: string;
+  canonical?: CanonicalPlaceCandidate;
+  identity?: ProviderIdentityReview;
   externalId: string;
   name: string;
   category: PlaceCategory;
@@ -29,11 +42,17 @@ export interface PlaceSuggestion {
   website?: string;
   raw?: string;
   nearestAreaLabel?: string;
+  nearestAreaId?: string;
   matchingAreaLabels?: string[];
+  matchingAreaIds?: string[];
+  searchAreaGroup?: "nearby" | "name-outside";
+  searchMatchType?: "tolerant";
 }
 
 export interface PlacesSearchOpts {
   query?: string;
+  intentMode?: "auto" | "literal";
+  selectedFilter?: SelectedPlaceSearchFilter;
   city?: string;
   area?: string;
   center?: { lat: number; lng: number };
@@ -355,10 +374,65 @@ const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
   },
 ];
 
+// Neutral fictional identity only: no source group or historical visit is part of
+// this fixture. Eligibility and uniqueness are explicit fixture facts, never
+// inferred by the live client.
+const DEMO_CANONICAL: CanonicalPlaceCandidate = {
+  placeId: "demo-canonical-matrum",
+  name: "Månbackens Matrum",
+  category: "restaurang",
+  cuisines: ["Svenskt/nordiskt"],
+  address: "Månbacken 106",
+  city: "Göteborg",
+  area: "Haga",
+  lat: 57.6992,
+  lng: 11.9571,
+  groupStatus: "not_linked",
+  version: "demo-canonical-v1",
+};
+const DEMO_CANONICAL_ROW: PlaceSuggestion = {
+  ...DEMO_CANONICAL,
+  area: DEMO_CANONICAL.area ?? undefined,
+  lat: DEMO_CANONICAL.lat!,
+  lng: DEMO_CANONICAL.lng!,
+  kind: "canonical",
+  canonical: DEMO_CANONICAL,
+  externalId: "canonical:demo-canonical-matrum",
+  resultKey: "canonical:demo-canonical-matrum",
+  provider: "demo",
+};
+const DEMO_MATCHED_ROW: PlaceSuggestion = {
+  ...DEMO_CANONICAL_ROW,
+  kind: "provider",
+  canonical: undefined,
+  externalId: "demo-map-matrum",
+  resultKey: "provider:demo:matrum",
+  address: "Månbacken",
+  identity: {
+    providerPlaceId: "demo-map-matrum",
+    providerVersion: "demo-provider-v1",
+    knownPlace: null,
+    candidates: [
+      {
+        ...DEMO_CANONICAL,
+        lat: DEMO_CANONICAL.lat!,
+        lng: DEMO_CANONICAL.lng!,
+        matchKind: "strong",
+        distanceKm: 0.007,
+        canConfirmSource: true,
+      },
+    ],
+    reviewRequired: true,
+    identityConflict: false,
+  },
+};
+
 const demoProvider: PlacesProvider = {
   id: "demo",
   async search({
     query,
+    intentMode,
+    selectedFilter,
     city = "",
     area,
     center: suppliedCenter,
@@ -370,10 +444,15 @@ const demoProvider: PlacesProvider = {
     await new Promise((resolve) => setTimeout(resolve, 220));
     if (!suppliedCenter && !city.trim()) return [];
 
-    const intent = resolvePlaceSearchIntent(query);
+    const intent = resolveDiscoverySearchIntent(query, intentMode, selectedFilter);
     const normalizedArea = (area ?? "").trim().toLocaleLowerCase("sv-SE");
     const center = suppliedCenter ?? centerFor(city, area);
-    const normalizedSuggestions = DEMO_SUGGESTIONS.map((suggestion) => ({
+    const normalizedSuggestions = [
+      ...DEMO_SUGGESTIONS,
+      ...(query?.trim().length && query.trim().length >= 2
+        ? [DEMO_CANONICAL_ROW, DEMO_MATCHED_ROW]
+        : []),
+    ].map((suggestion) => ({
       ...suggestion,
       cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
     }));
@@ -419,7 +498,12 @@ const demoProvider: PlacesProvider = {
         : radiusKm == null || !Number.isFinite(radiusKm)
           ? withDistance
           : withDistance.filter(
-              (suggestion) => suggestion.distanceKm == null || suggestion.distanceKm <= radiusKm,
+              (suggestion) =>
+                suggestion.distanceKm == null ||
+                suggestion.distanceKm <= radiusKm ||
+                (suggestion.kind === "canonical" &&
+                  matchesSpecificPlaceName(query ?? "", suggestion.name) &&
+                  suggestion.distanceKm <= 50),
             );
 
     filtered.sort(

@@ -3,6 +3,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+import { cloudflarePreviewMapGuard } from "./scripts/cloudflare-preview-map-guard.ts";
 
 const isCloudflareBuild = process.env.MATRUNDAN_CLOUDFLARE_BUILD === "1";
 
@@ -24,6 +25,7 @@ export default defineConfig(({ command }) => ({
     "import.meta.env.VITE_MATRUNDAN_DEPLOYED_AT": JSON.stringify(deployedAt),
   },
   plugins: [
+    cloudflarePreviewMapGuard(),
     tailwindcss(),
     tanstackStart({
       server: {

@@ -93,6 +93,34 @@ export function resolvePlaceSearchIntent(value: string | undefined): PlaceSearch
   return { kind: "text", query };
 }
 
+/** Explicit category/cuisine selection is different from an identical typed name. */
+export interface SelectedPlaceSearchFilter {
+  kind: "food-tag" | "category";
+  id: string;
+}
+
+export function resolveDiscoverySearchIntent(
+  value: string | undefined,
+  mode: "auto" | "literal" = "auto",
+  selectedFilter?: SelectedPlaceSearchFilter,
+): PlaceSearchIntent {
+  const resolved = resolvePlaceSearchIntent(value);
+  if (selectedFilter) {
+    const matches =
+      (resolved.kind === "food-tag" &&
+        selectedFilter.kind === "food-tag" &&
+        resolved.tagId === selectedFilter.id) ||
+      (resolved.kind === "category" &&
+        selectedFilter.kind === "category" &&
+        `category:${resolved.category}` === selectedFilter.id);
+    if (!matches) throw new Error("Det valda köket eller typen kunde inte verifieras.");
+    return resolved;
+  }
+  return mode === "literal" && resolved.kind !== "browse"
+    ? { kind: "text", query: resolved.query }
+    : resolved;
+}
+
 export function matchesPlaceSearchIntent(
   place: SearchablePlaceSuggestion,
   intent: PlaceSearchIntent,

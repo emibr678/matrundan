@@ -3,6 +3,7 @@ import {
   actionableSliceIndex,
   countActionableSuggestions,
   mergePlaceSearchPages,
+  selectMapCandidates,
 } from "./place-search-pagination";
 import type { PlaceSuggestion } from "./places-provider";
 
@@ -18,6 +19,23 @@ function suggestion(overrides: Partial<PlaceSuggestion> & { externalId: string }
 }
 
 describe("mergePlaceSearchPages", () => {
+  test("uppdaterar identitetsversion även när avståndet är oförändrat", () => {
+    const identity = {
+      providerPlaceId: "a",
+      providerVersion: "a".repeat(32),
+      knownPlace: null,
+      candidates: [],
+      reviewRequired: false,
+      identityConflict: false,
+    };
+    const refreshed = { ...identity, providerVersion: "b".repeat(32), reviewRequired: true };
+    const merged = mergePlaceSearchPages(
+      [suggestion({ externalId: "a", distanceKm: 1, identity })],
+      [suggestion({ externalId: "a", distanceKm: 1, identity: refreshed })],
+    );
+    expect(merged).toHaveLength(1);
+    expect(merged[0].identity).toEqual(refreshed);
+  });
   test("bevarar ordningen på redan visade träffar exakt", () => {
     const merged = mergePlaceSearchPages(
       [
@@ -128,5 +146,27 @@ describe("handlingsbara sidor", () => {
     expect(actionableSliceIndex(list, isActionable, 20)).toBe(list.length);
     expect(actionableSliceIndex([], isActionable, 20)).toBe(0);
     expect(actionableSliceIndex(list, isActionable, 0)).toBe(0);
+  });
+});
+
+describe("kartpool per sökområde", () => {
+  test("flera områden får representation och högst 100 kandidater var", () => {
+    const source = [
+      ...Array.from({ length: 140 }, (_, i) =>
+        suggestion({ externalId: "a-" + i, nearestAreaId: "a" }),
+      ),
+      ...Array.from({ length: 60 }, (_, i) =>
+        suggestion({ externalId: "b-" + i, nearestAreaId: "b" }),
+      ),
+    ];
+    const selected = selectMapCandidates(source, ["a", "b"]);
+    expect(selected).toHaveLength(160);
+    expect(selected.slice(0, 4).map((row) => row.nearestAreaId)).toEqual(["a", "b", "a", "b"]);
+    expect(selected.filter((row) => row.nearestAreaId === "a")).toHaveLength(100);
+    expect(selected.filter((row) => row.nearestAreaId === "b")).toHaveLength(60);
+    expect(source[0].externalId).toBe("a-0");
+  });
+  test("legacy results without area IDs are retained", () => {
+    expect(selectMapCandidates([suggestion({ externalId: "legacy" })], ["a"])).toHaveLength(1);
   });
 });

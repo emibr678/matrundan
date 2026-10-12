@@ -1,12 +1,11 @@
+import { placeAddressRelation } from "./place-discovery";
 import type { PlaceSuggestion } from "./places-provider";
 import type { Place } from "./types";
 
 const MAX_LINK_DISTANCE_KM = 0.1;
 
 export type ManualSourceMatchReason =
-  | "same_name_and_address"
-  | "same_name_and_nearby"
-  | "same_address_and_nearby";
+  "same_name_and_address" | "same_name_and_nearby" | "same_address_and_nearby";
 
 export interface ManualSourceLinkCandidate {
   place: Place;
@@ -78,6 +77,7 @@ function isProviderlessManualPlace(place: Place): boolean {
 
 function matchOne(place: Place, suggestion: PlaceSuggestion): ManualSourceLinkCandidate | null {
   if (!isProviderlessManualPlace(place)) return null;
+  if (placeAddressRelation(place.address, suggestion.address) === "conflict") return null;
 
   const sameName =
     normalize(place.name) !== "" && normalize(place.name) === normalize(suggestion.name);

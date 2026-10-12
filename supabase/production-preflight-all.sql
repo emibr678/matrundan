@@ -20,3 +20,5 @@
 \ir production-preflight-visit-guest-member.sql
 \ir production-preflight-visit-participation.sql
 \ir production-preflight-visit-photo.sql
+
+\ir production-preflight-place-discovery.sql
