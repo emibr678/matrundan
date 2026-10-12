@@ -59,6 +59,8 @@ async function setup(
     finalProvider?: "hit" | "none" | "error";
     internalManual?: boolean;
     hintFixtures?: boolean;
+    hintSearchFailsOnce?: boolean;
+    hintPartialOnce?: boolean;
     hintResolution?: "slow" | "fail-once";
   } = {},
 ) {
@@ -296,10 +298,14 @@ async function setup(
       };
     if (options.hintFixtures && name.startsWith("searchPlaceNameHints")) {
       hintSearches += 1;
+      if (options.hintSearchFailsOnce && hintSearches === 1) {
+        await route.abort("failed");
+        return;
+      }
       const request = fromJSON(JSON.parse(route.request().postData()!)) as {
         data: { includeDistant?: boolean };
       };
-      reply = [
+      const hints = [
         {
           placeId: "autocomplete-near",
           name: "Ox Lan i närheten",
@@ -338,6 +344,10 @@ async function setup(
             ]
           : []),
       ];
+      reply = {
+        hints,
+        failedAreaLabels: options.hintPartialOnce && hintSearches === 1 ? ["Nacka"] : [],
+      };
     }
     if (name.startsWith("resolvePlaceNameHint")) {
       const requested = fromJSON(JSON.parse(route.request().postData()!)) as {
@@ -898,6 +908,46 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
   await noOverflow(page);
+});
+
+test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintSearchFailsOnce: true,
+  });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await expect(search.getByRole("listbox").getByText("Alla sökförslag kunde inte hämtas.")).toBeVisible();
+  await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(2);
+});
+
+test("partiellt fel visar fungerande förslag, berört område och tillåter omförsök (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintPartialOnce: true,
+  });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/)).toBeVisible();
+  await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/)).toHaveCount(0);
+  expect(mocked.getHintSearchCount()).toBe(2);
 });
 
 test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({
