@@ -963,6 +963,10 @@ for (const suggestion of ["default", "two"] as const) {
     const field = confirmation.getByTestId("share-experience");
     await expect(field.getByRole("checkbox")).toBeChecked();
     await page.setViewportSize({ width: 360, height: 480 });
+    await expect(confirmation).toHaveCSS("border-top-left-radius", "16px");
+    const confirmationBounds = await confirmation.boundingBox();
+    expect(confirmationBounds).not.toBeNull();
+    expect(confirmationBounds!.x).toBeGreaterThanOrEqual(7);
     const saveAction = confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" });
     await expect(saveAction).toBeInViewport();
     const help = field.getByRole("button", { name: "Så fungerar Typ av upplevelse" });
@@ -1039,6 +1043,10 @@ test("huvudhandlingen förblir synlig i en kort mobil delningsdialog", async ({ 
   const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
   const primaryAction = dialog.getByRole("button", { name: /^Lägg till besöket/ });
   await expect(primaryAction).toBeInViewport();
+  await expect(dialog).toHaveCSS("border-top-left-radius", "16px");
+  const dialogBounds = await dialog.boundingBox();
+  expect(dialogBounds).not.toBeNull();
+  expect(dialogBounds!.x).toBeGreaterThanOrEqual(7);
   await dialog.getByRole("button", { name: /Familjen/ }).click();
   await dialog.getByTestId("share-experience").getByRole("checkbox").scrollIntoViewIfNeeded();
   await expect(primaryAction).toBeInViewport();
@@ -1060,6 +1068,9 @@ test("hjälp om Typ av upplevelse öppnas inline utan extra dialog", async ({ pa
   await help.click();
   await expect(help).toHaveAttribute("aria-expanded", "true");
   await expect(region).toBeVisible();
+  await expect(region).toContainText(
+    "Typ av upplevelse beskriver vilken sorts matupplevelse gruppen förknippar med ett ställe.",
+  );
   await expect(region).toContainText("Olika grupper kan välja olika typer för samma ställe.");
   await expect(page.getByRole("dialog")).toHaveCount(1);
   await expect(primaryAction).toBeInViewport();

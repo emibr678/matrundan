@@ -936,7 +936,7 @@ export function VisitDialog({
       </Dialog>
 
       <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
-        <AlertDialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0">
+        <AlertDialogContent className="flex max-h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:rounded-lg">
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-6">
             <AlertDialogHeader className="text-left">
               <AlertDialogTitle>

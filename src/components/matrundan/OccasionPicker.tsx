@@ -25,6 +25,10 @@ import {
   type Occasion,
 } from "@/lib/matrundan/types";
 
+// One shared definition for compact and expanded Typ av upplevelse help.
+const OCCASION_GUIDE_INTRO =
+  "Typ av upplevelse beskriver vilken sorts matupplevelse gruppen förknippar med ett ställe. Ett ställe kan ha en eller två typer. Olika grupper kan välja olika typer för samma ställe.";
+
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentPropsWithoutRef<typeof Button> & { compact: boolean }
@@ -66,19 +70,14 @@ export function OccasionGuideContent({
                 showHeading ? "mt-1 " : ""
               }text-xs leading-relaxed text-muted-foreground`}
             >
-              Typ av upplevelse gäller matstället och beskriver vilken sorts matupplevelse gruppen
-              förknippar det med. Ett matställe kan ha en eller två typer.
+              {OCCASION_GUIDE_INTRO}
             </p>
-            {compact ? (
-              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Olika grupper kan välja olika typer för samma ställe.
-              </p>
-            ) : (
+            {!compact ? (
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika
                 höga betyg – fast av olika skäl.
               </p>
-            )}
+            ) : null}
           </>
         ) : null}
       </div>
