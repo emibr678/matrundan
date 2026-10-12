@@ -395,7 +395,12 @@ export function ShareVisitDialog({
             ) : null}
           </div>
           <DialogFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3">
-            <Button variant="ghost" className="min-h-11" disabled={submitting} onClick={() => onOpenChange(false)}>
+            <Button
+              variant="ghost"
+              className="min-h-11"
+              disabled={submitting}
+              onClick={() => onOpenChange(false)}
+            >
               Avbryt
             </Button>
             <Button
