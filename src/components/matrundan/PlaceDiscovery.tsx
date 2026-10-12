@@ -916,6 +916,12 @@ export function PlaceDiscovery({
   }, [mapFilling, queuedMore, showMoreResults]);
 
   React.useEffect(() => {
+    const mapVisible = resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
+    if (!mapVisible) {
+      // Reset even if pagination/budget is currently exhausted; a new visit may retry.
+      attemptedMapFillKeyRef.current = null;
+      return;
+    }
     if (
       !isLive ||
       !groupId ||
@@ -932,12 +938,6 @@ export function PlaceDiscovery({
       budgetRemaining.credits <= 0
     )
       return;
-    const mapVisible = resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
-    if (!mapVisible) {
-      // A failed map refill may be tried once again when the user returns to the map.
-      attemptedMapFillKeyRef.current = null;
-      return;
-    }
 
     // The same textual query with a different structured filter is a new search.
     const searchKey = JSON.stringify([groupId, currentSearchKey]);
