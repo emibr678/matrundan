@@ -38,44 +38,8 @@ describe("svensk geografisk presentation", () => {
     expect(isBroadAdministrativeSearchArea("city", presentation?.selectionLabel)).toBe(true);
   });
 
-  test("visar svenska län och Sverige trots engelska Geoapify-namn", () => {
-    const sweden = {
-      name: "Stockholm County",
-      country: "Sweden",
-      country_code: "se",
-      result_type: "county",
-    };
-    expect(resolveLocationPresentation(sweden)).toEqual({
-      primaryLabel: "Stockholms län",
-      secondaryLabel: "Län · Sverige",
-      selectionLabel: "Stockholms län, Sverige",
-    });
-    expect(resolveLocationPresentation({ ...sweden, name: "Skåne County" })?.primaryLabel).toBe(
-      "Skåne län",
-    );
-    expect(
-      resolveLocationPresentation({ ...sweden, name: "Vastra Gotaland County" })?.primaryLabel,
-    ).toBe("Västra Götalands län");
-    expect(
-      resolveLocationPresentation({
-        name: "Orange County",
-        country: "United States",
-        country_code: "us",
-        result_type: "county",
-      })?.primaryLabel,
-    ).toBe("Orange County");
-    expect(
-      resolveLocationPresentation({
-        name: "Sweden",
-        country: "Sweden",
-        country_code: "se",
-        result_type: "country",
-      })?.primaryLabel,
-    ).toBe("Sverige");
-  });
-
-  test("länets Geoapify-identitet och koordinater förblir oförändrade", () => {
-    const normalized = normalizeLocationFeature({
+  test("behåller Geoapifys geografiska namn och provideridentitet vid länsval", () => {
+    const candidate = normalizeLocationFeature({
       properties: {
         place_id: "geoapify-stockholm-county",
         name: "Stockholm County",
@@ -86,16 +50,29 @@ describe("svensk geografisk presentation", () => {
         lon: 18.1,
       },
     });
-    expect(normalized).toMatchObject({
+
+    expect(candidate).toMatchObject({
       placeId: "geoapify-stockholm-county",
-      label: "Stockholms län, Sverige",
-      primaryLabel: "Stockholms län",
-      secondaryLabel: "Län · Sverige",
+      label: "Stockholm County, Sweden",
+      primaryLabel: "Stockholm County",
+      secondaryLabel: "Län · Sweden",
       resultType: "county",
       lat: 59.3,
       lng: 18.1,
     });
-    expect(isBroadAdministrativeSearchArea(normalized?.resultType, normalized?.label)).toBe(true);
+    expect(isBroadAdministrativeSearchArea(candidate?.resultType, candidate?.label)).toBe(true);
+
+    expect(
+      resolveLocationPresentation({
+        name: "Stockholms län",
+        country: "Sverige",
+        result_type: "county",
+      }),
+    ).toEqual({
+      primaryLabel: "Stockholms län",
+      secondaryLabel: "Län · Sverige",
+      selectionLabel: "Stockholms län, Sverige",
+    });
   });
 
   test("gatuadress använder verifierad gata och ort utan konstruerad adress", () => {
