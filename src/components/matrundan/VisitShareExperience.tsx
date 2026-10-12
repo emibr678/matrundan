@@ -21,9 +21,10 @@ export function VisitShareExperience({
   id: string;
 }) {
   if (groups.length === 0) return null;
-  const groupNames = new Intl.ListFormat("sv", { style: "long", type: "conjunction" }).format(
-    groups,
-  );
+  const groupNames =
+    groups.length <= 3
+      ? new Intl.ListFormat("sv", { style: "long", type: "conjunction" }).format(groups)
+      : `${groups.length} grupper`;
   return (
     <div
       className="min-w-0 space-y-2 rounded-xl border border-border/70 p-3 [overflow-wrap:anywhere]"
@@ -31,7 +32,7 @@ export function VisitShareExperience({
     >
       <OccasionPicker
         id={id}
-        label="Typ av upplevelse för matstället"
+        label="Typ av upplevelse"
         value={value}
         onChange={(next) => {
           onChange(next);
@@ -40,11 +41,11 @@ export function VisitShareExperience({
         }}
         disabled={disabled}
         showGuide={false}
-        description={`${groupNames} har inte valt någon typ ännu. ${
+        description={
           value.length > 0
-            ? "Här är ett förslag som du kan ändra."
-            : "Du kan välja upp till två typer."
-        }`}
+            ? "Ändra förslaget om du vill."
+            : "Välj upp till två typer, eller lämna tomt."
+        }
       />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <Checkbox
@@ -57,9 +58,11 @@ export function VisitShareExperience({
         />
         <span>Spara de här typerna i {groupNames}</span>
       </label>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        Avmarkera om du vill välja senare.
-      </p>
+      {value.length > 0 ? (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Avmarkera om du vill välja senare.
+        </p>
+      ) : null}
     </div>
   );
 }

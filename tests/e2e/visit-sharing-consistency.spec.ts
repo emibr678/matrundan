@@ -797,8 +797,13 @@ for (const choice of ["default", "changed", "opt-out"] as const) {
     const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
     await dialog.getByRole("button", { name: /Familjen/ }).click();
     const field = dialog.getByTestId("share-experience");
-    await expect(field.getByText(/Jobbgänget.*har inte valt någon typ ännu/)).toBeVisible();
-    await expect(field.getByText(/Familjen.*har inte valt någon typ ännu/)).toHaveCount(0);
+    await expect(
+      field.getByRole("checkbox", {
+        name: "Spara de här typerna i Jobbgänget med ett lite längre namn",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(field.getByText("Ändra förslaget om du vill.")).toBeVisible();
     await expect(
       field.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -874,6 +879,8 @@ for (const manual of [false, true]) {
     const field = dialog.getByTestId("share-experience");
     await expect(field.getByRole("button", { pressed: true })).toHaveCount(0);
     await expect(field.getByRole("checkbox")).toBeDisabled();
+    await expect(field.getByText("Välj upp till två typer, eller lämna tomt.")).toBeVisible();
+    await expect(field.getByText("Avmarkera om du vill välja senare.")).toHaveCount(0);
     await expect(
       dialog.getByRole("button", { name: "Lägg till besöket", exact: true }),
     ).toBeEnabled();
