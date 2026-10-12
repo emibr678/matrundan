@@ -1031,7 +1031,9 @@ test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)",
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
-  await expect(search.getByRole("listbox").getByText("Alla sökförslag kunde inte hämtas.")).toBeVisible();
+  await expect(
+    search.getByRole("listbox").getByText("Alla sökförslag kunde inte hämtas."),
+  ).toBeVisible();
   await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
   await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
   expect(mocked.getHintSearchCount()).toBe(2);
@@ -1051,10 +1053,14 @@ test("partiellt fel visar fungerande förslag, berört område och tillåter omf
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
   await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
-  await expect(search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/)).toBeVisible();
+  await expect(
+    search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/),
+  ).toBeVisible();
   await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
   await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
-  await expect(search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/)).toHaveCount(0);
+  await expect(
+    search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/),
+  ).toHaveCount(0);
   expect(mocked.getHintSearchCount()).toBe(2);
 });
 
