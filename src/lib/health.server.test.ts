@@ -4,6 +4,7 @@ import { handleHealthRequest } from "./health.server";
 
 const SUPABASE_URL = "https://example.supabase.co";
 const PUBLISHABLE_KEY = "test-publishable-key";
+const SERVICE_ROLE_KEY = "test-server-only-key";
 
 type TestFetch = (
   input: Parameters<typeof fetch>[0],
@@ -14,11 +15,13 @@ async function withHealthEnvironment<T>(fetchImpl: TestFetch, run: () => Promise
   const originalFetch = globalThis.fetch;
   const originalUrl = process.env.SUPABASE_URL;
   const originalKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  const originalServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const originalEnvironment = process.env.MATRUNDAN_ENVIRONMENT;
 
   globalThis.fetch = fetchImpl as typeof fetch;
   process.env.SUPABASE_URL = SUPABASE_URL;
   process.env.SUPABASE_PUBLISHABLE_KEY = PUBLISHABLE_KEY;
+  process.env.SUPABASE_SERVICE_ROLE_KEY = SERVICE_ROLE_KEY;
   process.env.MATRUNDAN_ENVIRONMENT = "prod";
 
   try {
@@ -29,6 +32,8 @@ async function withHealthEnvironment<T>(fetchImpl: TestFetch, run: () => Promise
     else process.env.SUPABASE_URL = originalUrl;
     if (originalKey == null) delete process.env.SUPABASE_PUBLISHABLE_KEY;
     else process.env.SUPABASE_PUBLISHABLE_KEY = originalKey;
+    if (originalServiceKey == null) delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+    else process.env.SUPABASE_SERVICE_ROLE_KEY = originalServiceKey;
     if (originalEnvironment == null) delete process.env.MATRUNDAN_ENVIRONMENT;
     else process.env.MATRUNDAN_ENVIRONMENT = originalEnvironment;
   }
@@ -62,6 +67,23 @@ describe("platform health", () => {
     const headers = new Headers(databaseRequest?.init?.headers);
     expect(headers.get("apikey")).toBe(PUBLISHABLE_KEY);
     expect(headers.get("authorization")).toBeNull();
+  });
+
+  test("rapporterar degraded utan nätanrop när servernyckeln för skrivningar saknas", async () => {
+    let requests = 0;
+    const fakeFetch: TestFetch = async () => {
+      requests += 1;
+      return Response.json(true);
+    };
+
+    const response = await withHealthEnvironment(fakeFetch, async () => {
+      delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+      return handleHealthRequest(new Request("https://staging.matrundan.workers.dev/api/health"));
+    });
+
+    expect(response.status).toBe(503);
+    expect(await response.json()).toEqual({ status: "degraded" });
+    expect(requests).toBe(0);
   });
 
   test("rapporterar degraded om Postgres-proben misslyckas", async () => {
