@@ -241,6 +241,7 @@ export function PlaceDiscovery({
   const [queuedMore, setQueuedMore] = React.useState(false);
   const [mapFilling, setMapFilling] = React.useState(false);
   const completedMapFillKeyRef = React.useRef<string | null>(null);
+  const attemptedMapFillKeyRef = React.useRef<string | null>(null);
   const [boundaryGeometryByAreaId, setBoundaryGeometryByAreaId] = React.useState<
     Record<string, SearchAreaBoundaryGeometry>
   >({});
@@ -365,10 +366,15 @@ export function PlaceDiscovery({
         }),
       ]);
       if (!active) return;
-      if (settled.every((outcome) => outcome.status === "fulfilled")) {
+      const failedHintAreas =
+        settled[0].status === "fulfilled" ? settled[0].value.failedAreaLabels : [];
+      if (
+        settled.every((outcome) => outcome.status === "fulfilled") &&
+        failedHintAreas.length === 0
+      ) {
         loadedNameHintsKeyRef.current = key;
       }
-      if (settled[0].status === "fulfilled") setNameHints(settled[0].value);
+      if (settled[0].status === "fulfilled") setNameHints(settled[0].value.hints);
       if (settled[1].status === "fulfilled") {
         setCanonicalHints(settled[1].value.results.filter((result) => result.kind === "canonical"));
       }
@@ -377,6 +383,10 @@ export function PlaceDiscovery({
           settled.every((result) => result.status === "rejected")
             ? "Sökförslagen kunde inte hämtas. Försök igen."
             : "Alla sökförslag kunde inte hämtas.",
+        );
+      } else if (failedHintAreas.length > 0) {
+        setNameHintsError(
+          `Kunde inte hämta sökförslag för ${failedHintAreas.join(", ")}. Övriga förslag visas.`,
         );
       }
       setNameHintsKey(key);
@@ -395,6 +405,7 @@ export function PlaceDiscovery({
     nameHintsActive,
     query,
     radiusKm,
+    retry,
   ]);
 
   const activeAreasWithGeometry = React.useMemo(
@@ -922,16 +933,22 @@ export function PlaceDiscovery({
     )
       return;
     const mapVisible = resultView === "karta" || window.matchMedia("(min-width: 1024px)").matches;
-    if (!mapVisible) return;
+    if (!mapVisible) {
+      // A failed map refill may be tried once again when the user returns to the map.
+      attemptedMapFillKeyRef.current = null;
+      return;
+    }
 
-    const searchKey = JSON.stringify([
-      groupId,
-      query,
-      radiusKm,
-      activeAreas.map((area) => [area.id, searchAreaMode(area), area.placeId]),
-    ]);
-    if (completedMapFillKeyRef.current === searchKey) return;
-    completedMapFillKeyRef.current = searchKey;
+    // The same textual query with a different structured filter is a new search.
+    const searchKey = JSON.stringify([groupId, currentSearchKey]);
+    const attemptKey = JSON.stringify([searchKey, retry]);
+    if (
+      completedMapFillKeyRef.current === searchKey ||
+      attemptedMapFillKeyRef.current === attemptKey
+    )
+      return;
+    // Guard against an automatic retry loop when the provider remains unavailable.
+    attemptedMapFillKeyRef.current = attemptKey;
     const requestId = requestRef.current;
     const budget: SearchBudget = {
       requests: Math.min(8, budgetRemaining.requests),
@@ -952,6 +969,9 @@ export function PlaceDiscovery({
     })
       .then((filled) => {
         if (!filled || requestRef.current !== requestId) return;
+        if (filled.failedAreaLabels.length === 0) {
+          completedMapFillKeyRef.current = searchKey;
+        }
         setResults(filled.results);
         setHasMore(filled.hasMore);
         setNextOffset(filled.nextOffset);
@@ -978,6 +998,7 @@ export function PlaceDiscovery({
     activeAreas,
     areaProgress,
     budgetRemaining,
+    currentSearchKey,
     fillProviderPages,
     groupId,
     hasMore,
@@ -993,6 +1014,7 @@ export function PlaceDiscovery({
     resultMatchesSearch,
     resultView,
     results,
+    retry,
   ]);
 
   const allSourceMatches = React.useMemo<SourceMatchResult[]>(() => {
