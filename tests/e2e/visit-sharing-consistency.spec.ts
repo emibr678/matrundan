@@ -803,7 +803,7 @@ for (const choice of ["default", "changed", "opt-out"] as const) {
         exact: true,
       }),
     ).toBeVisible();
-    await expect(field.getByText("Ändra förslaget om du vill.")).toBeVisible();
+    await expect(field.getByText("Ändra förslaget om du vill.")).toHaveCount(0);
     await expect(
       field.getByRole("button", { name: "Typ av upplevelse: Avslappnat", exact: true }),
     ).toHaveAttribute("aria-pressed", "true");
@@ -879,7 +879,7 @@ for (const manual of [false, true]) {
     const field = dialog.getByTestId("share-experience");
     await expect(field.getByRole("button", { pressed: true })).toHaveCount(0);
     await expect(field.getByRole("checkbox")).toBeDisabled();
-    await expect(field.getByText("Välj upp till två typer, eller lämna tomt.")).toBeVisible();
+    await expect(field.getByText("Välj en eller två typer, eller fortsätt utan.")).toBeVisible();
     await expect(field.getByText("Avmarkera om du vill välja senare.")).toHaveCount(0);
     await expect(
       dialog.getByRole("button", { name: "Lägg till besöket", exact: true }),
@@ -965,6 +965,14 @@ for (const suggestion of ["default", "two"] as const) {
     await page.setViewportSize({ width: 360, height: 480 });
     const saveAction = confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" });
     await expect(saveAction).toBeInViewport();
+    const help = field.getByRole("button", { name: "Så fungerar Typ av upplevelse" });
+    await help.click();
+    await expect(
+      field.getByRole("region", { name: "Så fungerar Typ av upplevelse" }),
+    ).toContainText("Olika grupper kan välja olika typer för samma ställe.");
+    await expect(saveAction).toBeInViewport();
+    await help.click();
+    await expect(help).toHaveAttribute("aria-expanded", "false");
     await field.getByRole("checkbox").scrollIntoViewIfNeeded();
     await expect(saveAction).toBeInViewport();
     expect(writes).toHaveLength(0);
@@ -1035,4 +1043,30 @@ test("huvudhandlingen förblir synlig i en kort mobil delningsdialog", async ({ 
   await dialog.getByTestId("share-experience").getByRole("checkbox").scrollIntoViewIfNeeded();
   await expect(primaryAction).toBeInViewport();
   await expectNoHorizontalOverflow(page);
+});
+
+test("hjälp om Typ av upplevelse öppnas inline utan extra dialog", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 480 });
+  const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
+  await dialog.getByRole("button", { name: /Familjen/ }).click();
+  const field = dialog.getByTestId("share-experience");
+  const help = field.getByRole("button", { name: "Så fungerar Typ av upplevelse" });
+  const region = field.getByRole("region", { name: "Så fungerar Typ av upplevelse" });
+  const primaryAction = dialog.getByRole("button", { name: /^Lägg till besöket/ });
+
+  await expect(help).toHaveAttribute("aria-expanded", "false");
+  await expect(region).toHaveCount(0);
+  await expect(field.getByText("Ändra förslaget om du vill.")).toHaveCount(0);
+  await help.click();
+  await expect(help).toHaveAttribute("aria-expanded", "true");
+  await expect(region).toBeVisible();
+  await expect(region).toContainText("Olika grupper kan välja olika typer för samma ställe.");
+  await expect(page.getByRole("dialog")).toHaveCount(1);
+  await expect(primaryAction).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
+  await capture(page, testInfo, "issue-396-inline-help-mobile");
+  await help.click();
+  await expect(region).toHaveCount(0);
+  await expect(help).toHaveAttribute("aria-expanded", "false");
+  await expect(primaryAction).toBeInViewport();
 });

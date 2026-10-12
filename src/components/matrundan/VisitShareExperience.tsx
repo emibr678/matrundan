@@ -40,12 +40,9 @@ export function VisitShareExperience({
           else if (value.length === 0) onConfirmedChange(true);
         }}
         disabled={disabled}
-        showGuide={false}
-        description={
-          value.length > 0
-            ? "Ändra förslaget om du vill."
-            : "Välj upp till två typer, eller lämna tomt."
-        }
+        guideMode="inline"
+        showInstructions={value.length === 0}
+        description="Välj en eller två typer, eller fortsätt utan."
       />
       <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
         <Checkbox
