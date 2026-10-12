@@ -13,8 +13,11 @@ function supabaseHealthHeaders(publishableKey: string): HeadersInit {
 async function checkSupabaseReachability(): Promise<void> {
   const supabaseUrl = process.env.SUPABASE_URL?.replace(/\/+$/, "");
   const publishableKey = process.env.SUPABASE_PUBLISHABLE_KEY;
+  // The public probes alone cannot guarantee that authenticated writes work.
+  // Validate the server-only binding used by canonical place mutations as well.
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
 
-  if (!supabaseUrl || !publishableKey) {
+  if (!supabaseUrl || !publishableKey || !serviceRoleKey) {
     throw new Error("HEALTH_CONFIG_MISSING");
   }
 
