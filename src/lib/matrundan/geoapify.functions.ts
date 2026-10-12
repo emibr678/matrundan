@@ -1108,6 +1108,11 @@ export interface PlaceNameHint {
   outsideArea: boolean;
 }
 
+export interface PlaceNameHintsResponse {
+  hints: PlaceNameHint[];
+  failedAreaLabels: string[];
+}
+
 /** Wider than the user's chosen browse radius, but not an invisible search limit. */
 const AUTOCOMPLETE_NEARBY_RADIUS_METERS = 100_000;
 
@@ -1140,7 +1145,7 @@ function foodAmenity(properties: Record<string, unknown>): boolean {
 export const searchPlaceNameHints = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => nameHintSchema.parse(input))
-  .handler(async ({ data, context }): Promise<PlaceNameHint[]> => {
+  .handler(async ({ data, context }): Promise<PlaceNameHintsResponse> => {
     const access = await context.supabase.rpc("get_place_discovery_context_v1", {
       _group_id: data.groupId,
     });
@@ -1148,8 +1153,9 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
     // The name itself may equal a cuisine label (Pizza, Italienskt etc.).
     // Only an explicit filter selection switches the search mode.
     // Bound all cache-miss provider requests across every selected area.
-    return (
-      await withPlaceSearchBudget({ requests: 25, credits: 40, timeoutMs: 9_000 }, async () => {
+    const response = await withPlaceSearchBudget(
+      { requests: 25, credits: 40, timeoutMs: 9_000 },
+      async () => {
         const responses = await Promise.allSettled(
           data.centers.map(async (center) => {
             const boundary =
@@ -1183,6 +1189,9 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
         // the union of chosen search areas; never treat an origin as a filter.
         const areas = responses.flatMap((outcome) =>
           outcome.status === "fulfilled" ? [outcome.value] : [],
+        );
+        const failedAreaLabels = data.centers.flatMap((center, index) =>
+          responses[index].status === "rejected" ? [center.label] : [],
         );
         const unresolvedBoundary = responses.some(
           (outcome, index) =>
@@ -1255,6 +1264,7 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
           return { hint, providerRank };
         });
         return {
+          failedAreaLabels,
           hints: hints
             .sort(
               (a, b) =>
@@ -1265,8 +1275,9 @@ export const searchPlaceNameHints = createServerFn({ method: "POST" })
             .slice(0, 12)
             .map(({ hint }) => hint),
         };
-      })
-    ).hints;
+      },
+    );
+    return { hints: response.hints, failedAreaLabels: response.failedAreaLabels };
   });
 
 const selectedNameHintSchema = z.object({
