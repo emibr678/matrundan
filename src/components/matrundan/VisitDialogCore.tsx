@@ -983,9 +983,7 @@ export function VisitDialog({
               disabled={isBusy}
             />
           </div>
-          <AlertDialogFooter
-            className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3"
-          >
+          <AlertDialogFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3">
             <AlertDialogCancel className="min-h-11" disabled={isBusy}>
               Ändra grupper
             </AlertDialogCancel>
