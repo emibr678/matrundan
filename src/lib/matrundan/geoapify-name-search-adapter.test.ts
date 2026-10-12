@@ -151,8 +151,7 @@ function adapter(
   return {
     calls,
     hintsResponse,
-    hints: async (input: Parameters<typeof hintsResponse>[0]) =>
-      (await hintsResponse(input)).hints,
+    hints: async (input: Parameters<typeof hintsResponse>[0]) => (await hintsResponse(input)).hints,
     resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
       (
         functions.resolvePlaceNameHint as (args: {
@@ -1486,15 +1485,12 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
   });
 
   test("alla felande sökområden ger ett riktigt providerfel, inte noll förslag", async () => {
-    const a = adapter(
-      () => {
-        throw new Error("Provider unavailable");
-      },
-      ctx,
+    const a = adapter(() => {
+      throw new Error("Provider unavailable");
+    }, ctx);
+    await expect(a.hintsResponse({ text: "Ox Lan", centers: [area], radiusKm: 1 })).rejects.toThrow(
+      "kunde inte hämtas",
     );
-    await expect(
-      a.hintsResponse({ text: "Ox Lan", centers: [area], radiusKm: 1 }),
-    ).rejects.toThrow("kunde inte hämtas");
   });
 
   test("boundary används endast för gruppering, inte för att dölja förslag utanför den", async () => {
