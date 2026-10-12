@@ -408,7 +408,11 @@ export function AddPlaceResultDialogs({
         resetPending();
         toast.info("Det här stället finns redan i gruppen.");
       } else {
-        toast.error(message);
+        toast.error(
+          /^GEOAPIFY_[A-Z_]+/.test(message)
+            ? "Matstället kunde inte verifieras mot karttjänsten. Försök igen eller välj en annan träff."
+            : message,
+        );
       }
     } finally {
       setBusy(false);

@@ -3,9 +3,18 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const workflowPath = ".github/workflows/cloudflare-staging-deploy.yml";
+const wrangler = JSON.parse(readFileSync(resolve(process.cwd(), "wrangler.json"), "utf8")) as {
+  env: Record<string, { secrets?: { required?: string[] } }>;
+};
 const workflow = readFileSync(resolve(process.cwd(), workflowPath), "utf8");
 
 describe("staging-deployens kontrakt", () => {
+  test("kräver staging-servernyckeln vid Worker-versionuppladdning", () => {
+    expect(wrangler.env.staging.secrets?.required).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(wrangler.env.prod.secrets?.required).toContain("SUPABASE_SERVICE_ROLE_KEY");
+    expect(workflow).toContain("--env staging");
+  });
+
   test("anropas direkt av samma CI-DAG och deployar endast current main", () => {
     expect(workflow).toContain("workflow_call:");
     expect(workflow).not.toContain("workflow_run:");

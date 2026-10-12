@@ -1,5 +1,5 @@
-import { X } from "lucide-react";
-import { shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
+import { Map, MapPin, X } from "lucide-react";
+import { searchAreaMode, shortSearchAreaLabel } from "@/lib/matrundan/search-areas";
 import type { SearchArea } from "@/lib/matrundan/types";
 
 export function SearchAreaPill({
@@ -11,12 +11,19 @@ export function SearchAreaPill({
   onRemove: () => void;
   removeAriaLabel: string;
 }) {
+  const isBoundary = searchAreaMode(area) === "boundary";
+
   return (
     <div
       role="listitem"
-      className="flex h-8 max-w-full items-center gap-0.5 rounded-full border border-primary/40 bg-primary/10 pl-2.5 pr-0.5 text-xs"
+      className="flex h-8 max-w-full items-center gap-1 rounded-full border border-primary/40 bg-primary/10 pl-2.5 pr-0.5 text-xs"
       title={area.label}
     >
+      {isBoundary ? (
+        <Map aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      ) : (
+        <MapPin aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+      )}
       <span className="min-w-0 max-w-[min(14rem,calc(100vw-6rem))] truncate whitespace-nowrap">
         {shortSearchAreaLabel(area.label)}
       </span>

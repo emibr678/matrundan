@@ -16,6 +16,7 @@ function response(id: string, categories: string[], lat = 59) {
         geometry: { type: "Point", coordinates: [18, lat] },
         properties: {
           place_id: id,
+          feature_type: "details",
           name: "Café Test",
           categories,
           lat,
@@ -49,13 +50,45 @@ describe("verified provider boundary", () => {
     expect(place).not.toHaveProperty("raw");
     expect(JSON.stringify(place)).not.toContain("fixture-server-only");
   });
-  test("unrelated returned ID or non-food feature cannot establish a provider place", async () => {
-    mockProvider(response("different:1", ["catering.cafe"]));
-    await expect(fetchVerifiedProviderPlace("requested:1", true)).rejects.toThrow(
-      "GEOAPIFY_MALFORMED",
-    );
+  test("different Geoapify IDs can identify the same stable OSM venue", async () => {
+    mockProvider(response("updated:1", ["catering.cafe"]));
+    const place = await fetchVerifiedProviderPlace("requested:1", true, {
+      osmType: "node",
+      osmId: "389",
+    });
+    expect(place.externalId).toBe("requested:1");
+    expect(place.osmType).toBe("node");
+    expect(place.osmId).toBe("389");
+  });
+
+  test("wrong OSM identity, invalid categories and ambiguous details remain blocked", async () => {
+    mockProvider(response("updated:2", ["catering.cafe"]));
+    await expect(
+      fetchVerifiedProviderPlace("requested:2", true, { osmType: "way", osmId: "389" }),
+    ).rejects.toThrow("GEOAPIFY_MALFORMED");
     mockProvider(response("hospital:1", ["healthcare.hospital"]));
     await expect(fetchVerifiedProviderPlace("hospital:1", true)).rejects.toThrow(
+      "GEOAPIFY_MALFORMED",
+    );
+    const conflicting = response("unrelated:2", ["catering.cafe"]);
+    conflicting.features.push(response("unrelated:3", ["catering.cafe"]).features[0]);
+    mockProvider(conflicting);
+    await expect(fetchVerifiedProviderPlace("requested:2", true)).rejects.toThrow(
+      "GEOAPIFY_MALFORMED",
+    );
+  });
+
+  test("changed ID without verifiable OSM source or a real details feature is rejected", async () => {
+    const noSource = response("updated:3", ["catering.cafe"]);
+    noSource.features[0].properties.datasource.raw = {} as { osm_type: string; osm_id: number };
+    mockProvider(noSource);
+    await expect(fetchVerifiedProviderPlace("requested:3", true)).rejects.toThrow(
+      "GEOAPIFY_MALFORMED",
+    );
+    const unrelatedFeature = response("requested:3", ["catering.cafe"]);
+    unrelatedFeature.features[0].properties.feature_type = "building";
+    mockProvider(unrelatedFeature);
+    await expect(fetchVerifiedProviderPlace("requested:3", true)).rejects.toThrow(
       "GEOAPIFY_MALFORMED",
     );
   });

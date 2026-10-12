@@ -17,7 +17,11 @@ export const resolveProviderPlace = createServerFn({ method: "POST" })
       throw new Error("Gruppens admin behöver bekräfta matchningen.");
     }
     const { fetchVerifiedProviderPlace } = await import("./verified-provider-place.server");
-    const provider = await fetchVerifiedProviderPlace(data.providerPlaceId, data.choice !== "auto");
+    const provider = await fetchVerifiedProviderPlace(
+      data.providerPlaceId,
+      data.choice !== "auto",
+      data.expectedSource,
+    );
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const result = await supabaseAdmin.rpc("resolve_verified_provider_place_v1", {
       _actor_id: context.userId,

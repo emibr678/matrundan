@@ -301,7 +301,15 @@ export function SearchAreaControls({
       )}
 
       {pointCount > 0 ? (
-        <div className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5">
+        <div
+          role="group"
+          aria-label={
+            pointCount === 1
+              ? `Vi söker inom ${radiusKm} km från ${shortSearchAreaLabel(pointAreas[0].label)}.`
+              : `Vi söker inom ${radiusKm} km från de valda platserna.`
+          }
+          className="flex min-w-0 items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 px-3 py-2.5"
+        >
           <div className="min-w-0 space-y-0.5">
             <Label htmlFor="place-radius" className="block text-sm font-medium">
               Avstånd
@@ -324,8 +332,8 @@ export function SearchAreaControls({
       {boundaryCount > 0 && pointCount > 0 ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
           {boundaryCount === 1
-            ? `I ${shortSearchAreaLabel(boundaryAreas[0].label)} söker vi i hela området.`
-            : "Vi söker i hela de andra valda områdena."}
+            ? `Vi söker också i hela ${shortSearchAreaLabel(boundaryAreas[0].label)}.`
+            : "Vi söker också i hela de andra valda områdena."}
         </p>
       ) : null}
     </section>

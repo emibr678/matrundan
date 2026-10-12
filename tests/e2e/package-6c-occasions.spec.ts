@@ -102,8 +102,9 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
   ).toHaveCount(0);
 
   await manualDialog.getByRole("button", { name: "Så fungerar Typ av upplevelse" }).click();
-  const guideCopy = page.getByText(/Typ av upplevelse gäller matstället/).last();
+  const guideCopy = page.getByText(/Typ av upplevelse beskriver vilken sorts matupplevelse/).last();
   await expect(guideCopy).toBeVisible();
+  await expect(guideCopy).toContainText("Olika grupper kan välja olika typer för samma ställe.");
   await expect(page.getByText(/Ett enkelt gatukök och en finkrog/).last()).toBeVisible();
   await expect(page.getByText(/Båda kan få lika höga betyg/).last()).toBeVisible();
   await expect(page.getByText(/Valen hjälper gruppen/).last()).toBeVisible();
