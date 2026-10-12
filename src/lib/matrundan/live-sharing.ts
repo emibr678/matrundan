@@ -4,6 +4,7 @@
  */
 import { z } from "zod";
 import { rpcClient } from "./rpc-client";
+import type { Occasion } from "./types";
 
 const visibleParticipantSchema = z.object({
   id: z.string().min(1),
@@ -19,6 +20,7 @@ const visitShareTargetSchema = z.object({
   emoji: z.string(),
   alreadyLinked: z.boolean(),
   placeExistsInGroup: z.boolean(),
+  hasExperienceClassification: z.boolean().default(true),
   externalParticipantCount: z.number().int().nonnegative(),
   visibleParticipants: z.array(visibleParticipantSchema),
   relevantReviewCount: z.number().int().nonnegative(),
@@ -34,6 +36,7 @@ const placeShareTargetSchema = z.object({
   name: z.string(),
   emoji: z.string(),
   placeExistsInGroup: z.boolean(),
+  hasExperienceClassification: z.boolean().default(true),
   sharedVisitsCountForProgression: z.boolean(),
 });
 
@@ -64,6 +67,7 @@ export interface VisitShareTarget {
   emoji: string;
   alreadyLinked: boolean;
   placeExistsInGroup: boolean;
+  hasExperienceClassification: boolean;
   externalParticipantCount: number;
   visibleParticipants: VisibleParticipant[];
   relevantReviewCount: number;
@@ -79,6 +83,7 @@ export interface PlaceShareTarget {
   name: string;
   emoji: string;
   placeExistsInGroup: boolean;
+  hasExperienceClassification: boolean;
   sharedVisitsCountForProgression: boolean;
 }
 
@@ -130,7 +135,23 @@ export async function shareVisitToGroup(
   shareOwnComment: boolean,
   allowStrongDuplicate = false,
   shareOwnPhoto = false,
+  confirmedExperience?: Occasion[],
 ): Promise<string> {
+  if (confirmedExperience?.length) {
+    return rpcClient.call(
+      "share_visit_to_group_v6",
+      {
+        _visit_id: visitId,
+        _target_group_id: targetGroupId,
+        _share_own_comment: shareOwnComment,
+        _allow_strong_duplicate: allowStrongDuplicate,
+        _share_own_photo: shareOwnPhoto,
+        _confirmed_occasions: confirmedExperience,
+      },
+      z.string().min(1),
+      "Kunde inte dela besöket.",
+    );
+  }
   return rpcClient.call(
     "share_visit_to_group_v5",
     {

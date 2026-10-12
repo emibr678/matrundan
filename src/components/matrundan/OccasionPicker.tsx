@@ -25,6 +25,10 @@ import {
   type Occasion,
 } from "@/lib/matrundan/types";
 
+// One shared definition for compact and expanded Typ av upplevelse help.
+const OCCASION_GUIDE_INTRO =
+  "Typ av upplevelse beskriver vilken sorts matupplevelse gruppen förknippar med ett ställe. Ett ställe kan ha en eller två typer. Olika grupper kan välja olika typer för samma ställe.";
+
 const OccasionGuideTrigger = React.forwardRef<
   React.ElementRef<typeof Button>,
   React.ComponentPropsWithoutRef<typeof Button> & { compact: boolean }
@@ -48,10 +52,12 @@ export function OccasionGuideContent({
   showHeading = true,
   showIntro = true,
   showConclusion = true,
+  compact = false,
 }: {
   showHeading?: boolean;
   showIntro?: boolean;
   showConclusion?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div className="min-w-0 space-y-3">
@@ -64,27 +70,30 @@ export function OccasionGuideContent({
                 showHeading ? "mt-1 " : ""
               }text-xs leading-relaxed text-muted-foreground`}
             >
-              Typ av upplevelse gäller matstället och beskriver vilken sorts matupplevelse gruppen
-              förknippar det med. Ett matställe kan ha en eller två typer.
+              {OCCASION_GUIDE_INTRO}
             </p>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika höga
-              betyg – fast av olika skäl.
-            </p>
+            {!compact ? (
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                Ett enkelt gatukök och en finkrog är olika slags matupplevelser. Båda kan få lika
+                höga betyg – fast av olika skäl.
+              </p>
+            ) : null}
           </>
         ) : null}
       </div>
-      <div className="space-y-2.5">
-        {OCCASION_VALUES.map((occasion) => (
-          <div key={occasion}>
-            <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              {OCCASION_DESCRIPTION[occasion]}
-            </p>
-          </div>
-        ))}
-      </div>
-      {showConclusion ? (
+      {!compact ? (
+        <div className="space-y-2.5">
+          {OCCASION_VALUES.map((occasion) => (
+            <div key={occasion}>
+              <div className="text-sm font-medium">{OCCASION_LABEL[occasion]}</div>
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                {OCCASION_DESCRIPTION[occasion]}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : null}
+      {showConclusion && !compact ? (
         <p className="text-xs leading-relaxed text-muted-foreground">
           Valen hjälper gruppen att hitta rätt sorts matställe för stunden och gör betygen lättare
           att förstå och jämföra.
@@ -215,6 +224,7 @@ export function OccasionSummary({ value }: { value: Occasion[] }) {
 
 export function OccasionPicker({
   id,
+  label = "Typ av upplevelse",
   value,
   onChange,
   disabled = false,
@@ -222,8 +232,10 @@ export function OccasionPicker({
   description,
   showGuide = true,
   showInstructions = true,
+  guideMode = "default",
 }: {
   id: string;
+  label?: string;
   value: Occasion[];
   onChange: (value: Occasion[]) => void;
   disabled?: boolean;
@@ -231,8 +243,11 @@ export function OccasionPicker({
   description?: string;
   showGuide?: boolean;
   showInstructions?: boolean;
+  guideMode?: "default" | "inline";
 }) {
+  const [showInlineGuide, setShowInlineGuide] = React.useState(false);
   const descriptionId = `${id}-description`;
+  const guideId = `${id}-guide`;
   const descriptionText =
     description ?? (required ? "Välj en eller två." : "Valfritt – välj upp till två.");
   const selected = normalizeOccasionClassification(value);
@@ -245,9 +260,34 @@ export function OccasionPicker({
   return (
     <div className="space-y-2">
       <div className="flex min-h-11 items-center justify-between gap-2">
-        <Label id={`${id}-label`}>Typ av upplevelse</Label>
-        {showGuide ? <OccasionGuide /> : null}
+        <Label id={`${id}-label`}>{label}</Label>
+        {showGuide ? (
+          guideMode === "inline" ? (
+            <button
+              type="button"
+              aria-label="Så fungerar Typ av upplevelse"
+              aria-expanded={showInlineGuide}
+              aria-controls={guideId}
+              onClick={() => setShowInlineGuide((open) => !open)}
+              className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <CircleHelp className="h-4 w-4" aria-hidden="true" />
+            </button>
+          ) : (
+            <OccasionGuide />
+          )
+        ) : null}
       </div>
+      {showGuide && guideMode === "inline" && showInlineGuide ? (
+        <div
+          id={guideId}
+          role="region"
+          aria-label="Så fungerar Typ av upplevelse"
+          className="rounded-xl bg-muted/40 p-3"
+        >
+          <OccasionGuideContent showHeading={false} showConclusion={false} compact />
+        </div>
+      ) : null}
       {showInstructions ? (
         <p id={descriptionId} className="text-xs leading-relaxed text-muted-foreground">
           {descriptionText}

@@ -1,4 +1,5 @@
 import type { StrongVisitDuplicateCandidate } from "./visit-duplicates";
+import type { Occasion } from "./types";
 
 export interface VisitShareJob {
   visitId: string;
@@ -7,6 +8,7 @@ export interface VisitShareJob {
   shareComment: boolean;
   sharePhoto: boolean;
   alreadyLinked?: boolean;
+  confirmedExperience?: Occasion[];
 }
 export type DuplicateDecision = "share" | "skip" | "cancel";
 export interface VisitShareResult {
