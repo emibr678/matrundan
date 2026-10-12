@@ -39,10 +39,18 @@ async function fetchDetails(providerPlaceId: string): Promise<VerifiedProviderPl
   if (!response.ok) throw new Error("GEOAPIFY_UNAVAILABLE");
   const payload = (await response.json()) as { features?: unknown[] };
   if (!Array.isArray(payload.features)) throw new Error("GEOAPIFY_MALFORMED");
-  const suggestions = payload.features.map((feature) =>
-    normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]),
+  // An ID lookup returns one authoritative details record. Geoapify may
+  // regenerate its place_id even when the underlying OSM object is unchanged.
+  // Never select an arbitrary related feature or write using that changed ID.
+  const details = payload.features.filter(
+    (feature) =>
+      feature &&
+      typeof feature === "object" &&
+      (feature as { properties?: { feature_type?: unknown } }).properties?.feature_type ===
+        "details",
   );
-  const place = suggestions.find((suggestion) => suggestion?.externalId === providerPlaceId);
+  if (details.length !== 1) throw new Error("GEOAPIFY_MALFORMED");
+  const place = normalizePlaceFeature(details[0] as Parameters<typeof normalizePlaceFeature>[0]);
   if (!place || !Number.isFinite(place.lat) || !Number.isFinite(place.lng)) {
     throw new Error("GEOAPIFY_MALFORMED");
   }
@@ -64,6 +72,10 @@ async function fetchDetails(providerPlaceId: string): Promise<VerifiedProviderPl
   }
   if (place.lat! < -90 || place.lat! > 90 || place.lng! < -180 || place.lng! > 180)
     throw new Error("GEOAPIFY_MALFORMED");
+  // A changed provider ID is acceptable only with a stable OSM source identity.
+  if (place.externalId !== providerPlaceId && (!metadata.osmType || !metadata.osmId)) {
+    throw new Error("GEOAPIFY_MALFORMED");
+  }
   return {
     externalId: providerPlaceId,
     name: place.name,
@@ -84,8 +96,18 @@ async function fetchDetails(providerPlaceId: string): Promise<VerifiedProviderPl
 export async function fetchVerifiedProviderPlace(
   providerPlaceId: string,
   fresh = false,
+  expectedSource?: { osmType: string; osmId: string },
 ): Promise<VerifiedProviderPlace> {
-  return fresh
-    ? fetchDetails(providerPlaceId)
-    : verifiedDetails.get(providerPlaceId, () => fetchDetails(providerPlaceId));
+  const verified = fresh
+    ? await fetchDetails(providerPlaceId)
+    : await verifiedDetails.get(providerPlaceId, () => fetchDetails(providerPlaceId));
+  // The selected search result is a consistency guard, not a source of
+  // authority. Provider data is fetched anew server-side before the RPC write.
+  if (
+    expectedSource &&
+    (verified.osmType !== expectedSource.osmType || verified.osmId !== expectedSource.osmId)
+  ) {
+    throw new Error("GEOAPIFY_MALFORMED");
+  }
+  return verified;
 }
