@@ -25,9 +25,15 @@ test.describe("v1.31 sökområdesgränser", () => {
     await expect(dialog.getByText("Skärgårdsvägen 8", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Avstånd", { exact: true })).toBeVisible();
     await expect(dialog.getByText("Runt Skärgårdsvägen 8")).toBeVisible();
-    await expect(dialog.getByText("I Värmdö kommun söker vi i hela området.")).toBeVisible();
+    await expect(dialog.getByText("Vi söker också i hela Värmdö kommun.")).toBeVisible();
+    const selectedAreas = dialog.getByRole("list", { name: "Valda sökområden" });
+    await expect(selectedAreas.locator("svg.lucide-map")).toHaveCount(1);
+    await expect(selectedAreas.locator("svg.lucide-map-pin")).toHaveCount(1);
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("group", { name: /Vi söker inom \d+ km från Skärgårdsvägen 8\./ }),
     ).toBeVisible();
 
     await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
@@ -57,6 +63,7 @@ test.describe("v1.31 sökområdesgränser", () => {
     await removeAddress.click();
 
     await expect(dialog.getByText("Vi söker i hela Värmdö kommun.")).toBeVisible();
+    await expect(dialog.getByRole("list", { name: "Valda sökområden" }).locator("svg.lucide-map-pin")).toHaveCount(0);
     await expect(
       dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }),
     ).toHaveCount(0);
