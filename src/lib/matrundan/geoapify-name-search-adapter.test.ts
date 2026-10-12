@@ -1485,7 +1485,12 @@ describe("autocomplete: geografisk presentation utan egna namnfilter (#465)", ()
   });
 
   test("alla felande sökområden ger ett riktigt providerfel, inte noll förslag", async () => {
-    const a = adapter(() => { throw new Error("Provider unavailable"); }, ctx);
+    const a = adapter(
+      () => {
+        throw new Error("Provider unavailable");
+      },
+      ctx,
+    );
     await expect(
       a.hintsResponse({ text: "Ox Lan", centers: [area], radiusKm: 1 }),
     ).rejects.toThrow("kunde inte hämtas");
