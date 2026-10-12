@@ -962,6 +962,11 @@ for (const suggestion of ["default", "two"] as const) {
     const confirmation = page.getByRole("alertdialog");
     const field = confirmation.getByTestId("share-experience");
     await expect(field.getByRole("checkbox")).toBeChecked();
+    await page.setViewportSize({ width: 360, height: 480 });
+    const saveAction = confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" });
+    await expect(saveAction).toBeInViewport();
+    await field.getByRole("checkbox").scrollIntoViewIfNeeded();
+    await expect(saveAction).toBeInViewport();
     expect(writes).toHaveLength(0);
     await expectNoHorizontalOverflow(page);
     await capture(page, testInfo, `issue-396-registration-${suggestion}`);
@@ -1019,4 +1024,15 @@ test("Typ av upplevelse räknar upp tre målgrupper på naturlig svenska", async
   ).toBeChecked();
   await expectNoHorizontalOverflow(page);
   await capture(page, testInfo, "issue-396-three-groups");
+});
+
+test("huvudhandlingen förblir synlig i en kort mobil delningsdialog", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 480 });
+  const dialog = await openShareDialog(page, false, [TARGET_GROUP_ID]);
+  const primaryAction = dialog.getByRole("button", { name: /^Lägg till besöket/ });
+  await expect(primaryAction).toBeInViewport();
+  await dialog.getByRole("button", { name: /Familjen/ }).click();
+  await dialog.getByTestId("share-experience").getByRole("checkbox").scrollIntoViewIfNeeded();
+  await expect(primaryAction).toBeInViewport();
+  await expectNoHorizontalOverflow(page);
 });

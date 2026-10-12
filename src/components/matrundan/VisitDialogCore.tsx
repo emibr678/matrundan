@@ -936,52 +936,55 @@ export function VisitDialog({
       </Dialog>
 
       <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
-        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
-          <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>Besöket sparas i:</p>
-                <ul role="list" className="list-none space-y-2 p-0">
-                  <li className="flex items-start gap-3">
-                    <span aria-hidden="true" className="shrink-0">
-                      {state.group.emoji}
-                    </span>
-                    <span className="min-w-0 break-words">{state.group.name}</span>
-                  </li>
-                  {shareableGroups
-                    .filter((group) => shareGroupIds.includes(group.groupId))
-                    .map((group) => (
-                      <li key={group.groupId} className="flex items-start gap-3">
-                        <span aria-hidden="true" className="shrink-0">
-                          {group.emoji}
-                        </span>
-                        <span className="min-w-0 break-words">{group.name}</span>
-                      </li>
-                    ))}
-                </ul>
-                {hasComment && shareComment && photoFile && sharePhoto ? (
-                  <p>Din kommentar och bild delas också.</p>
-                ) : hasComment && shareComment ? (
-                  <p>Din kommentar delas också.</p>
-                ) : photoFile && sharePhoto ? (
-                  <p>Din bild delas också.</p>
-                ) : null}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <VisitShareExperience
-            id="register-share-experience"
-            groups={unclassifiedTargets.map((group) => group.name)}
-            value={shareExperienceValue}
-            onChange={setShareExperience}
-            confirmed={shareExperienceConfirmed}
-            onConfirmedChange={setShareExperienceConfirmed}
-            disabled={isBusy}
-          />
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
+        <AlertDialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-6">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>Besöket sparas i:</p>
+                  <ul role="list" className="list-none space-y-2 p-0">
+                    <li className="flex items-start gap-3">
+                      <span aria-hidden="true" className="shrink-0">
+                        {state.group.emoji}
+                      </span>
+                      <span className="min-w-0 break-words">{state.group.name}</span>
+                    </li>
+                    {shareableGroups
+                      .filter((group) => shareGroupIds.includes(group.groupId))
+                      .map((group) => (
+                        <li key={group.groupId} className="flex items-start gap-3">
+                          <span aria-hidden="true" className="shrink-0">
+                            {group.emoji}
+                          </span>
+                          <span className="min-w-0 break-words">{group.name}</span>
+                        </li>
+                      ))}
+                  </ul>
+                  {hasComment && shareComment && photoFile && sharePhoto ? (
+                    <p>Din kommentar och bild delas också.</p>
+                  ) : hasComment && shareComment ? (
+                    <p>Din kommentar delas också.</p>
+                  ) : photoFile && sharePhoto ? (
+                    <p>Din bild delas också.</p>
+                  ) : null}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <VisitShareExperience
+              id="register-share-experience"
+              groups={unclassifiedTargets.map((group) => group.name)}
+              value={shareExperienceValue}
+              onChange={setShareExperience}
+              confirmed={shareExperienceConfirmed}
+              onConfirmedChange={setShareExperienceConfirmed}
+              disabled={isBusy}
+            />
+          </div>
+          <AlertDialogFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3">
+            <AlertDialogCancel className="min-h-11" disabled={isBusy}>Ändra grupper</AlertDialogCancel>
             <AlertDialogAction
+              className="min-h-11"
               disabled={isBusy}
               onClick={(event) => {
                 event.preventDefault();
