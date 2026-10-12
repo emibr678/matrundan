@@ -320,6 +320,16 @@ export async function liveCreateOrLinkProviderPlace(
     identityPlaceId?: string;
   },
 ): Promise<string> {
+  const raw =
+    input.raw && typeof input.raw === "object"
+      ? (input.raw as Record<string, unknown>)
+      : null;
+  const expectedSource =
+    ["node", "way", "relation"].includes(String(raw?.osmType)) &&
+    typeof raw?.osmId === "string" &&
+    /^[1-9]\d*$/.test(raw.osmId)
+      ? { osmType: raw.osmType as "node" | "way" | "relation", osmId: raw.osmId }
+      : undefined;
   const result = input.canonicalPlaceId
     ? await rpcClient.call(
         "link_canonical_place_to_group_v1",
@@ -335,6 +345,7 @@ export async function liveCreateOrLinkProviderPlace(
         data: {
           groupId,
           providerPlaceId: input.providerPlaceId,
+          expectedSource,
           occasions: input.occasions as Occasion[],
           notes: input.notes,
           choice: input.choice,

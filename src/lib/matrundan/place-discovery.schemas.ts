@@ -57,6 +57,12 @@ export const placeResolutionSchema = z.object({
 export const resolveProviderPlaceInputSchema = z.object({
   groupId: z.string().uuid(),
   providerPlaceId: z.string().trim().min(1).max(240),
+  expectedSource: z
+    .object({
+      osmType: z.enum(["node", "way", "relation"]),
+      osmId: z.string().regex(/^[1-9]\d*$/),
+    })
+    .optional(),
   choice: z.enum(["auto", "link", "separate"]).default("auto"),
   placeId: z.string().uuid().optional(),
   decisions: z.array(candidateDecisionSchema).max(100).default([]),
