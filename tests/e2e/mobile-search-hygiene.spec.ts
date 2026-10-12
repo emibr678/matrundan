@@ -76,6 +76,44 @@ async function openPlaceSearch(page: Page) {
   return searchDialog;
 }
 
+test("huvudknappen för att lägga till ställe är synlig medan innehållet scrollas", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 620 });
+  const searchDialog = await openPlaceSearch(page);
+  await placeSuggestionButton(searchDialog).click();
+
+  const dialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  const actions = dialog.getByTestId("pending-place-actions");
+  const scrollArea = dialog.getByTestId("pending-place-scroll");
+  const addButton = actions.getByRole("button", { name: "Lägg till i gruppen", exact: true });
+  await expectInsideViewport(page, addButton, "Spara stället utan att scrolla");
+  await expectInsideViewport(page, actions, "Fast nederdel");
+  await expectNoHorizontalOverflow(page, "Bekräfta matställe");
+
+  const beforeScroll = await actions.boundingBox();
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
+  await expect
+    .poll(() => scrollArea.evaluate((element) => element.scrollTop))
+    .toBeGreaterThan(0);
+  const afterScroll = await actions.boundingBox();
+  expect(afterScroll?.y).toBeCloseTo(beforeScroll!.y, 0);
+  await expectInsideViewport(page, addButton, "Spara efter scroll");
+
+  const notes = dialog.getByLabel("Anteckning till gruppen (valfritt)");
+  await notes.fill("Vi vill testa det här stället tillsammans.");
+  await page.setViewportSize({ width: 360, height: 420 });
+  await expectInsideViewport(page, actions, "Fast nederdel vid kort mobilhöjd");
+  await expectInsideViewport(page, addButton, "Spara med tangentbordsstor viewport");
+  await expectNoHorizontalOverflow(page, "Bekräfta matställe vid kort mobilhöjd");
+
+  await addButton.click();
+  await expect(dialog).toBeHidden();
+  await expect(searchDialog).toBeVisible();
+});
+
 test("mobilväljare och Typ av upplevelse-hjälp stannar inom en kort 360 px-vy", async ({
   page,
 }) => {
