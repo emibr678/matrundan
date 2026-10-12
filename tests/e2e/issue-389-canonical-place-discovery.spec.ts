@@ -985,14 +985,14 @@ test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza 
   await search.getByRole("listbox").getByRole("option").filter({ hasText: "Pizza" }).click();
   await expect(search.getByRole("button", { name: "Ta bort filtret Pizza" })).toBeVisible();
   await search.getByRole("button", { name: "Karta", exact: true }).click();
-  await expect.poll(
-    () => mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0),
-  ).toBe(true);
+  const pizzaRefilled = () =>
+    mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0);
+  await expect.poll(pizzaRefilled).toBe(true);
 
   await search.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
-  await expect.poll(
-    () => mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0),
-  ).toBe(true);
+  const allRefilled = () =>
+    mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0);
+  await expect.poll(allRefilled).toBe(true);
   await noOverflow(page);
 });
 
@@ -1005,17 +1005,14 @@ test("misslyckad kartpåfyllning försöker inte igen i loop men kan göras om (
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("button", { name: "Karta", exact: true }).click();
-  await expect.poll(
-    () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length,
-  ).toBe(1);
+  const refillCount = () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length;
+  await expect.poll(refillCount).toBe(1);
   await page.waitForTimeout(500);
   expect(mocked.getMapSearchCalls().filter((call) => call.offset > 0)).toHaveLength(1);
 
   await search.getByRole("button", { name: "Lista", exact: true }).click();
   await search.getByRole("button", { name: "Karta", exact: true }).click();
-  await expect.poll(
-    () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length,
-  ).toBeGreaterThanOrEqual(2);
+  await expect.poll(refillCount).toBeGreaterThanOrEqual(2);
 });
 
 test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({
