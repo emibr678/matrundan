@@ -570,7 +570,11 @@ export function AddPlaceResultDialogs({
                     Kartträffen kan redan finnas i Matrundan. Välj stället som stämmer. Besök och
                     gruppuppgifter ligger kvar.
                   </p>
-                  <div role="radiogroup" aria-label="Välj stället som stämmer" className="space-y-2">
+                  <div
+                    role="radiogroup"
+                    aria-label="Välj stället som stämmer"
+                    className="space-y-2"
+                  >
                     {(review.candidates ?? []).map((candidate) => (
                       <label
                         key={candidate.placeId}

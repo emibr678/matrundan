@@ -95,9 +95,7 @@ test("huvudknappen för att lägga till ställe är synlig medan innehållet scr
   await scrollArea.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
-  await expect
-    .poll(() => scrollArea.evaluate((element) => element.scrollTop))
-    .toBeGreaterThan(0);
+  await expect.poll(() => scrollArea.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
   const afterScroll = await actions.boundingBox();
   expect(afterScroll?.y).toBeCloseTo(beforeScroll!.y, 0);
   await expectInsideViewport(page, addButton, "Spara efter scroll");
