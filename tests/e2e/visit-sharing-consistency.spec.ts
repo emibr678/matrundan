@@ -744,7 +744,9 @@ for (const fromNextStop of [false, true]) {
     await expectNoHorizontalOverflow(page);
     await stabilize(page);
     await capture(page, testInfo, "issue-398-bekrafta-grupper");
-    await confirmation.getByRole("button", { name: "Ändra grupper" }).click();
+    await confirmation.getByRole("button", { name: "Tillbaka", exact: true }).click();
+    await expect(confirmation).toHaveCount(0);
+    expect(creates).toBe(0);
     await expect(form.getByLabel("Kommentar (frivilligt)")).toHaveValue("En fin kväll.");
     await form.getByRole("button", { name: "Spara besök", exact: true }).click();
     await confirmation.getByRole("button", { name: "Spara besöket i 2 grupper" }).click();
