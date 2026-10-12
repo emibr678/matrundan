@@ -1,10 +1,15 @@
 import * as React from "react";
-import type { PlaceResolution } from "@/lib/matrundan/place-discovery";
+import { useNavigate } from "@tanstack/react-router";
+import { unambiguousPlaceCandidate, type PlaceResolution } from "@/lib/matrundan/place-discovery";
 import { ArrowLeft, Link2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { AddPlaceResultDialogs } from "./AddPlaceResultDialogs";
 import { ManualAddPlaceForm, type ManualAddPlaceSnapshot } from "./ManualAddPlaceForm";
-import { PlaceDiscovery, type PlaceDiscoverySnapshot } from "./PlaceDiscovery";
+import {
+  PlaceDiscovery,
+  type PlaceDiscoveryMobileMode,
+  type PlaceDiscoverySnapshot,
+} from "./PlaceDiscovery";
 import type { SourceMatchResult } from "./SearchResultSections";
 import {
   AlertDialog,
@@ -23,7 +28,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { emojiForCategory } from "@/lib/matrundan/add-place-utils";
+import { emojiForCategory, matchingPlace, providerMessage } from "@/lib/matrundan/add-place-utils";
+import { resolvePlaceNameHint, type PlaceNameHint } from "@/lib/matrundan/geoapify.functions";
+import { hasActiveProviderSource } from "@/lib/matrundan/manual-place-source-linking";
 import {
   completedBulkExternalIds,
   remainingBulkSelections,
@@ -68,10 +75,18 @@ export function AddPlaceDialogContent({
   initialQuery?: string;
 }) {
   const { state, addPlace } = useStore();
+  const navigate = useNavigate();
   const { mode, activeGroupId, exampleMode } = useSession();
   const [manualSnapshot, setManualSnapshot] = React.useState<ManualAddPlaceSnapshot | null>(null);
   const [view, setView] = React.useState<AddPlaceView>("search");
+  const [mobileMode, setMobileMode] = React.useState<PlaceDiscoveryMobileMode>("browse");
   const [pending, setPending] = React.useState<PlaceSuggestion | null>(null);
+  const [pendingNameHint, setPendingNameHint] = React.useState<{
+    hint: PlaceNameHint;
+    error: string | null;
+  } | null>(null);
+  const nameHintAttemptRef = React.useRef(0);
+  const nameHintHiddenKeysRef = React.useRef<Set<string>>(new Set());
   const [pendingSourceMatch, setPendingSourceMatch] = React.useState<SourceMatchResult | null>(
     null,
   );
@@ -87,6 +102,7 @@ export function AddPlaceDialogContent({
   const [sourceLinkBusy, setSourceLinkBusy] = React.useState(false);
   const searchDialogRef = React.useRef<HTMLDivElement | null>(null);
   const searchScrollTopRef = React.useRef(0);
+  const browseScrollTopRef = React.useRef(0);
   const returningToSearchRef = React.useRef(false);
 
   React.useEffect(() => {
@@ -118,7 +134,17 @@ export function AddPlaceDialogContent({
       );
   }, [activeGroupId, mode, state.group.id]);
 
+  function changeMobileMode(next: PlaceDiscoveryMobileMode) {
+    if (next === mobileMode) return;
+    if (mobileMode === "browse" && next !== "browse") {
+      browseScrollTopRef.current = searchDialogRef.current?.scrollTop ?? 0;
+    }
+    setMobileMode(next);
+  }
+
   React.useEffect(() => {
+    nameHintAttemptRef.current += 1;
+    setPendingNameHint(null);
     setPending(null);
     setPendingSourceMatch(null);
     setSelectedResults([]);
@@ -126,18 +152,24 @@ export function AddPlaceDialogContent({
     setDiscoverySnapshot(null);
     setResolutions({});
     setManualSnapshot(null);
+    setMobileMode("browse");
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && (pending != null || pendingSourceMatch != null)) return;
+    if (!nextOpen && (pending != null || pendingNameHint != null || pendingSourceMatch != null))
+      return;
     if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
+      nameHintAttemptRef.current += 1;
+      setPendingNameHint(null);
       setPending(null);
       setPendingSourceMatch(null);
       setSelectedResults([]);
       setAddedResultIds(new Set());
       setDiscoverySnapshot(null);
       setView("search");
+      setMobileMode("browse");
       searchScrollTopRef.current = 0;
+      browseScrollTopRef.current = 0;
       returningToSearchRef.current = false;
     }
     onOpenChange(nextOpen);
@@ -148,12 +180,78 @@ export function AddPlaceDialogContent({
     returningToSearchRef.current = true;
   }
 
+  function cancelNameHint() {
+    nameHintAttemptRef.current += 1;
+    setPendingNameHint(null);
+  }
+
+  async function beginNameHint(hint: PlaceNameHint, hiddenKeys: Set<string>) {
+    // Only the existing, authenticated group may resolve a real provider identity.
+    const groupId = mode === "live" ? activeGroupId : null;
+    const request = ++nameHintAttemptRef.current;
+    const scope = { ...currentScopeRef.current };
+    nameHintHiddenKeysRef.current = new Set(hiddenKeys);
+    rememberSearchPosition();
+    setPendingNameHint({ hint, error: null });
+
+    if (!groupId) {
+      setPendingNameHint({ hint, error: "Ingen aktiv grupp att söka i." });
+      return;
+    }
+
+    const stale = () =>
+      request !== nameHintAttemptRef.current ||
+      scope.mode !== currentScopeRef.current.mode ||
+      scope.groupId !== currentScopeRef.current.groupId;
+
+    try {
+      const selected = await resolvePlaceNameHint({
+        data: { groupId, placeId: hint.placeId, name: hint.name, lat: hint.lat, lng: hint.lng },
+      });
+      if (stale()) return;
+      if (nameHintHiddenKeysRef.current.has(hiddenPlaceSuggestionKey(selected))) {
+        setPendingNameHint({
+          hint,
+          error: "Stället är dolt för gruppen och kan inte väljas här.",
+        });
+        return;
+      }
+
+      const known =
+        selected.canonical ?? selected.identity?.knownPlace ?? unambiguousPlaceCandidate(selected);
+      const activePlace =
+        state.places.find((place) => hasActiveProviderSource(place, selected)) ??
+        (known ? state.places.find((place) => place.id === known.placeId) : undefined) ??
+        matchingPlace(state.places, selected);
+      const existingPlaceId =
+        activePlace?.collectionStatus === "active"
+          ? activePlace.id
+          : known?.groupStatus === "active"
+            ? known.placeId
+            : null;
+      if (existingPlaceId) {
+        setPendingNameHint(null);
+        void navigate({ to: "/matstallen/$placeId", params: { placeId: existingPlaceId } });
+        return;
+      }
+
+      // Same result dialog stays open while its preliminary content becomes
+      // the verified place. No actions are rendered before this state.
+      setPending(selected);
+      setPendingNameHint(null);
+    } catch (error) {
+      if (!stale()) setPendingNameHint({ hint, error: providerMessage(error) });
+    }
+  }
+
   function beginAdd(suggestion: PlaceSuggestion) {
+    setMobileMode("browse");
     rememberSearchPosition();
     setPending(suggestion);
   }
 
   function beginSourceMatch(match: SourceMatchResult) {
+    setMobileMode("browse");
     rememberSearchPosition();
     setPendingSourceMatch(match);
   }
@@ -351,7 +449,53 @@ export function AddPlaceDialogContent({
     }
   }
 
-  const searchDialogOpen = open && pending == null && pendingSourceMatch == null;
+  const searchDialogOpen =
+    open && pending == null && pendingNameHint == null && pendingSourceMatch == null;
+
+  // Keep the active mobile editor inside the visual viewport, including with Android IME.
+  React.useLayoutEffect(() => {
+    if (!searchDialogOpen || view !== "search" || mobileMode === "browse") return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      const dialog = searchDialogRef.current;
+      if (!dialog) return;
+      dialog.style.setProperty(
+        "--search-viewport-height",
+        `${Math.max(200, viewport?.height ?? window.innerHeight)}px`,
+      );
+      dialog.style.setProperty("--search-viewport-top", `${viewport?.offsetTop ?? 0}px`);
+      if (mobileMode === "search") {
+        dialog.scrollTop = 0;
+      } else if (document.activeElement?.id === "search-area-query") {
+        const input = document.activeElement as HTMLElement;
+        const visibleBottom = (viewport?.offsetTop ?? 0) + (viewport?.height ?? window.innerHeight);
+        const hiddenByKeyboard = input.getBoundingClientRect().bottom - (visibleBottom - 16);
+        if (hiddenByKeyboard > 0) dialog.scrollTop += hiddenByKeyboard;
+      }
+    };
+    update();
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, [mobileMode, searchDialogOpen, view]);
+
+  // Keep the search field visible when the keyboard opens and restore browse position on exit.
+  React.useLayoutEffect(() => {
+    if (!searchDialogOpen || view !== "search" || returningToSearchRef.current) return;
+    const dialog = searchDialogRef.current;
+    if (!dialog) return;
+    const top = mobileMode === "browse" ? browseScrollTopRef.current : 0;
+    dialog.scrollTop = top;
+    const frame = window.requestAnimationFrame(() => {
+      dialog.scrollTop = top;
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [mobileMode, searchDialogOpen, view]);
 
   React.useLayoutEffect(() => {
     if (!searchDialogOpen || !returningToSearchRef.current) return;
@@ -384,6 +528,21 @@ export function AddPlaceDialogContent({
         <DialogContent
           ref={searchDialogRef}
           onEscapeKeyDown={(event) => {
+            if (mobileMode === "areas" && view === "search") {
+              event.preventDefault();
+              if (document.activeElement?.id === "search-area-query") {
+                (document.activeElement as HTMLElement).blur();
+              } else {
+                setMobileMode("browse");
+              }
+              return;
+            }
+            if (mobileMode === "search" && view === "search") {
+              event.preventDefault();
+              setMobileMode("browse");
+              document.getElementById("place-query")?.blur();
+              return;
+            }
             // The first Escape dismisses the suggestions; a second closes the dialog.
             if (
               event.target instanceof Element &&
@@ -393,15 +552,61 @@ export function AddPlaceDialogContent({
             }
           }}
           onOpenAutoFocus={(event) => {
+            if (view === "search" && window.matchMedia("(max-width: 1023px)").matches) {
+              event.preventDefault();
+              searchDialogRef.current?.focus({ preventScroll: true });
+              return;
+            }
             if (!returningToSearchRef.current) return;
             event.preventDefault();
             searchDialogRef.current?.focus({ preventScroll: true });
           }}
-          className="max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-5xl"
+          data-search-mode={mobileMode === "search" && view === "search" ? "expanded" : "normal"}
+          data-search-shell={mobileMode === "search" && view === "search" ? "focused" : "browse"}
+          className={[
+            "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none sm:max-w-5xl sm:rounded-lg",
+            mobileMode !== "browse" && view === "search"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
+              : "",
+          ].join(" ")}
         >
-          <DialogHeader>
+          <DialogHeader
+            className={
+              mobileMode === "search" && view === "search"
+                ? "max-lg:relative max-lg:flex-row max-lg:items-center max-lg:justify-center max-lg:space-y-0 max-lg:px-11 max-lg:text-center"
+                : undefined
+            }
+          >
+            {mobileMode === "search" && view === "search" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label="Tillbaka till resultaten"
+                className="min-h-11 min-w-11 max-lg:absolute max-lg:left-0 lg:hidden"
+                onClick={() => {
+                  setMobileMode("browse");
+                  document.getElementById("place-query")?.blur();
+                }}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            ) : null}
             <DialogTitle className="font-display text-2xl">
-              {view === "search" ? "Lägg till matställe" : "Stället saknas i sökningen"}
+              {view === "search" ? (
+                mobileMode === "search" ? (
+                  <>
+                    <span className="sr-only lg:not-sr-only">Lägg till matställe</span>
+                    <span aria-hidden="true" className="lg:hidden">
+                      Sök matställe
+                    </span>
+                  </>
+                ) : (
+                  "Lägg till matställe"
+                )
+              ) : (
+                "Stället saknas i sökningen"
+              )}
             </DialogTitle>
             <DialogDescription className={view === "search" ? "sr-only" : undefined}>
               {view === "search"
@@ -419,14 +624,20 @@ export function AddPlaceDialogContent({
               bulkBusy={bulkBusy || sourceLinkBusy}
               snapshot={discoverySnapshot}
               onSnapshotChange={setDiscoverySnapshot}
+              mobileMode={mobileMode}
+              onMobileModeChange={changeMobileMode}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
               onClearSelected={() => setSelectedResults([])}
               onAddSelected={() => void addSelectedResults()}
               onBeginAdd={beginAdd}
+              onBeginNameHint={(hint, hiddenKeys) => void beginNameHint(hint, hiddenKeys)}
               onLinkSource={beginSourceMatch}
-              onMissingPlace={() => setView("fallback")}
+              onMissingPlace={() => {
+                setMobileMode("browse");
+                setView("fallback");
+              }}
               onClose={() => handleOpenChange(false)}
             />
           ) : (
@@ -454,6 +665,13 @@ export function AddPlaceDialogContent({
         parentOpen={open}
         pending={pending}
         onPendingChange={setPending}
+        pendingNameHint={pendingNameHint}
+        onCancelNameHint={cancelNameHint}
+        onRetryNameHint={() => {
+          if (pendingNameHint) {
+            void beginNameHint(pendingNameHint.hint, nameHintHiddenKeysRef.current);
+          }
+        }}
         onAdded={handleSingleAdded}
       />
       <AlertDialog
@@ -462,7 +680,7 @@ export function AddPlaceDialogContent({
           if (!nextOpen && !sourceLinkBusy) setPendingSourceMatch(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="w-[calc(100vw-1rem)] rounded-2xl sm:rounded-lg">
           <AlertDialogHeader>
             <AlertDialogTitle>Är det samma ställe?</AlertDialogTitle>
             <AlertDialogDescription className="space-y-3 text-left">
@@ -472,10 +690,10 @@ export function AddPlaceDialogContent({
               </span>
               <span className="grid gap-2 rounded-xl bg-muted/50 p-3 text-xs">
                 <span>
-                  <strong>Hittat i kartan:</strong> {comparisonLocation(pendingSourceMatch?.result)}
+                  <strong>Sökträff:</strong> {comparisonLocation(pendingSourceMatch?.result)}
                 </span>
                 <span>
-                  <strong>Redan i Matrundan:</strong>{" "}
+                  <strong>Stället i gruppen:</strong>{" "}
                   {comparisonLocation(pendingSourceMatch?.place)}
                 </span>
               </span>

@@ -2,6 +2,7 @@
 WITH required(signature, client_callable) AS (VALUES
   ('public.get_place_discovery_context_v1(uuid)',true),
   ('public.search_canonical_places_v1(uuid,text,jsonb,text[],text[],integer)',true),
+  ('public.search_canonical_name_candidates_v1(uuid,text,jsonb)',true),
   ('public.match_place_discovery_candidates_v1(uuid,jsonb)',true),
   ('public.link_canonical_place_to_group_v1(uuid,uuid,text[],text)',true),
   ('public.find_reusable_manual_place_candidates_v2(uuid,text,text,text,double precision,double precision,text)',true),

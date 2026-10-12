@@ -174,11 +174,20 @@ export function AddPlaceResultDialogs({
   parentOpen,
   pending,
   onPendingChange,
+  pendingNameHint,
+  onCancelNameHint,
+  onRetryNameHint,
   onAdded,
 }: {
   parentOpen: boolean;
   pending: PlaceSuggestion | null;
   onPendingChange: (pending: PlaceSuggestion | null) => void;
+  pendingNameHint: {
+    hint: { name: string; address: string; city: string };
+    error: string | null;
+  } | null;
+  onCancelNameHint: () => void;
+  onRetryNameHint: () => void;
   onAdded: (externalId: string) => void;
 }) {
   const { state, addPlace, addProviderPlace, submitting } = useStore();
@@ -422,13 +431,69 @@ export function AddPlaceResultDialogs({
   return (
     <>
       <Dialog
-        open={parentOpen && pending != null}
+        open={parentOpen && (pending != null || pendingNameHint != null)}
         onOpenChange={(nextOpen) => {
-          if (!nextOpen) closePending();
+          if (!nextOpen) {
+            if (pendingNameHint) onCancelNameHint();
+            else closePending();
+          }
         }}
       >
-        {pending && reportablePending ? (
-          <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+        {pendingNameHint && !pending ? (
+          <DialogContent
+            data-testid="pending-name-hint-dialog"
+            className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
+          >
+            <DialogHeader>
+              <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
+              <DialogDescription className="sr-only">
+                Hämtar uppgifter om det valda matstället innan det kan läggas till.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1 rounded-xl border border-border/70 bg-card p-4">
+              <h2 className="break-words font-display text-xl font-semibold">
+                {pendingNameHint.hint.name}
+              </h2>
+              <p className="break-words text-sm text-muted-foreground">
+                {formatPlaceAddressWithCity(
+                  pendingNameHint.hint.address,
+                  pendingNameHint.hint.city,
+                )}
+              </p>
+            </div>
+            {pendingNameHint.error ? (
+              <div role="alert" className="space-y-2 rounded-xl border border-destructive/40 p-3">
+                <p className="font-medium">Kunde inte öppna stället</p>
+                <p className="text-sm text-muted-foreground">{pendingNameHint.error}</p>
+                <p className="text-xs text-muted-foreground">Inget har lagts till i gruppen.</p>
+              </div>
+            ) : (
+              <div
+                role="status"
+                aria-live="polite"
+                data-testid="pending-name-hint-loading"
+                className="flex min-h-16 items-center gap-3 rounded-xl border border-border/70 bg-muted/20 p-3"
+              >
+                <Loader2
+                  className="h-5 w-5 shrink-0 animate-spin text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <span className="text-sm">Hämtar uppgifter om stället…</span>
+              </div>
+            )}
+            <DialogFooter className="gap-2">
+              <Button type="button" variant="outline" onClick={onCancelNameHint}>
+                Tillbaka till sökningen
+              </Button>
+              {pendingNameHint.error ? (
+                <Button type="button" onClick={onRetryNameHint}>
+                  Försök igen
+                </Button>
+              ) : null}
+            </DialogFooter>
+          </DialogContent>
+        ) : pending && reportablePending ? (
+          <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg">
             <DialogHeader>
               <DialogTitle className="font-display text-2xl">
                 {review
@@ -463,7 +528,7 @@ export function AddPlaceResultDialogs({
               </div>
             ) : review ? (
               <div className="space-y-1 rounded-xl border bg-secondary/40 p-3">
-                <p className="text-xs text-muted-foreground">Hittat i kartan</p>
+                <p className="text-xs text-muted-foreground">Sökträff</p>
                 <h2 className="break-words font-display text-xl">
                   {(review.provider ?? pending).name}
                 </h2>
@@ -661,7 +726,7 @@ export function AddPlaceResultDialogs({
           if (!nextOpen && !syncBusy) resetSync();
         }}
       >
-        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
+        <DialogContent className="max-h-[90vh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl sm:max-w-lg sm:rounded-lg">
           <DialogHeader>
             <DialogTitle className="font-display text-2xl">Lägg till tidigare besök</DialogTitle>
             <DialogDescription>

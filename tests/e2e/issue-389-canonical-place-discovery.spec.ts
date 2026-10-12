@@ -58,6 +58,12 @@ async function setup(
     active?: boolean;
     finalProvider?: "hit" | "none" | "error";
     internalManual?: boolean;
+    hintFixtures?: boolean;
+    hintSearchFailsOnce?: boolean;
+    hintPartialOnce?: boolean;
+    hintResolution?: "slow" | "fail-once";
+    mapPaging?: boolean;
+    mapFailOnce?: boolean;
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -93,6 +99,10 @@ async function setup(
   let saved = false;
   const confirmations: unknown[] = [];
   const manualRequests: unknown[] = [];
+  let hintResolutionAttempts = 0;
+  let hintSearches = 0;
+  const mapSearchCalls: Array<{ filter: string; offset: number }> = [];
+  let mapRefillFailures = 0;
   const ambiguousCandidates = [
     { ...provider.identity.candidates[0], canConfirmSource: false },
     {
@@ -284,7 +294,155 @@ async function setup(
         canConfirm: !options.member,
         hasMore: false,
         nextOffset: 20,
+        areaOffsets: { "area-1": 20 },
+        exhaustedAreaIds: ["area-1"],
+        failedAreaIds: [],
+        budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+        observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
+    if (options.mapPaging && name.startsWith("searchPlaceDiscovery")) {
+      const request = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: {
+          areaOffsets?: Record<string, number>;
+          selectedFilter?: { id: string };
+          searchPhase?: string;
+        };
+      };
+      if (request.data.searchPhase !== "hints") {
+        const offset = request.data.areaOffsets?.["area-1"] ?? 0;
+        const filter = request.data.selectedFilter?.id ?? "all";
+        mapSearchCalls.push({ filter, offset });
+        if (options.mapFailOnce && offset > 0 && mapRefillFailures === 0) {
+          mapRefillFailures += 1;
+          await route.abort("failed");
+          return;
+        }
+        const results = Array.from({ length: 20 }, (_, index) => {
+          const id = `search-${filter}-${offset + index}`;
+          return {
+            ...provider,
+            externalId: id,
+            resultKey: `provider:geoapify:${id}`,
+            name: `Matställe ${offset + index}`,
+            provider: "geoapify",
+            category: "restaurang",
+            lat: 59 + (offset + index) * 0.00001,
+            lng: 18,
+            nearestAreaId: "area-1",
+            nearestAreaLabel: "Teststad",
+            matchingAreaIds: ["area-1"],
+            matchingAreaLabels: ["Teststad"],
+            identity: {
+              providerPlaceId: id,
+              providerVersion: "b".repeat(32),
+              knownPlace: null,
+              candidates: [],
+              reviewRequired: false,
+              identityConflict: false,
+            },
+          };
+        });
+        reply = {
+          ...(reply as Record<string, unknown>),
+          results,
+          hasMore: offset < 40,
+          nextOffset: offset + 20,
+          areaOffsets: { "area-1": offset + 20 },
+          exhaustedAreaIds: offset >= 40 ? ["area-1"] : [],
+          budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+        };
+      }
+    }
+    if (name.startsWith("searchPlaceNameHints")) reply = { hints: [], failedAreaLabels: [] };
+    if (options.hintFixtures && name.startsWith("searchPlaceNameHints")) {
+      hintSearches += 1;
+      if (options.hintSearchFailsOnce && hintSearches === 1) {
+        await route.abort("failed");
+        return;
+      }
+      const request = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: { includeDistant?: boolean };
+      };
+      const hints = [
+        {
+          placeId: "autocomplete-near",
+          name: "Ox Lan i närheten",
+          address: "Näragatan 1",
+          city: "Teststad",
+          lat: 59,
+          lng: 18,
+          nearestAreaLabel: "Teststad",
+          distanceKm: 0.3,
+          outsideArea: false,
+        },
+        {
+          placeId: "autocomplete-far",
+          name: "Ox Lan längre bort",
+          address: "Bortagatan 9",
+          city: "Knivsta",
+          lat: 59.7,
+          lng: 17.8,
+          nearestAreaLabel: "Teststad",
+          distanceKm: 80,
+          outsideArea: true,
+        },
+        ...(request.data.includeDistant
+          ? [
+              {
+                placeId: "autocomplete-international",
+                name: "Ox Lan i Stuttgart",
+                address: "Teststraße 1",
+                city: "Stuttgart",
+                lat: 48.78,
+                lng: 9.18,
+                nearestAreaLabel: "Teststad",
+                distanceKm: 1300,
+                outsideArea: true,
+              },
+            ]
+          : []),
+      ];
+      reply = {
+        hints,
+        failedAreaLabels: options.hintPartialOnce && hintSearches === 1 ? ["Nacka"] : [],
+      };
+    }
+    if (name.startsWith("resolvePlaceNameHint")) {
+      const requested = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: { placeId: string; name: string; lat: number; lng: number };
+      };
+      hintResolutionAttempts += 1;
+      if (options.hintResolution) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+      if (options.hintResolution === "fail-once" && hintResolutionAttempts === 1) {
+        await route.abort("failed");
+        return;
+      }
+      reply = {
+        kind: "provider",
+        resultKey: "provider:geoapify:" + requested.data.placeId,
+        externalId: requested.data.placeId,
+        provider: "geoapify",
+        name: requested.data.name,
+        category: "restaurang",
+        cuisines: [],
+        address:
+          requested.data.placeId === "autocomplete-international" ? "Teststraße 1" : "Näragatan 1",
+        city: requested.data.placeId === "autocomplete-international" ? "Stuttgart" : "Teststad",
+        area: "",
+        lat: requested.data.lat,
+        lng: requested.data.lng,
+        identity: {
+          providerPlaceId: requested.data.placeId,
+          providerVersion: "a".repeat(32),
+          knownPlace: null,
+          candidates: [],
+          reviewRequired: false,
+          identityConflict: false,
+        },
+      };
+    }
     if (name.startsWith("findNearbyPlacesForManualFallback")) {
       if (options.finalProvider === "error") {
         await route.abort("failed");
@@ -335,7 +493,12 @@ async function setup(
       body: JSON.stringify({ result: reply, context: {} }),
     });
   });
-  return { confirmations, manualRequests };
+  return {
+    confirmations,
+    manualRequests,
+    getHintSearchCount: () => hintSearches,
+    getMapSearchCalls: () => [...mapSearchCalls],
+  };
 }
 
 async function noOverflow(page: Page) {
@@ -432,12 +595,18 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   await query.fill("Astrom");
 
-  await expect(search.getByRole("group", { name: "Finns i Matrundan", exact: true })).toHaveCount(
-    0,
-  );
+  // Focused mobile search can show existing places as navigation suggestions,
+  // but they must never be offered as a new group addition.
+  const suggestions = search.getByRole("listbox", {
+    name: "Förslag på kök, typer och matställen",
+    exact: true,
+  });
+  await expect(suggestions).toBeVisible();
   await expect(
-    search.getByRole("listbox", { name: "Förslag på kök, typer och matställen", exact: true }),
-  ).toHaveCount(0);
+    suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+  ).toBeVisible();
+  await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(suggestions).toHaveCount(0);
   await expect(
     search.getByRole("button", { name: "Redan i gruppen (1)", exact: true }),
   ).toBeVisible();
@@ -728,4 +897,301 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
   await add.getByRole("button", { name: "Lägg till i gruppen", exact: true }).click();
   await expect(add).toBeHidden();
   expect(writes).toEqual([]);
+});
+
+test("namnförslag grupperas utan duplicerad provider-copy vid 360 px (#465)", async ({
+  page,
+}, info) => {
+  await setup(page, { hintFixtures: true });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+
+  const list = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  const nearby = list.getByRole("group", { name: "Matställen", exact: true });
+  const outside = list.getByRole("group", { name: "Utanför sökradien", exact: true });
+  await expect(nearby.getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(outside.getByText("Ox Lan längre bort")).toBeVisible();
+  await expect(outside.getByText("Bortagatan 9 · Knivsta")).toBeVisible();
+  await expect(list.getByRole("group", { name: "Förslag på matställen" })).toHaveCount(0);
+  await expect(list.getByText("utanför vald radie")).toHaveCount(0);
+  const listRect = await list.boundingBox();
+  const outsideRect = await outside.getByRole("option").boundingBox();
+  expect(listRect).not.toBeNull();
+  expect(outsideRect).not.toBeNull();
+  if (listRect && outsideRect) {
+    expect(outsideRect.y).toBeGreaterThanOrEqual(listRect.y - 1);
+    expect(outsideRect.y + outsideRect.height).toBeLessThanOrEqual(
+      listRect.y + listRect.height + 1,
+    );
+  }
+  await noOverflow(page);
+
+  const { mkdir } = await import("node:fs/promises");
+  await mkdir("visual-review", { recursive: true });
+  await page.screenshot({
+    path: `visual-review/issue-465-area-groups-${info.project.name}.png`,
+    fullPage: false,
+  });
+});
+
+test("Sök längre bort kräver eget val och går att återställa vid 360 px (#465)", async ({
+  page,
+}) => {
+  await setup(page, { hintFixtures: true, providerOnly: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const list = dialog.getByRole("listbox", { name: "Förslag på kök, typer och matställen" });
+  await input.fill("Ox Lan");
+  await expect(list.getByText("Ox Lan längre bort")).toBeVisible();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  const fs = await import("node:fs/promises");
+  await fs.mkdir("visual-review", { recursive: true });
+  await list.getByRole("button", { name: "Sök längre bort" }).scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "visual-review/issue-465-autocomplete-near-360.png" });
+
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await expect(list.getByRole("button", { name: "Visa närmare förslag" })).toBeVisible();
+  await page.screenshot({ path: "visual-review/issue-465-autocomplete-distant-360.png" });
+  await noOverflow(page);
+
+  await list.getByRole("button", { name: "Visa närmare förslag" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
+
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await input.fill("Pelikan");
+  await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, { mapPaging: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Pizz");
+  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Pizza" }).click();
+  await expect(search.getByRole("button", { name: "Ta bort filtret Pizza" })).toBeVisible();
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  const pizzaRefilled = () =>
+    mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0);
+  await expect.poll(pizzaRefilled).toBe(true);
+
+  await search.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
+  const allRefilled = () =>
+    mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0);
+  await expect.poll(allRefilled).toBe(true);
+  await noOverflow(page);
+});
+
+test("misslyckad kartpåfyllning försöker inte igen i loop men kan göras om (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, { mapPaging: true, mapFailOnce: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  const refillCount = () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length;
+  await expect.poll(refillCount).toBe(1);
+  await page.waitForTimeout(500);
+  expect(mocked.getMapSearchCalls().filter((call) => call.offset > 0)).toHaveLength(1);
+
+  await search.getByRole("button", { name: "Lista", exact: true }).click();
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect.poll(refillCount).toBeGreaterThanOrEqual(2);
+});
+
+test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({ page }) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintSearchFailsOnce: true,
+  });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await expect(
+    search.getByRole("listbox").getByText("Alla sökförslag kunde inte hämtas."),
+  ).toBeVisible();
+  await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(2);
+});
+
+test("partiellt fel visar fungerande förslag, berört område och tillåter omförsök (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintPartialOnce: true,
+  });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(
+    search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/),
+  ).toBeVisible();
+  await search.getByRole("listbox").getByRole("button", { name: "Försök igen" }).click();
+  await expect(search.getByRole("listbox").getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(
+    search.getByRole("listbox").getByText(/Kunde inte hämta sökförslag för Nacka/),
+  ).toHaveCount(0);
+  expect(mocked.getHintSearchCount()).toBe(2);
+});
+
+test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintResolution: "slow",
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+  const option = search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" });
+  await expect(option).toBeVisible();
+  const hintCountBeforeSelection = mocked.getHintSearchCount();
+  await option.click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details).toBeVisible({ timeout: 1000 });
+  await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await expect(details).toHaveCSS("outline-style", "none");
+  await expect(details).toHaveCSS("top", "12px");
+  const loadingPosition = await details.boundingBox();
+  expect(loadingPosition).not.toBeNull();
+  await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
+  await expect(details.getByText("Näragatan 1")).toBeVisible();
+  await expect(
+    details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
+  ).toHaveCount(0);
+  await noOverflow(page);
+
+  const fs = await import("node:fs/promises");
+  await fs.mkdir("visual-review", { recursive: true });
+  await page.screenshot({ path: "visual-review/issue-465-name-hint-loading-360.png" });
+
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({
+    timeout: 15_000,
+  });
+  await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
+  await expect(details).toHaveCSS("outline-style", "none");
+  await expect(details).toHaveCSS("top", "12px");
+  const resolvedPosition = await details.boundingBox();
+  expect(resolvedPosition).not.toBeNull();
+  // Tiny subpixel/animation drift is acceptable; a recentering jump is not.
+  expect(Math.abs(resolvedPosition!.y - loadingPosition!.y)).toBeLessThanOrEqual(6);
+  await expect(
+    details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
+  ).toBeVisible();
+  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+
+  const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(returned).toHaveAttribute("data-search-shell", "focused");
+  await expect(returned.getByRole("combobox", { name: "Sök matställen" })).toHaveValue("Ox Lan");
+  await expect(returned.getByText("Inga matställen hittades")).toBeHidden();
+  await expect(returned.getByRole("listbox")).toBeVisible({ timeout: 10_000 });
+  await expect(returned.getByText("Ox Lan i närheten")).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(hintCountBeforeSelection);
+  const bounds = await returned.boundingBox();
+  expect(bounds).not.toBeNull();
+  expect(bounds!.y).toBeLessThanOrEqual(20);
+  await noOverflow(page);
+  await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
+});
+
+test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({
+  page,
+}) => {
+  await setup(page, { hintFixtures: true, providerOnly: true, hintResolution: "fail-once" });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = search.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill("Ox Lan");
+  await search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" })
+    .click();
+
+  const detail = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(detail.getByRole("alert")).toContainText("Kunde inte öppna stället", {
+    timeout: 15_000,
+  });
+  await expect(detail.getByText("Inget har lagts till i gruppen.")).toBeVisible();
+  await detail.getByRole("button", { name: "Försök igen" }).click();
+  await expect(detail.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await detail.getByRole("button", { name: "Tillbaka till sökningen" }).click();
+
+  await expect(search).toHaveAttribute("data-search-shell", "focused");
+  await expect(input).toHaveValue("Ox Lan");
+  // The now-stale successful retry must be ignored rather than opening a new dialog.
+  await page.waitForTimeout(1600);
+  await expect(page.getByRole("dialog", { name: "Lägg till i gruppen" })).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("breddad namnsökning bevaras efter öppning och stängning av stället (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, {
+    hintFixtures: true,
+    providerOnly: true,
+    hintResolution: "slow",
+  });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  const list = search.getByRole("listbox");
+  await list.getByRole("button", { name: "Sök längre bort" }).click();
+  await expect(list.getByText("Ox Lan i Stuttgart")).toBeVisible();
+  const before = mocked.getHintSearchCount();
+
+  await list.getByRole("option").filter({ hasText: "Ox Lan i Stuttgart" }).click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({
+    timeout: 15_000,
+  });
+  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+
+  const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(returned).toHaveAttribute("data-search-shell", "focused");
+  await expect(returned.getByRole("listbox").getByText("Ox Lan i Stuttgart")).toBeVisible();
+  await expect(returned.getByRole("button", { name: "Visa närmare förslag" })).toBeVisible();
+  expect(mocked.getHintSearchCount()).toBe(before);
+  await noOverflow(page);
 });

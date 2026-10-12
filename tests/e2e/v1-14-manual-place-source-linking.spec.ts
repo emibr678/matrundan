@@ -73,12 +73,9 @@ test("ett manuellt ställe behåller sin historik när en senare källa länkas"
     exact: true,
   });
   await expect(map).toHaveAttribute("data-map-ready", "true");
-  // Autocomplete selects the same result in either view; only the card CTA opens review.
+  // A chosen autocomplete match opens the existing source-review confirmation directly.
   await addDialog.getByRole("combobox", { name: "Sök matställen" }).fill("Hagabackens Kafferum");
   await addDialog.getByRole("option", { name: /Hagabackens Kafferum/ }).click();
-  await expect(map.getByRole("button", { name: "Granska matchning" })).toBeVisible();
-  await expect(page.getByRole("alertdialog", { name: "Är det samma ställe?" })).toBeHidden();
-  await map.getByRole("button", { name: "Granska matchning" }).click();
 
   const confirmation = page.getByRole("alertdialog", {
     name: "Är det samma ställe?",

@@ -11,7 +11,11 @@ import {
   type CanonicalPlaceCandidate,
   type ProviderIdentityReview,
 } from "./place-discovery";
-import { matchesPlaceSearchIntent, resolvePlaceSearchIntent } from "./place-search-intent";
+import {
+  matchesPlaceSearchIntent,
+  resolveDiscoverySearchIntent,
+  type SelectedPlaceSearchFilter,
+} from "./place-search-intent";
 import type {
   PlaceCategory,
   SearchArea,
@@ -38,11 +42,17 @@ export interface PlaceSuggestion {
   website?: string;
   raw?: string;
   nearestAreaLabel?: string;
+  nearestAreaId?: string;
   matchingAreaLabels?: string[];
+  matchingAreaIds?: string[];
+  searchAreaGroup?: "nearby" | "name-outside";
+  searchMatchType?: "tolerant";
 }
 
 export interface PlacesSearchOpts {
   query?: string;
+  intentMode?: "auto" | "literal";
+  selectedFilter?: SelectedPlaceSearchFilter;
   city?: string;
   area?: string;
   center?: { lat: number; lng: number };
@@ -421,6 +431,8 @@ const demoProvider: PlacesProvider = {
   id: "demo",
   async search({
     query,
+    intentMode,
+    selectedFilter,
     city = "",
     area,
     center: suppliedCenter,
@@ -432,7 +444,7 @@ const demoProvider: PlacesProvider = {
     await new Promise((resolve) => setTimeout(resolve, 220));
     if (!suppliedCenter && !city.trim()) return [];
 
-    const intent = resolvePlaceSearchIntent(query);
+    const intent = resolveDiscoverySearchIntent(query, intentMode, selectedFilter);
     const normalizedArea = (area ?? "").trim().toLocaleLowerCase("sv-SE");
     const center = suppliedCenter ?? centerFor(city, area);
     const normalizedSuggestions = [

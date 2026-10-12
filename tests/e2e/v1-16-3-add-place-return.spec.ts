@@ -16,6 +16,7 @@ function searchInput(searchDialog: import("@playwright/test").Locator) {
 async function openSearchResult(page: import("@playwright/test").Page) {
   const searchDialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   await searchInput(searchDialog).fill(PLACE_NAME);
+  await searchDialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
   const result = searchResult(searchDialog);
   await expect(result).toBeVisible();
   await searchDialog.evaluate((element) => {
