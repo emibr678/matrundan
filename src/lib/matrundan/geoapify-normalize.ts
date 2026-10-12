@@ -138,8 +138,50 @@ function stateName(properties: GeoapifyLocationProperties): string {
   return clean(properties.state);
 }
 
+// Geoapify kan returnera engelska länsnamn trots lang=sv. Endast kända
+// svenska län översätts; godtyckliga utländska "County"-namn lämnas orörda.
+const SWEDISH_COUNTY_NAMES: Record<string, string> = {
+  "blekinge county": "Blekinge län",
+  "dalarna county": "Dalarnas län",
+  "gavleborg county": "Gävleborgs län",
+  "gotland county": "Gotlands län",
+  "halland county": "Hallands län",
+  "jamtland county": "Jämtlands län",
+  "jonkoping county": "Jönköpings län",
+  "kalmar county": "Kalmar län",
+  "kronoberg county": "Kronobergs län",
+  "norrbotten county": "Norrbottens län",
+  "orebro county": "Örebro län",
+  "ostergotland county": "Östergötlands län",
+  "skane county": "Skåne län",
+  "sodermanland county": "Södermanlands län",
+  "stockholm county": "Stockholms län",
+  "uppsala county": "Uppsala län",
+  "varmland county": "Värmlands län",
+  "vasterbotten county": "Västerbottens län",
+  "vasternorrland county": "Västernorrlands län",
+  "vastmanland county": "Västmanlands län",
+  "vastra gotaland county": "Västra Götalands län",
+};
+
+function isSwedishLocation(properties: GeoapifyLocationProperties): boolean {
+  const countryCode = clean(properties.country_code).toLowerCase();
+  if (countryCode) return countryCode === "se";
+  return ["sweden", "sverige"].includes(clean(properties.country).toLowerCase());
+}
+
+function localizedCountyName(value: string, properties: GeoapifyLocationProperties): string {
+  if (!isSwedishLocation(properties)) return value;
+  const key = value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return SWEDISH_COUNTY_NAMES[key] ?? value;
+}
+
 function countryName(properties: GeoapifyLocationProperties): string {
-  return clean(properties.country);
+  const country = clean(properties.country);
+  return country.toLowerCase() === "sweden" ? "Sverige" : country;
 }
 
 function looksLikeMunicipality(value: string): boolean {
@@ -200,15 +242,16 @@ export function resolveLocationPresentation(
     kindLabel = "Kommun";
     contextLabel = firstDistinct(primaryLabel, county, state);
   } else if (resultType === "county" || looksLikeCounty(rawName)) {
-    primaryLabel = rawName || county || formattedFallback;
+    primaryLabel = localizedCountyName(rawName || county || formattedFallback, properties);
     kindLabel = "Län";
-    contextLabel = firstDistinct(primaryLabel, state, country);
+    contextLabel = firstDistinct(primaryLabel, localizedCountyName(state, properties), country);
   } else if (resultType === "state" || resultType === "region") {
     primaryLabel = rawName || state || formattedFallback;
     kindLabel = looksLikeCounty(primaryLabel) ? "Län" : "Region";
     contextLabel = firstDistinct(primaryLabel, country);
   } else if (resultType === "country") {
-    primaryLabel = rawName || country || formattedFallback;
+    const countryLabel = rawName || country || formattedFallback;
+    primaryLabel = countryLabel.toLowerCase() === "sweden" ? "Sverige" : countryLabel;
     kindLabel = "Land";
   } else if (resultType === "postcode") {
     primaryLabel = clean(properties.postcode) || rawName || formattedFallback;

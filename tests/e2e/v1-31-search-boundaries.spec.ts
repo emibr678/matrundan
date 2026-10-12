@@ -52,6 +52,24 @@ test.describe("v1.31 sökområdesgränser", () => {
     expect(overflow).toBeLessThanOrEqual(1);
   });
 
+  test("visar ortsförslag utan teknisk gränsförklaring på 360 px", async ({ page }) => {
+    await page.setViewportSize({ width: 360, height: 800 });
+    const dialog = await openAddPlaces(page);
+    await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+    await dialog.getByRole("button", { name: "Lägg till sökområde" }).click();
+    await dialog.locator("#search-area-query").fill("Stavsnäs");
+
+    const suggestions = dialog.getByRole("listbox");
+    await expect(suggestions.getByRole("option", { name: /Stavsnäs/ })).toBeVisible();
+    await expect(suggestions).toContainText("Ort · Värmdö kommun");
+    await expect(suggestions).not.toContainText("Om ortens gräns");
+
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
   test("boundary-only döljer punktavståndet", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     const dialog = await openAddPlaces(page);
