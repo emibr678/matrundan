@@ -62,6 +62,8 @@ async function setup(
     hintSearchFailsOnce?: boolean;
     hintPartialOnce?: boolean;
     hintResolution?: "slow" | "fail-once";
+    mapPaging?: boolean;
+    mapFailOnce?: boolean;
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -99,6 +101,8 @@ async function setup(
   const manualRequests: unknown[] = [];
   let hintResolutionAttempts = 0;
   let hintSearches = 0;
+  const mapSearchCalls: Array<{ filter: string; offset: number }> = [];
+  let mapRefillFailures = 0;
   const ambiguousCandidates = [
     { ...provider.identity.candidates[0], canConfirmSource: false },
     {
@@ -296,6 +300,60 @@ async function setup(
         budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
         observation: { requests: 1, failures: 0, providerFeatures: 2, providerMs: 1, elapsedMs: 1 },
       };
+    if (options.mapPaging && name.startsWith("searchPlaceDiscovery")) {
+      const request = fromJSON(JSON.parse(route.request().postData()!)) as {
+        data: {
+          areaOffsets?: Record<string, number>;
+          selectedFilter?: { id: string };
+          searchPhase?: string;
+        };
+      };
+      if (request.data.searchPhase !== "hints") {
+        const offset = request.data.areaOffsets?.["area-1"] ?? 0;
+        const filter = request.data.selectedFilter?.id ?? "all";
+        mapSearchCalls.push({ filter, offset });
+        if (options.mapFailOnce && offset > 0 && mapRefillFailures === 0) {
+          mapRefillFailures += 1;
+          await route.abort("failed");
+          return;
+        }
+        const results = Array.from({ length: 20 }, (_, index) => {
+          const id = `search-${filter}-${offset + index}`;
+          return {
+            ...provider,
+            externalId: id,
+            resultKey: `provider:geoapify:${id}`,
+            name: `Matställe ${offset + index}`,
+            provider: "geoapify",
+            category: "restaurang",
+            lat: 59 + (offset + index) * 0.00001,
+            lng: 18,
+            nearestAreaId: "area-1",
+            nearestAreaLabel: "Teststad",
+            matchingAreaIds: ["area-1"],
+            matchingAreaLabels: ["Teststad"],
+            identity: {
+              providerPlaceId: id,
+              providerVersion: "b".repeat(32),
+              knownPlace: null,
+              candidates: [],
+              reviewRequired: false,
+              identityConflict: false,
+            },
+          };
+        });
+        reply = {
+          ...(reply as Record<string, unknown>),
+          results,
+          hasMore: offset < 40,
+          nextOffset: offset + 20,
+          areaOffsets: { "area-1": offset + 20 },
+          exhaustedAreaIds: offset >= 40 ? ["area-1"] : [],
+          budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+        };
+      }
+    }
+    if (name.startsWith("searchPlaceNameHints")) reply = { hints: [], failedAreaLabels: [] };
     if (options.hintFixtures && name.startsWith("searchPlaceNameHints")) {
       hintSearches += 1;
       if (options.hintSearchFailsOnce && hintSearches === 1) {
@@ -435,7 +493,12 @@ async function setup(
       body: JSON.stringify({ result: reply, context: {} }),
     });
   });
-  return { confirmations, manualRequests, getHintSearchCount: () => hintSearches };
+  return {
+    confirmations,
+    manualRequests,
+    getHintSearchCount: () => hintSearches,
+    getMapSearchCalls: () => [...mapSearchCalls],
+  };
 }
 
 async function noOverflow(page: Page) {
@@ -908,6 +971,51 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
   await noOverflow(page);
+});
+
+test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, { mapPaging: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Pizz");
+  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Pizza" }).click();
+  await expect(search.getByRole("button", { name: "Ta bort filtret Pizza" })).toBeVisible();
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect.poll(
+    () => mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0),
+  ).toBe(true);
+
+  await search.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
+  await expect.poll(
+    () => mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0),
+  ).toBe(true);
+  await noOverflow(page);
+});
+
+test("misslyckad kartpåfyllning försöker inte igen i loop men kan göras om (#465)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, { mapPaging: true, mapFailOnce: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect.poll(
+    () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length,
+  ).toBe(1);
+  await page.waitForTimeout(500);
+  expect(mocked.getMapSearchCalls().filter((call) => call.offset > 0)).toHaveLength(1);
+
+  await search.getByRole("button", { name: "Lista", exact: true }).click();
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect.poll(
+    () => mocked.getMapSearchCalls().filter((call) => call.offset > 0).length,
+  ).toBeGreaterThanOrEqual(2);
 });
 
 test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({
