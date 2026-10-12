@@ -216,8 +216,40 @@ export function AddPlaceResultDialogs({
   const syncBatch = useVisitShareBatch();
   const [syncBusy, setSyncBusy] = React.useState(false);
   const isBusy = busy || hideBusy || submitting || syncBusy;
+  const pendingDialogRef = React.useRef<HTMLDivElement>(null);
   const allSyncVisitsSelected =
     syncVisits.length > 0 && syncVisits.every((visit) => syncVisitIds.includes(visit.visitId));
+
+  // Android keyboards can shrink the visual viewport without changing 100dvh.
+  // Give the scrollable content a real height so the actions stay in view.
+  React.useLayoutEffect(() => {
+    if (!pending) return;
+    const viewport = window.visualViewport;
+    const update = () => {
+      const dialog = pendingDialogRef.current;
+      if (!dialog) return;
+      if (window.innerWidth >= 1024) {
+        dialog.style.removeProperty("height");
+        dialog.style.removeProperty("max-height");
+        dialog.style.removeProperty("top");
+        return;
+      }
+      const visibleHeight = viewport?.height ?? window.innerHeight;
+      const height = Math.max(180, Math.min(visibleHeight * 0.9, visibleHeight - 24));
+      dialog.style.height = `${height}px`;
+      dialog.style.maxHeight = `${height}px`;
+      dialog.style.top = `${(viewport?.offsetTop ?? 0) + 12}px`;
+    };
+    update();
+    window.addEventListener("resize", update);
+    viewport?.addEventListener("resize", update);
+    viewport?.addEventListener("scroll", update);
+    return () => {
+      window.removeEventListener("resize", update);
+      viewport?.removeEventListener("resize", update);
+      viewport?.removeEventListener("scroll", update);
+    };
+  }, [pending]);
 
   React.useEffect(() => {
     if (!pending) return;
@@ -494,8 +526,9 @@ export function AddPlaceResultDialogs({
           </DialogContent>
         ) : pending && reportablePending ? (
           <DialogContent
+            ref={pendingDialogRef}
             data-testid="pending-place-dialog"
-            className="flex max-h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
+            className="flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
           >
             <DialogHeader className="shrink-0 px-4 pb-3 pr-10 pt-5 sm:px-6 sm:pt-6">
               <DialogTitle className="font-display text-2xl">
