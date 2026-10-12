@@ -128,11 +128,15 @@ test("bekräftelsedialogens handlingar förblir synliga även på desktop med l�
   await expectInsideViewport(page, dialog, "Desktopdialog");
   await expectInsideViewport(page, addButton, "Desktopknapp utan scroll");
   await expectNoHorizontalOverflow(page, "Bekräfta ställe desktop");
-  await dialog.getByLabel("Anteckning till gruppen (valfritt)").fill("Ett längre gruppminne. ".repeat(60));
+  await dialog
+    .getByLabel("Anteckning till gruppen (valfritt)")
+    .fill("Ett längre gruppminne. ".repeat(60));
 
   // Keep the desktop layout (>1024 px) but reduce height to force inner scrolling.
   await page.setViewportSize({ width: 1280, height: 500 });
-  await scrollArea.evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  await scrollArea.evaluate((element) => {
+    element.scrollTop = element.scrollHeight;
+  });
   await expectInsideViewport(page, actions, "Fast desktopnederdel vid kort höjd");
   await expectInsideViewport(page, addButton, "Desktopknapp efter scroll");
   await expectNoHorizontalOverflow(page, "Bekräfta ställe kort desktop");
