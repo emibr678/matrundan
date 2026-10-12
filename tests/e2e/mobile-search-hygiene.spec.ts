@@ -103,6 +103,7 @@ test("huvudknappen för att lägga till ställe är synlig medan innehållet scr
   const notes = dialog.getByLabel("Anteckning till gruppen (valfritt)");
   await notes.fill("Vi vill testa det här stället tillsammans.");
   await page.setViewportSize({ width: 360, height: 420 });
+  await expect(actions).toBeInViewport({ ratio: 1 });
   await expectInsideViewport(page, actions, "Fast nederdel vid kort mobilhöjd");
   await expectInsideViewport(page, addButton, "Spara med tangentbordsstor viewport");
   await expectNoHorizontalOverflow(page, "Bekräfta matställe vid kort mobilhöjd");
