@@ -151,7 +151,8 @@ function adapter(
   return {
     calls,
     hintsResponse,
-    hints: async (input: Parameters<typeof hintsResponse>[0]) => (await hintsResponse(input)).hints,
+    hints: async (input: Parameters<typeof hintsResponse>[0]) =>
+      (await hintsResponse(input)).hints,
     resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
       (
         functions.resolvePlaceNameHint as (args: {
