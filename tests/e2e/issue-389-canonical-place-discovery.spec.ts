@@ -1015,9 +1015,7 @@ test("misslyckad kartpåfyllning försöker inte igen i loop men kan göras om (
   await expect.poll(refillCount).toBeGreaterThanOrEqual(2);
 });
 
-test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({
-  page,
-}) => {
+test("fokuserade namnförslag kan faktiskt hämtas om efter providerfel (#465)", async ({ page }) => {
   const mocked = await setup(page, {
     hintFixtures: true,
     providerOnly: true,
