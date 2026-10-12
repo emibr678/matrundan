@@ -3,6 +3,42 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_45_0_CHANGELOG: ChangelogEntry = {
+  version: "1.45.0",
+  date: "2026-10-12",
+  summary: "Min matresa och sökningen gör det lättare att upptäcka och minnas ställen tillsammans.",
+  sections: [
+    {
+      kind: "Nytt",
+      items: [
+        "Min matresa samlar din topplista, statistik och besök över grupperna utan att ersätta gruppens privata sammanhang.",
+        "Personlig statistik kan visa diskreta jämförelser med personer du delar en aktiv grupp med, utan att visa deras privata grupphistorik.",
+        "Matställen som redan finns i Matrundan kan hittas och återanvändas vid sökning; osäkra platsmatchningar behöver bekräftas.",
+        "Profilen kan få en lokalt genererad personlig avatar, och grupper kan välja en egen symbol för ett matställe.",
+      ],
+    },
+    {
+      kind: "Förbättrat",
+      items: [
+        "Sökningen ger tydligare namnförslag och hittar fler relevanta matställen även nära eller utanför valda sökradier. Kartan kan visa fler träffar utan att göra resultatlistan onödigt lång.",
+        "Delning av besök mellan grupper har tydligare val för egen kommentar, bild och Typ av upplevelse; återförsök bevarar redan gjorda val.",
+        "Min matresa introduceras när flera grupper gör den relevant, och profil- och gruppväljaren visar diskret när omdömen väntar.",
+        "Inloggning och gruppbyte upplevs snabbare. Gruppsymboler, matställessymboler och användarspråk är mer konsekventa.",
+        "Sökområden skiljer tydligare på sökning runt en punkt och inom ett område.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Verifierade externa matställen kan läggas till även när kartleverantören har förnyat ett plats-ID.",
+        "Knappen Lägg till i gruppen förblir synlig även när bekräftelsedialogen behöver scrollas.",
+        "Registrering och redigering av delade besök hanterar gruppval, deltagande och Nästa stopp mer konsekvent.",
+        "Staging identifierar saknad serverkonfiguration i hälsokontrollen i stället för att felaktigt se frisk ut.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_44_0_CHANGELOG: ChangelogEntry = {
   version: "1.44.0",
   date: "2026-09-28",
@@ -516,6 +552,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_45_0_CHANGELOG,
   VERSION_1_44_0_CHANGELOG,
   VERSION_1_43_1_CHANGELOG,
   VERSION_1_42_0_CHANGELOG,
