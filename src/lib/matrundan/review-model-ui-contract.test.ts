@@ -162,9 +162,12 @@ describe("Issue #307 — reviewmodellens UX-kontrakt", () => {
   test("Typ av upplevelse-hjälpen förklarar olika matupplevelser", () => {
     const copy = normalizedSourceText(occasionPicker);
 
-    expect(copy).toContain("Typ av upplevelse gäller matstället");
-    expect(copy).toContain("vilken sorts matupplevelse gruppen förknippar det med");
+    expect(copy).toContain("Typ av upplevelse beskriver vilken sorts matupplevelse");
+    expect(copy).toContain("gruppen förknippar med ett ställe");
+    expect(copy).toContain("Olika grupper kan välja olika typer för samma ställe");
     expect(copy).toContain("Båda kan få lika");
+    expect(occasionPicker).toContain("{OCCASION_GUIDE_INTRO}");
+    expect(copy.match(/Olika grupper kan välja olika typer för samma ställe/g)).toHaveLength(1);
     expect(occasionPicker).toContain("OCCASION_DESCRIPTION");
     expect(occasionPicker).toContain("Typ av upplevelse");
     expect(occasionPicker).toContain("Så fungerar det");

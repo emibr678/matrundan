@@ -54,6 +54,7 @@ import {
 } from "@/lib/matrundan/visit-duplicates";
 import { FirstReviewGuidance } from "./FirstReviewGuidance";
 import { useVisitShareBatch } from "./useVisitShareBatch";
+import { VisitShareExperience } from "./VisitShareExperience";
 import { shareVisitToGroup } from "@/lib/matrundan/live-sharing";
 import { GuestMemberLinkDialog } from "./GuestMemberLinkDialog";
 import { OccasionPicker } from "./OccasionPicker";
@@ -98,6 +99,9 @@ export function VisitDialog({
     mode === "live" && state.group.lifecycleStatus !== "archived" && !!activeGroupId;
   const [busy, setBusy] = React.useState(false);
   const [confirmGroups, setConfirmGroups] = React.useState(false);
+  const [shareExperience, setShareExperience] = React.useState<Occasion[] | null>(null);
+  // null follows the visible suggestion; false is a persistent opt-out.
+  const [shareExperienceSave, setShareExperienceConfirmed] = React.useState<boolean | null>(null);
   const savingRegistration = React.useRef(false);
   const [duplicateBusy, setDuplicateBusy] = React.useState(false);
   const [duplicateCandidate, setDuplicateCandidate] =
@@ -109,6 +113,8 @@ export function VisitDialog({
       groupIds: string[];
       shareComment: boolean;
       sharePhoto: boolean;
+      experience?: Occasion[];
+      experienceConfirmed?: boolean;
     };
   } | null>(null);
   const [guestLinkPayload, setGuestLinkPayload] = React.useState<{
@@ -172,6 +178,8 @@ export function VisitDialog({
       setShareTargetsError(null);
       setShareGroupIds([]);
       setConfirmGroups(false);
+      setShareExperience(null);
+      setShareExperienceConfirmed(null);
       setDuplicateCandidate(null);
       setDuplicateBusy(false);
     }
@@ -229,6 +237,14 @@ export function VisitDialog({
   const applicableOccasions = placeNeedsOccasionClassification
     ? reviewOccasions
     : currentPlace.occasions;
+  const shareExperienceValue = shareExperience ?? applicableOccasions;
+  const shareExperienceConfirmed =
+    (shareExperienceSave ?? true) &&
+    shareExperienceValue.length > 0 &&
+    shareExperienceValue.length <= 2;
+  const unclassifiedTargets = shareableGroups.filter(
+    (group) => shareGroupIds.includes(group.groupId) && !group.hasExperienceClassification,
+  );
   const reviewModel = scoredVisit
     ? reviewModelForContext({ isTakeaway, occasions: applicableOccasions })
     : null;
@@ -345,6 +361,11 @@ export function VisitDialog({
         label: shareableGroups.find((group) => group.groupId === groupId)?.name ?? "Gruppen",
         shareComment: hasComment && shareComment,
         sharePhoto: photoFile != null && photoError == null && sharePhoto,
+        confirmedExperience:
+          shareExperienceConfirmed &&
+          !shareableGroups.find((group) => group.groupId === groupId)?.hasExperienceClassification
+            ? shareExperienceValue
+            : undefined,
       })),
     );
     const remaining = results.filter(
@@ -395,6 +416,8 @@ export function VisitDialog({
                       groupIds: remaining.map((result) => result.job.groupId),
                       shareComment: hasComment && shareComment,
                       sharePhoto: photoFile != null && photoError == null && sharePhoto,
+                      experience: [...shareExperienceValue],
+                      experienceConfirmed: shareExperienceConfirmed,
                     },
                   }),
               }
@@ -913,43 +936,59 @@ export function VisitDialog({
       </Dialog>
 
       <AlertDialog open={open && confirmGroups} onOpenChange={setConfirmGroups}>
-        <AlertDialogContent className="max-h-[90dvh] overflow-y-auto">
-          <AlertDialogHeader className="text-left">
-            <AlertDialogTitle>Spara besöket i {shareGroupIds.length + 1} grupper?</AlertDialogTitle>
-            <AlertDialogDescription asChild>
-              <div className="space-y-3">
-                <p>Besöket sparas i:</p>
-                <ul role="list" className="list-none space-y-2 p-0">
-                  <li className="flex items-start gap-3">
-                    <span aria-hidden="true" className="shrink-0">
-                      {state.group.emoji}
-                    </span>
-                    <span className="min-w-0 break-words">{state.group.name}</span>
-                  </li>
-                  {shareableGroups
-                    .filter((group) => shareGroupIds.includes(group.groupId))
-                    .map((group) => (
-                      <li key={group.groupId} className="flex items-start gap-3">
-                        <span aria-hidden="true" className="shrink-0">
-                          {group.emoji}
-                        </span>
-                        <span className="min-w-0 break-words">{group.name}</span>
-                      </li>
-                    ))}
-                </ul>
-                {hasComment && shareComment && photoFile && sharePhoto ? (
-                  <p>Din kommentar och bild delas också.</p>
-                ) : hasComment && shareComment ? (
-                  <p>Din kommentar delas också.</p>
-                ) : photoFile && sharePhoto ? (
-                  <p>Din bild delas också.</p>
-                ) : null}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBusy}>Ändra grupper</AlertDialogCancel>
+        <AlertDialogContent className="flex max-h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-[16px] p-0 sm:rounded-lg">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-6">
+            <AlertDialogHeader className="text-left">
+              <AlertDialogTitle>
+                Spara besöket i {shareGroupIds.length + 1} grupper?
+              </AlertDialogTitle>
+              <AlertDialogDescription asChild>
+                <div className="space-y-3">
+                  <p>Besöket sparas i:</p>
+                  <ul role="list" className="list-none space-y-2 p-0">
+                    <li className="flex items-start gap-3">
+                      <span aria-hidden="true" className="shrink-0">
+                        {state.group.emoji}
+                      </span>
+                      <span className="min-w-0 break-words">{state.group.name}</span>
+                    </li>
+                    {shareableGroups
+                      .filter((group) => shareGroupIds.includes(group.groupId))
+                      .map((group) => (
+                        <li key={group.groupId} className="flex items-start gap-3">
+                          <span aria-hidden="true" className="shrink-0">
+                            {group.emoji}
+                          </span>
+                          <span className="min-w-0 break-words">{group.name}</span>
+                        </li>
+                      ))}
+                  </ul>
+                  {hasComment && shareComment && photoFile && sharePhoto ? (
+                    <p>Din kommentar och bild delas också.</p>
+                  ) : hasComment && shareComment ? (
+                    <p>Din kommentar delas också.</p>
+                  ) : photoFile && sharePhoto ? (
+                    <p>Din bild delas också.</p>
+                  ) : null}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <VisitShareExperience
+              id="register-share-experience"
+              groups={unclassifiedTargets.map((group) => group.name)}
+              value={shareExperienceValue}
+              onChange={setShareExperience}
+              confirmed={shareExperienceConfirmed}
+              onConfirmedChange={setShareExperienceConfirmed}
+              disabled={isBusy}
+            />
+          </div>
+          <AlertDialogFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3">
+            <AlertDialogCancel className="min-h-11" disabled={isBusy}>
+              Tillbaka
+            </AlertDialogCancel>
             <AlertDialogAction
+              className="min-h-11"
               disabled={isBusy}
               onClick={(event) => {
                 event.preventDefault();
@@ -957,7 +996,7 @@ export function VisitDialog({
                 void saveRegistration();
               }}
             >
-              Spara i {shareGroupIds.length + 1} grupper
+              Spara besöket i {shareGroupIds.length + 1} grupper
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

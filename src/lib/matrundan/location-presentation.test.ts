@@ -38,6 +38,43 @@ describe("svensk geografisk presentation", () => {
     expect(isBroadAdministrativeSearchArea("city", presentation?.selectionLabel)).toBe(true);
   });
 
+  test("behåller Geoapifys geografiska namn och provideridentitet vid länsval", () => {
+    const candidate = normalizeLocationFeature({
+      properties: {
+        place_id: "geoapify-stockholm-county",
+        name: "Stockholm County",
+        country: "Sweden",
+        country_code: "se",
+        result_type: "county",
+        lat: 59.3,
+        lon: 18.1,
+      },
+    });
+
+    expect(candidate).toMatchObject({
+      placeId: "geoapify-stockholm-county",
+      label: "Stockholm County, Sweden",
+      primaryLabel: "Stockholm County",
+      secondaryLabel: "Län · Sweden",
+      resultType: "county",
+      lat: 59.3,
+      lng: 18.1,
+    });
+    expect(isBroadAdministrativeSearchArea(candidate?.resultType, candidate?.label)).toBe(true);
+
+    expect(
+      resolveLocationPresentation({
+        name: "Stockholms län",
+        country: "Sverige",
+        result_type: "county",
+      }),
+    ).toEqual({
+      primaryLabel: "Stockholms län",
+      secondaryLabel: "Län · Sverige",
+      selectionLabel: "Stockholms län, Sverige",
+    });
+  });
+
   test("gatuadress använder verifierad gata och ort utan konstruerad adress", () => {
     expect(
       resolveLocationPresentation({
