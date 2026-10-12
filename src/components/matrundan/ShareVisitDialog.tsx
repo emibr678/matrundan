@@ -212,7 +212,9 @@ export function ShareVisitDialog({
           if (!submitting) onOpenChange(next);
         }}
       >
-        <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+        <DialogContent
+          className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md"
+        >
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle>Lägg till besöket i fler grupper</DialogTitle>
             <DialogDescription>
@@ -394,7 +396,9 @@ export function ShareVisitDialog({
               </div>
             ) : null}
           </div>
-          <DialogFooter className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3">
+          <DialogFooter
+            className="shrink-0 gap-2 border-t border-border/70 bg-background px-6 py-3"
+          >
             <Button
               variant="ghost"
               className="min-h-11"
