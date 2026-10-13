@@ -1125,6 +1125,27 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
 });
 
+test("autocomplete → detalj → tillbaka → full söklista hämtar resultat efter ommontering (#491)", async ({ page }) => {
+  await setup(page, { hintFixtures: true, providerOnly: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await search.getByRole("listbox").getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" }).click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible();
+  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+  await expect(search).toHaveAttribute("data-search-shell", "focused");
+  await search.getByRole("button", { name: /Visa sökresultat/ }).click();
+  await expect(search).toHaveAttribute("data-search-shell", "browse");
+  await expect(search.getByText("Söker…", { exact: true })).toBeHidden({ timeout: 15_000 });
+  await expect(search.getByRole("button", { name: `Visa information om ${provider.name}` }))
+    .toBeVisible();
+  await noOverflow(page);
+});
+
 test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({
   page,
 }) => {
