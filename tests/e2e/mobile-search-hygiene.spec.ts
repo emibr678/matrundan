@@ -275,16 +275,41 @@ test("fokuserade mobila förslag är korta med väg till hela resultatlistan", a
   await expect(listbox).toBeVisible();
   await expect.poll(() => listbox.getByRole("option").count()).toBeGreaterThan(1);
   expect(await listbox.getByRole("option").count()).toBeLessThanOrEqual(3);
-  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toBeVisible();
+  await expect(dialog.getByRole("button", { name: /Visa sökresultat/ })).toBeVisible();
   await expectInsideViewport(page, listbox, "Korta mobila förslag");
 
   await page.setViewportSize({ width: 360, height: 420 });
   await expectInsideViewport(page, input, "Sökfält vid litet synligt viewport");
   await expectInsideViewport(page, listbox, "Förslagslista vid litet synligt viewport");
-  await dialog.getByRole("button", { name: "Visa alla resultat" }).click();
+  await dialog.getByRole("button", { name: /Visa sökresultat/ }).click();
   await expect(dialog).toHaveAttribute("data-search-shell", "browse");
   await expect(input).toHaveValue("restaurang");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeVisible();
+});
+
+test("efter detaljdialog och rensad sökning kan användaren återgå till området och kartan (#491)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await input.fill(PLACE_NAME);
+  await dialog.getByRole("listbox").getByRole("option").filter({ hasText: PLACE_NAME }).first().click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details).toBeVisible();
+  await details.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await expect(dialog).toBeVisible();
+
+  await input.fill("");
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  await expect(dialog.getByRole("button", { name: "Visa ställen i området" })).toBeVisible();
+  await dialog.getByRole("button", { name: "Visa ställen i området" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(dialog.getByText("Söker…", { exact: true })).toBeHidden({ timeout: 15_000 });
+  await expect(dialog.getByRole("button", { name: "Lista", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect(dialog.getByText(/Visar .* ställen på kartan/)).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Rensad sökning och karta efter dialog");
 });
 
 test("samma ställe behåller detaljidentiteten före och efter tillägg på desktop", async ({
@@ -538,7 +563,7 @@ test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas f�
     browseCorner,
   );
   await expect(dialog.getByRole("button", { name: "Tillbaka till resultaten" })).toBeVisible();
-  await expect(dialog.getByRole("button", { name: "Visa alla resultat" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Visa ställen i området" })).toBeVisible();
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
   await expectInsideViewport(page, input, "Fokuserat sökfält");
 
