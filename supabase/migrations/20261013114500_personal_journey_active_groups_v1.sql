@@ -1419,4 +1419,29 @@ END;
 $function$
 
 
+-- Behåll befintliga explicit tillåtna roller efter funktionsersättningen.
+REVOKE ALL ON FUNCTION public.get_personal_journey_overview_v1() FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_overview_v1() TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.get_personal_journey_place_v1(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_place_v1(uuid) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.get_personal_journey_stats_v1(text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_stats_v1(text) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_toplist_v1(text,text[],text[],boolean,jsonb,integer) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.get_personal_journey_visit_v1(uuid) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.get_personal_journey_visit_v1(uuid) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.list_personal_journey_places_v1(text,boolean,boolean,text,uuid,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_personal_journey_places_v1(text,boolean,boolean,text,uuid,integer) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.list_personal_journey_places_v2(text,boolean,boolean,text,jsonb,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_personal_journey_places_v2(text,boolean,boolean,text,jsonb,integer) TO authenticated, service_role;
+
+REVOKE ALL ON FUNCTION public.list_personal_journey_visits_v1(boolean,date,uuid,integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.list_personal_journey_visits_v1(boolean,date,uuid,integer) TO authenticated, service_role;
+
 COMMIT;
