@@ -429,8 +429,8 @@ function GroupStatusSection() {
       <Card className="rounded-2xl border-border/70 p-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
           {archived
-            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar."
-            : "Arkivering bevarar historiken men gör gruppen skrivskyddad tills den återaktiveras."}
+            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar, men räknas inte i Min matresa."
+            : "Arkivering bevarar historiken men gör gruppen skrivskyddad. Den räknas inte i Min matresa förrän den återaktiveras."}
         </p>
         {archived ? (
           <Button
@@ -460,7 +460,7 @@ function GroupStatusSection() {
             <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
-              nästa stopp rensas och aktiva inbjudningar återkallas. Du kan återaktivera gruppen
+              nästa stopp rensas och aktiva inbjudningar återkallas. Historiken räknas inte i Min matresa tills gruppen återaktiveras. Du kan återaktivera gruppen
               senare.
             </AlertDialogDescription>
           </AlertDialogHeader>

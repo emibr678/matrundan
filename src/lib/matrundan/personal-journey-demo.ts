@@ -515,7 +515,7 @@ export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
     )
     .slice(0, 3),
   favoritePlaces: ACTIVE_DEMO_PLACES.filter((place) => place.isFavorite),
-  recentVisits: [...DEMO_PERSONAL_JOURNEY_VISITS]
+  recentVisits: [...ACTIVE_DEMO_VISITS]
     .filter((visit) => visit.participated)
     .sort((left, right) => right.visitedOn.localeCompare(left.visitedOn))
     .slice(0, 2),
