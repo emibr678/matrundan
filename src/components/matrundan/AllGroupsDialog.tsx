@@ -147,13 +147,13 @@ export function AllGroupsDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md overflow-hidden p-0"
+        className="flex max-h-[85dvh] w-[calc(100vw-2rem)] max-w-md flex-col gap-0 overflow-hidden rounded-2xl p-0"
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           titleRef.current?.focus();
         }}
       >
-        <DialogHeader className="px-5 pb-2 pt-5 text-left">
+        <DialogHeader className="shrink-0 px-5 pb-2 pt-5 text-left">
           <DialogTitle ref={titleRef} tabIndex={-1} className="outline-none">
             Dina grupper
           </DialogTitle>
@@ -164,7 +164,7 @@ export function AllGroupsDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 space-y-5 overflow-y-auto px-5 pb-4">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain px-5 pb-4">
           {onSelectPersonalJourney ? (
             <section aria-labelledby="personal-journey-heading" className="space-y-2">
               <h3

@@ -12,20 +12,21 @@ import {
 } from "./personal-journey-demo";
 
 describe("Min matresa-demo", () => {
-  test("täcker flera grupper, deduplicerad kontext och arkiverad historik", () => {
-    expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.readableGroupCount).toBe(3);
+  test("exkluderar arkiverade grupper från Min matresa", () => {
+    expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.readableGroupCount).toBe(2);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.summary.activeGroupCount).toBe(2);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.topRatedPlaces.map((place) => place.name)).toEqual([
-      "Bageri Solsidan",
       "Kardemummaköket",
       "Rundans Bistro",
+      "Kvartersbordet",
     ]);
     expect(DEMO_PERSONAL_JOURNEY_OVERVIEW.favoritePlaces[0].groups.length).toBe(2);
     expect(
       DEMO_PERSONAL_JOURNEY_OVERVIEW.favoritePlaces.some((place) =>
         place.groups.some((group) => group.isArchived && !group.isWritable),
       ),
-    ).toBe(true);
+    ).toBe(false);
+    expect(demoPersonalJourneyVisits(false).items.some((visit) => visit.placeName === "Bageri Solsidan")).toBe(false);
   });
 
   test("återanvänder Fredagsgängets kanoniska exempel-ID:n för navigerbara objekt", () => {
@@ -44,8 +45,8 @@ describe("Min matresa-demo", () => {
 
   test("använder samma deterministiska data för filter och detaljer", () => {
     const favorites = demoPersonalJourneyPlaces({ favoritesOnly: true });
-    expect(favorites.items).toHaveLength(2);
-    expect(demoPersonalJourneyPlaces({ query: "Majorna" }).items).toHaveLength(1);
+    expect(favorites.items).toHaveLength(1);
+    expect(demoPersonalJourneyPlaces({ query: "Majorna" }).items).toHaveLength(0);
     expect(demoPersonalJourneyVisits(true).items.every((visit) => visit.participated)).toBe(true);
     expect(demoPersonalJourneyPlace(favorites.items[0].id)?.name).toBe(favorites.items[0].name);
     expect(
@@ -55,7 +56,6 @@ describe("Min matresa-demo", () => {
 
   test("sorterar hela tvärgruppslistan begripligt", () => {
     expect(demoPersonalJourneyPlaces({ sort: "rating" }).items.map((place) => place.name)).toEqual([
-      "Bageri Solsidan",
       "Kardemummaköket",
       "Rundans Bistro",
       "Kvartersbordet",
@@ -67,13 +67,11 @@ describe("Min matresa-demo", () => {
       "Rundans Bistro",
       "Tacoateljén",
       "Kvartersbordet",
-      "Bageri Solsidan",
       "Kardemummaköket",
       "Café Lilla Torget",
       "Torggrillen",
     ]);
     expect(demoPersonalJourneyPlaces({ sort: "name" }).items.map((place) => place.name)).toEqual([
-      "Bageri Solsidan",
       "Café Lilla Torget",
       "Kardemummaköket",
       "Kvartersbordet",
@@ -111,8 +109,8 @@ describe("Min matresa-demo", () => {
 
   test("visar global statistik och rankar personer med samma återanvända kontrakt", () => {
     const visits = demoPersonalJourneyStats("visits");
-    expect(visits.self.visits).toBe(17);
-    expect(visits.self.groupCount).toBe(3);
+    expect(visits.self.visits).toBe(16);
+    expect(visits.self.groupCount).toBe(2);
     expect(visits.leaderboard.map((person) => person.displayName)).toEqual([
       "Sam",
       "Alex",
@@ -131,7 +129,7 @@ describe("Min matresa-demo", () => {
 
   test("fortsätter sorterade listor från en stabil cursor", () => {
     const firstPage = demoPersonalJourneyPlaces({ sort: "rating", limit: 1 });
-    expect(firstPage.items.map((place) => place.name)).toEqual(["Bageri Solsidan"]);
+    expect(firstPage.items.map((place) => place.name)).toEqual(["Kardemummaköket"]);
     expect(firstPage.nextCursor).not.toBeNull();
 
     const secondPage = demoPersonalJourneyPlaces({
@@ -139,6 +137,6 @@ describe("Min matresa-demo", () => {
       cursor: firstPage.nextCursor,
       limit: 1,
     });
-    expect(secondPage.items.map((place) => place.name)).toEqual(["Kardemummaköket"]);
+    expect(secondPage.items.map((place) => place.name)).toEqual(["Rundans Bistro"]);
   });
 });

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
@@ -393,6 +394,7 @@ function ProgressionSettingsSection({ groupId }: { groupId: string }) {
 }
 
 function GroupStatusSection() {
+  const queryClient = useQueryClient();
   const { state, archiveGroup, reactivateGroup, submitting } = useStore();
   const { refreshGroups } = useSession();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -402,6 +404,7 @@ function GroupStatusSection() {
     try {
       await archiveGroup();
       await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: ["personal-journey"] });
       toast.success("Gruppen är arkiverad.");
       setConfirmOpen(false);
     } catch (error) {
@@ -413,6 +416,7 @@ function GroupStatusSection() {
     try {
       await reactivateGroup();
       await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: ["personal-journey"] });
       toast.success("Gruppen är återaktiverad.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte återaktivera gruppen.");
