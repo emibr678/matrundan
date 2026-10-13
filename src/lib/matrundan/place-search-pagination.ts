@@ -66,6 +66,50 @@ export function mergePlaceSearchPages(
 }
 
 /**
+ * Rangordna endast en NY inkommande resultatsida. Tidigare visade rader
+ * sorteras aldrig om när nästa sida hämtas.
+ *
+ * Namnmatchning och verkligt punktavstånd går före datakällan.
+ * Vid jämförbara träffar vinner kartkällan framför en kanonisk kandidat.
+ * Avsaknad av avstånd (t.ex. en boundary) är inte ett påstått stort avstånd.
+ */
+export function rankNewPlaceSearchPage(
+  suggestions: PlaceSuggestion[],
+  query: string,
+): PlaceSuggestion[] {
+  const normalize = (s: string) =>
+    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("sv-SE").trim();
+  const needle = normalize(query);
+  const matchQuality = (result: PlaceSuggestion) => {
+    if (!needle) return 0;
+    const name = normalize(result.name);
+    if (name === needle) return 0;
+    if (name.startsWith(needle)) return 1;
+    if (name.includes(needle)) return 2;
+    return result.searchMatchType === "tolerant" ? 3 : 4;
+  };
+  const areaRank = (result: PlaceSuggestion) =>
+    result.searchAreaGroup === "name-outside" ? 2 : result.searchAreaGroup === "nearby" ? 1 : 0;
+
+  return [...suggestions].sort((a, b) => {
+    const area = areaRank(a) - areaRank(b);
+    if (area !== 0) return area;
+    const match = matchQuality(a) - matchQuality(b);
+    if (match !== 0) return match;
+    // Compare measured point distances, but not invented boundary distances.
+    if (a.distanceKm != null && b.distanceKm != null) {
+      const distance = a.distanceKm - b.distanceKm;
+      if (Math.abs(distance) > 0.2) return distance;
+    }
+    // The source is a tie-breaker, never a substitute for an exact name match.
+    const aCanonical = a.kind === "canonical";
+    const bCanonical = b.kind === "canonical";
+    if (aCanonical !== bCanonical) return aCanonical ? 1 : -1;
+    return 0;
+  });
+}
+
+/**
  * Räknar hur många träffar som faktiskt är handlingsbara för användaren.
  *
  * Predikatet kommer från vyn och exkluderar dolda träffar och sådana som redan
