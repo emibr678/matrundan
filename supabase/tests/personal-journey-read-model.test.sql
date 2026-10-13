@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(50);
+SELECT plan(59);
 
 INSERT INTO auth.users (id, email, raw_user_meta_data)
 VALUES
@@ -360,8 +360,8 @@ SET LOCAL request.jwt.claim.sub = '10900000-0000-4000-8000-000000000001';
 
 SELECT is(
   (public.get_personal_journey_overview_v1()->'summary'->>'readableGroupCount')::integer,
-  2,
-  'active membership keeps both active and archived groups readable'
+  1,
+  'Min matresa reads only active groups'
 );
 
 SELECT is(
@@ -386,8 +386,8 @@ SELECT is(
 
 SELECT is(
   (public.get_personal_journey_stats_v1('visits')->'self'->>'groupCount')::integer,
-  2,
-  'own global stats count groups that actually contribute participated visits'
+  1,
+  'only active groups contribute to own statistics'
 );
 
 SELECT is(
@@ -406,8 +406,8 @@ SELECT is(
     FROM jsonb_array_elements(public.get_personal_journey_stats_v1('visits')->'leaderboard') person
     WHERE person->>'displayName' = 'Vännen'
   ),
-  3,
-  'a shared-group contact exposes only the low-resolution count of contributing groups'
+  2,
+  'another person counts only active contributing groups'
 );
 
 SELECT ok(
@@ -542,8 +542,8 @@ SELECT is(
   jsonb_array_length(
     public.get_personal_journey_place_v1('10920000-0000-4000-8000-000000000001')->'groups'
   ),
-  2,
-  'place detail keeps explicit readable group contexts'
+  1,
+  'place detail excludes archived group contexts'
 );
 
 SELECT is(
@@ -603,6 +603,51 @@ SELECT is(
   NULL,
   'inaccessible visit detail returns no data'
 );
+
+-- Arkiverat exklusivt besök är osynligt utan att besöket raderas.
+RESET ROLE;
+INSERT INTO public.visits (id, place_id, visited_on, meal_type, is_takeaway, created_by)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10920000-0000-4000-8000-000000000001', current_date - 6, 'middag', false,
+  '10900000-0000-4000-8000-000000000002');
+INSERT INTO public.visit_group_links (visit_id, group_id, link_type, linked_by)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10910000-0000-4000-8000-000000000003', 'original',
+  '10900000-0000-4000-8000-000000000002');
+INSERT INTO public.visit_participants (visit_id, user_id)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10900000-0000-4000-8000-000000000001');
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '10900000-0000-4000-8000-000000000001';
+SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer, 1,
+  'archived-only participation does not change personal statistics');
+SELECT is(jsonb_array_length(public.list_personal_journey_visits_v1()->'items'), 1,
+  'archived-only visit is excluded from the personal visit list');
+SELECT is((public.get_personal_journey_overview_v2()->'summary'->>'attendedVisitCount')::integer, 1,
+  'overview excludes archived-only visits');
+RESET ROLE;
+UPDATE public.groups SET lifecycle_status = 'active', archived_at = NULL, archived_by = NULL
+WHERE id = '10910000-0000-4000-8000-000000000003';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '10900000-0000-4000-8000-000000000001';
+SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer, 2,
+  'reactivation restores the archived-only participation');
+SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'groupCount')::integer, 2,
+  'reactivation restores the contributing group');
+SELECT is(jsonb_array_length(public.list_personal_journey_visits_v1()->'items'), 2,
+  'reactivation restores the visit without duplicating the shared visit');
+RESET ROLE;
+UPDATE public.groups SET lifecycle_status = 'archived', archived_at = now(),
+  archived_by = '10900000-0000-4000-8000-000000000002'
+WHERE id = '10910000-0000-4000-8000-000000000003';
+SET LOCAL ROLE authenticated;
+SET LOCAL request.jwt.claim.sub = '10900000-0000-4000-8000-000000000001';
+SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer, 1,
+  'archiving again excludes the same visit');
+SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'groupCount')::integer, 1,
+  'archiving again excludes the group count');
+SELECT is(jsonb_array_length(public.list_personal_journey_visits_v1()->'items'), 1,
+  'archiving again hides the exclusive visit but keeps the shared active visit');
 
 RESET ROLE;
 
