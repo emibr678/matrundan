@@ -545,7 +545,7 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   await row.click();
   const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
   await expect(search.getByRole("button", { name: "Återställ", exact: true })).toHaveCount(0);
-  await expect(add.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
+  await expect(add.getByText("Förslag från Matrundan", { exact: true })).toBeVisible();
   await expect(add.locator('[data-matrundan-brand="mark"]')).toBeVisible();
   await expect(add.getByText("Skolvägen 3, Stockholm", { exact: true })).toBeVisible();
   await expect(add).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
