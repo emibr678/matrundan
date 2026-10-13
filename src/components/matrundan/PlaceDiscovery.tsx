@@ -1173,6 +1173,20 @@ export function PlaceDiscovery({
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
+      pagination={canShowMore ? (
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          className="min-h-11 w-full"
+          disabled={loadingMore || interactionsDisabled}
+          onClick={() => void showMoreResults()}
+        >
+          {loadingMore ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…</>
+          ) : "Visa fler"}
+        </Button>
+      ) : null}
       selectedId={selectedId}
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
@@ -1538,26 +1552,6 @@ export function PlaceDiscovery({
                     <div className="hidden lg:block">{resultSections}</div>
                   </>
                 )}
-                {canShowMore ? (
-                  <div className="flex justify-center">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="min-h-11 w-full sm:w-auto"
-                      disabled={loadingMore || interactionsDisabled}
-                      onClick={() => void showMoreResults()}
-                    >
-                      {loadingMore ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-                        </>
-                      ) : (
-                        "Visa fler"
-                      )}
-                    </Button>
-                  </div>
-                ) : null}
                 {unmappedCount > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
                     {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
@@ -1749,44 +1743,45 @@ function PlaceSearchCombobox({
     suggestion,
   }));
   // Keep mobile suggestions concise; all results remain available in browse mode.
-  const placeOptions: PlaceSearchOption[] = placeSuggestions
-    .slice(0, (focused ? 3 : 5) - genericOptions.length)
-    .map((suggestion) => ({
-      kind: "place",
+  const normalizedQuery = query.trim().toLocaleLowerCase("sv-SE");
+  const placeOptions: PlaceSearchOption[] = [
+    ...placeSuggestions.map((suggestion) => ({
+      kind: "place" as const,
       key: suggestion.externalId,
       label: suggestion.name,
       meta: placeOptionMeta(suggestion),
       suggestion,
-    }));
-  const hintOptions: PlaceSearchOption[] = nameHints
-    .slice(0, Math.max(0, (focused ? 3 : 5) - genericOptions.length - placeOptions.length))
-    .map((hint) => ({
-      kind: "hint",
+    })),
+    ...nameHints.map((hint) => ({
+      kind: "hint" as const,
       key: hint.placeId,
       label: hint.name,
       meta: [hint.address || hint.area, hint.city].filter(Boolean).join(" · "),
       hint,
-    }));
-  const isInternalOption = (option: PlaceSearchOption) =>
-    option.kind === "place" &&
-    (option.suggestion.kind === "canonical" ||
-      !!unambiguousPlaceCandidate(option.suggestion) ||
-      !!option.suggestion.identity?.knownPlace);
-  const internalOptions = placeOptions.filter(isInternalOption);
-  const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
-  const nearbyOptions = [
-    ...hintOptions.filter((option) => option.kind === "hint" && !option.hint.outsideArea),
-    ...externalOptions.filter(
-      (option) => option.kind === "place" && option.suggestion.searchAreaGroup !== "name-outside",
-    ),
+    })),
   ];
-  const outsideOptions = [
-    ...hintOptions.filter((option) => option.kind === "hint" && option.hint.outsideArea),
-    ...externalOptions.filter(
-      (option) => option.kind === "place" && option.suggestion.searchAreaGroup === "name-outside",
-    ),
-  ];
-  const options = [...genericOptions, ...internalOptions, ...nearbyOptions, ...outsideOptions];
+  const outside = (option: PlaceSearchOption) =>
+    option.kind === "hint"
+      ? option.hint.outsideArea
+      : option.kind === "place" && option.suggestion.searchAreaGroup === "name-outside";
+  const nameRelevance = (option: PlaceSearchOption) => {
+    const label = option.label.toLocaleLowerCase("sv-SE");
+    if (label === normalizedQuery) return 0;
+    if (label.startsWith(normalizedQuery)) return 1;
+    if (label.includes(normalizedQuery)) return 2;
+    return option.kind === "place" && option.suggestion.searchMatchType === "tolerant" ? 3 : 4;
+  };
+  const sourceRank = (option: PlaceSearchOption) =>
+    option.kind === "hint" || (option.kind === "place" && option.suggestion.kind !== "canonical")
+      ? 0 : 1;
+  const rankedOptions = placeOptions.sort((a, b) =>
+    Number(outside(a)) - Number(outside(b)) ||
+    nameRelevance(a) - nameRelevance(b) ||
+    sourceRank(a) - sourceRank(b)
+  ).slice(0, (focused ? 3 : 5) - genericOptions.length);
+  const nearbyOptions = rankedOptions.filter((option) => !outside(option));
+  const outsideOptions = rankedOptions.filter(outside);
+  const options = [...genericOptions, ...nearbyOptions, ...outsideOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = !suppressSuggestions && (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
@@ -1898,7 +1893,6 @@ function PlaceSearchCombobox({
         className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
       >
         <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {label === "Finns i Matrundan" ? <MatrundanBrand variant="mark" size="xs" /> : null}
           {label}
         </p>
         {groupOptions.map((option, index) => {
@@ -1999,7 +1993,9 @@ function PlaceSearchCombobox({
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
               onQueryChange("");
-              inputRef.current?.focus();
+              setOpen(false);
+              onFocusChange(false);
+              inputRef.current?.blur();
             }}
           >
             <X className="h-4 w-4" />
@@ -2054,16 +2050,11 @@ function PlaceSearchCombobox({
               ) : (
                 <>
                   {renderGroup("Kök och typer", genericOptions, 0)}
-                  {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
-                  {renderGroup(
-                    "Matställen",
-                    nearbyOptions,
-                    genericOptions.length + internalOptions.length,
-                  )}
+                  {renderGroup("Matställen", nearbyOptions, genericOptions.length)}
                   {renderGroup(
                     outsideHeading,
                     outsideOptions,
-                    genericOptions.length + internalOptions.length + nearbyOptions.length,
+                    genericOptions.length + nearbyOptions.length,
                   )}
                   {loading ? (
                     <p className="px-2 py-2 text-xs text-muted-foreground">
