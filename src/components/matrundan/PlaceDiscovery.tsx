@@ -1681,7 +1681,9 @@ function placeOptionMeta(suggestion: PlaceSuggestion): string {
   const location = suggestion.address?.trim()
     ? formatPlaceAddressWithCity(suggestion.address, suggestion.city)
     : [suggestion.area, suggestion.city].filter(Boolean).join(" · ");
-  return [CATEGORY_LABEL[suggestion.category], location].filter(Boolean).join(" · ");
+  return [CATEGORY_LABEL[suggestion.category], location, suggestion.kind === "canonical" ? "Förslag från Matrundan" : null]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function PlaceSearchCombobox({
