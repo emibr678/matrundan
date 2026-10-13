@@ -516,9 +516,9 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
   const internalOption = search.getByRole("option").filter({ hasText: canonical.name });
-  const internalGroup = search.getByRole("group", { name: "Finns i Matrundan", exact: true });
-  await expect(internalGroup.getByText("Finns i Matrundan", { exact: true })).toHaveCount(1);
-  await expect(internalGroup.locator('[data-matrundan-brand="mark"]')).toBeVisible();
+  const resultsGroup = search.getByRole("group", { name: "Matställen", exact: true });
+  await expect(resultsGroup).toBeVisible();
+  await expect(resultsGroup.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
   await expect(internalOption).toContainText("Skolvägen 3, Stockholm");
   await expect(internalOption).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
   await expect(internalOption.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
@@ -535,9 +535,7 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
     exact: true,
   });
   await expect(row).toHaveCount(1);
-  const resultHeading = search.getByRole("heading", { name: "Finns i Matrundan", exact: true });
-  await expect(resultHeading).toBeVisible();
-  await expect(resultHeading.locator('[data-matrundan-brand="mark"]')).toBeVisible();
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(0);
   await expect(row.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
   await expect(search.getByRole("button", { name: "Granska matchning", exact: true })).toHaveCount(
     0,
@@ -603,7 +601,7 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
   });
   await expect(suggestions).toBeVisible();
   await expect(
-    suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+    suggestions.getByRole("group", { name: "Matställen", exact: true }),
   ).toBeVisible();
   await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
   await expect(suggestions).toHaveCount(0);
@@ -778,7 +776,7 @@ for (const kind of ["provider", "internal"] as const) {
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
     if (kind === "internal")
       await expect(
-        search.getByRole("group", { name: "Finns i Matrundan", exact: true }),
+        search.getByRole("group", { name: "Matställen", exact: true }),
       ).toBeVisible();
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
     await expect(search.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(1);
@@ -879,9 +877,7 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
     .getByRole("combobox", { name: "Sök matställen", exact: true })
     .fill("Månbackens Matrum");
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
-  await expect(
-    search.getByRole("heading", { name: "Finns i Matrundan", exact: true }),
-  ).toBeVisible();
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(0);
   await expect(
     search.getByRole("button", { name: "Visa information om Månbackens Matrum", exact: true }),
   ).toHaveCount(1);
