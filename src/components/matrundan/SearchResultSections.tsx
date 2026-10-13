@@ -399,6 +399,9 @@ function SuggestionRow({
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
           </span>
+          {result.kind === "canonical" ? (
+            <span className="block text-[11px] text-muted-foreground">Förslag från Matrundan</span>
+          ) : null}
           <span className="block break-words text-[11px] text-muted-foreground">
             {result.area ? `${result.area} · ` : ""}
             {result.city}
