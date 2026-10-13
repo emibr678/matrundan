@@ -1173,20 +1173,26 @@ export function PlaceDiscovery({
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
-      pagination={canShowMore ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="min-h-11 w-full"
-          disabled={loadingMore || interactionsDisabled}
-          onClick={() => void showMoreResults()}
-        >
-          {loadingMore ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…</>
-          ) : "Visa fler"}
-        </Button>
-      ) : null}
+      pagination={
+        canShowMore ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="min-h-11 w-full"
+            disabled={loadingMore || interactionsDisabled}
+            onClick={() => void showMoreResults()}
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+              </>
+            ) : (
+              "Visa fler"
+            )}
+          </Button>
+        ) : null
+      }
       selectedId={selectedId}
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
@@ -1681,7 +1687,11 @@ function placeOptionMeta(suggestion: PlaceSuggestion): string {
   const location = suggestion.address?.trim()
     ? formatPlaceAddressWithCity(suggestion.address, suggestion.city)
     : [suggestion.area, suggestion.city].filter(Boolean).join(" · ");
-  return [CATEGORY_LABEL[suggestion.category], location, suggestion.kind === "canonical" ? "Förslag från Matrundan" : null]
+  return [
+    CATEGORY_LABEL[suggestion.category],
+    location,
+    suggestion.kind === "canonical" ? "Förslag från Matrundan" : null,
+  ]
     .filter(Boolean)
     .join(" · ");
 }
@@ -1775,12 +1785,16 @@ function PlaceSearchCombobox({
   };
   const sourceRank = (option: PlaceSearchOption) =>
     option.kind === "hint" || (option.kind === "place" && option.suggestion.kind !== "canonical")
-      ? 0 : 1;
-  const rankedOptions = placeOptions.sort((a, b) =>
-    Number(outside(a)) - Number(outside(b)) ||
-    nameRelevance(a) - nameRelevance(b) ||
-    sourceRank(a) - sourceRank(b)
-  ).slice(0, (focused ? 3 : 5) - genericOptions.length);
+      ? 0
+      : 1;
+  const rankedOptions = placeOptions
+    .sort(
+      (a, b) =>
+        Number(outside(a)) - Number(outside(b)) ||
+        nameRelevance(a) - nameRelevance(b) ||
+        sourceRank(a) - sourceRank(b),
+    )
+    .slice(0, (focused ? 3 : 5) - genericOptions.length);
   const nearbyOptions = rankedOptions.filter((option) => !outside(option));
   const outsideOptions = rankedOptions.filter(outside);
   const options = [...genericOptions, ...nearbyOptions, ...outsideOptions];

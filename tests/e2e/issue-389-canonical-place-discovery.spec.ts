@@ -535,7 +535,9 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
     exact: true,
   });
   await expect(row).toHaveCount(1);
-  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(0);
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(
+    0,
+  );
   await expect(row.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
   await expect(search.getByRole("button", { name: "Granska matchning", exact: true })).toHaveCount(
     0,
@@ -600,9 +602,7 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
     exact: true,
   });
   await expect(suggestions).toBeVisible();
-  await expect(
-    suggestions.getByRole("group", { name: "Matställen", exact: true }),
-  ).toBeVisible();
+  await expect(suggestions.getByRole("group", { name: "Matställen", exact: true })).toBeVisible();
   await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
   await expect(suggestions).toHaveCount(0);
   await expect(
@@ -775,9 +775,7 @@ for (const kind of ["provider", "internal"] as const) {
     const search = page.getByRole("dialog", { name: "Lägg till matställe" });
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
     if (kind === "internal")
-      await expect(
-        search.getByRole("group", { name: "Matställen", exact: true }),
-      ).toBeVisible();
+      await expect(search.getByRole("group", { name: "Matställen", exact: true })).toBeVisible();
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
     await expect(search.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(1);
     await expect(search).not.toContainText(/SECRET|besök i andra|antal grupper|skapad av/);
@@ -877,7 +875,9 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
     .getByRole("combobox", { name: "Sök matställen", exact: true })
     .fill("Månbackens Matrum");
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
-  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(0);
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     search.getByRole("button", { name: "Visa information om Månbackens Matrum", exact: true }),
   ).toHaveCount(1);
@@ -1125,15 +1125,20 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
 });
 
-test("autocomplete → detalj → tillbaka → full söklista hämtar resultat efter ommontering (#491)", async ({ page }) => {
+test("autocomplete → detalj → tillbaka → full söklista hämtar resultat efter ommontering (#491)", async ({
+  page,
+}) => {
   await setup(page, { hintFixtures: true, providerOnly: true });
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
-  await search.getByRole("listbox").getByRole("option")
-    .filter({ hasText: "Ox Lan i närheten" }).click();
+  await search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" })
+    .click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details.getByTestId("pending-place-practical-info")).toBeVisible();
   await details.getByRole("button", { name: "Stäng", exact: true }).click();
@@ -1141,8 +1146,9 @@ test("autocomplete → detalj → tillbaka → full söklista hämtar resultat e
   await search.getByRole("button", { name: /Visa sökresultat/ }).click();
   await expect(search).toHaveAttribute("data-search-shell", "browse");
   await expect(search.getByText("Söker…", { exact: true })).toBeHidden({ timeout: 15_000 });
-  await expect(search.getByRole("button", { name: `Visa information om ${provider.name}` }))
-    .toBeVisible();
+  await expect(
+    search.getByRole("button", { name: `Visa information om ${provider.name}` }),
+  ).toBeVisible();
   await noOverflow(page);
 });
 

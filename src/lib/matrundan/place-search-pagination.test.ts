@@ -128,8 +128,18 @@ describe("relevanta inkommande träffar (#491)", () => {
     const rows = rankNewPlaceSearchPage(
       [
         suggestion({ externalId: "map", kind: "provider", name: "Månbageriet", distanceKm: 0.5 }),
-        suggestion({ externalId: "local", kind: "canonical", name: "Månbageriet i Haga", distanceKm: 0.6 }),
-        suggestion({ externalId: "exact", kind: "canonical", name: "Månbageriet Haga", distanceKm: 0.6 }),
+        suggestion({
+          externalId: "local",
+          kind: "canonical",
+          name: "Månbageriet i Haga",
+          distanceKm: 0.6,
+        }),
+        suggestion({
+          externalId: "exact",
+          kind: "canonical",
+          name: "Månbageriet Haga",
+          distanceKm: 0.6,
+        }),
       ],
       "Månbageriet Haga",
     );
@@ -171,7 +181,10 @@ describe("relevanta inkommande träffar (#491)", () => {
       "Precis",
     );
     expect(mergePlaceSearchPages(previous, incoming).map((r) => r.externalId)).toEqual([
-      "first", "second", "external", "internal",
+      "first",
+      "second",
+      "external",
+      "internal",
     ]);
   });
 });

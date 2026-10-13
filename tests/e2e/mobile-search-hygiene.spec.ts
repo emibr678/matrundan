@@ -287,14 +287,21 @@ test("fokuserade mobila förslag är korta med väg till hela resultatlistan", a
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeVisible();
 });
 
-test("efter detaljdialog och rensad sökning kan användaren återgå till området och kartan (#491)", async ({ page }) => {
+test("efter detaljdialog och rensad sökning kan användaren återgå till området och kartan (#491)", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 360, height: 690 });
   await page.goto("/matstallen?demo=1");
   await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
   const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
   await input.fill(PLACE_NAME);
-  await dialog.getByRole("listbox").getByRole("option").filter({ hasText: PLACE_NAME }).first().click();
+  await dialog
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: PLACE_NAME })
+    .first()
+    .click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible();
   await details.getByRole("button", { name: "Tillbaka", exact: true }).click();

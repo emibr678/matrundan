@@ -78,7 +78,11 @@ export function rankNewPlaceSearchPage(
   query: string,
 ): PlaceSuggestion[] {
   const normalize = (s: string) =>
-    s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("sv-SE").trim();
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLocaleLowerCase("sv-SE")
+      .trim();
   const needle = normalize(query);
   const matchQuality = (result: PlaceSuggestion) => {
     if (!needle) return 0;
