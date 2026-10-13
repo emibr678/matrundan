@@ -460,8 +460,8 @@ function GroupStatusSection() {
             <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
-              nästa stopp rensas och aktiva inbjudningar återkallas. Historiken räknas inte i Min matresa tills gruppen återaktiveras. Du kan återaktivera gruppen
-              senare.
+              nästa stopp rensas och aktiva inbjudningar återkallas. Historiken räknas inte i Min
+              matresa tills gruppen återaktiveras. Du kan återaktivera gruppen senare.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

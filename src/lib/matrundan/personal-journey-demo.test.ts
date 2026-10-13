@@ -26,7 +26,9 @@ describe("Min matresa-demo", () => {
         place.groups.some((group) => group.isArchived && !group.isWritable),
       ),
     ).toBe(false);
-    expect(demoPersonalJourneyVisits(false).items.some((visit) => visit.placeName === "Bageri Solsidan")).toBe(false);
+    expect(
+      demoPersonalJourneyVisits(false).items.some((visit) => visit.placeName === "Bageri Solsidan"),
+    ).toBe(false);
   });
 
   test("återanvänder Fredagsgängets kanoniska exempel-ID:n för navigerbara objekt", () => {
