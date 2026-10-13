@@ -221,7 +221,10 @@ Gruppspecifika handlingar lämnas därför vidare till en riktig grupp när det
 behövs.
 
 Min matresa hjälper användaren att gå från utspridd historik till personlig
-orientering och återupptäckt över sina grupper. Ytan kan användas även när
+orientering och återupptäckt över sina **aktiva grupper**. Arkiverade grupper är
+fortfarande läsbara var för sig men bidrar inte till Min matresas översikt,
+topplista, besökshistorik, favoriter eller personstatistik. Återaktivering
+återför historiken och samma kanoniska besök räknas högst en gång. Ytan kan användas även när
 användaren bara har en läsbar grupp; värdet blir tydligare när flera grupper
 bidrar.
 

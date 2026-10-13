@@ -272,6 +272,14 @@ export const DEMO_PERSONAL_JOURNEY_VISITS: PersonalJourneyVisit[] = [
   },
 ];
 
+// Arkiverad historik finns kvar i fixtures, men bidrar inte till Min matresa.
+const ACTIVE_DEMO_PLACES = DEMO_PERSONAL_JOURNEY_PLACES.filter((place) =>
+  place.groups.some((group) => !group.isArchived),
+);
+const ACTIVE_DEMO_VISITS = DEMO_PERSONAL_JOURNEY_VISITS.filter((visit) =>
+  visit.groups.some((group) => !group.isArchived),
+);
+
 const DEMO_PERSONAL_JOURNEY_OCCASIONS: Record<string, Occasion[]> = {
   [DEMO_PERSONAL_JOURNEY_PLACES[0].id]: ["avslappnat", "middag"],
   [DEMO_PERSONAL_JOURNEY_PLACES[1].id]: ["snabbt"],
@@ -308,7 +316,7 @@ export function demoPersonalJourneyToplist({
   limit?: number;
 } = {}) {
   const normalized = query.trim().toLocaleLowerCase("sv-SE");
-  const matching = [...DEMO_PERSONAL_JOURNEY_PLACES]
+  const matching = [...ACTIVE_DEMO_PLACES]
     .filter((place): place is PersonalJourneyPlace & { rating: number } => place.rating != null)
     .filter(
       (place) =>
@@ -323,7 +331,7 @@ export function demoPersonalJourneyToplist({
         occasions.some((occasion) => DEMO_PERSONAL_JOURNEY_OCCASIONS[place.id]?.includes(occasion)),
     )
     .flatMap((place) => {
-      const relevantVisits = DEMO_PERSONAL_JOURNEY_VISITS.filter(
+      const relevantVisits = ACTIVE_DEMO_VISITS.filter(
         (visit) =>
           visit.placeId === place.id &&
           (mealTypes.length === 0 || mealTypes.includes(visit.mealType as RankableVisitMeal)) &&
@@ -381,10 +389,10 @@ const DEMO_GLOBAL_PEOPLE = [
   {
     displayName: "Alex",
     avatarEmoji: "😋",
-    visits: 17,
-    uniquePlaces: 12,
-    uniqueCuisines: 8,
-    groupCount: 3,
+    visits: 16,
+    uniquePlaces: 11,
+    uniqueCuisines: 7,
+    groupCount: 2,
     isSelf: true,
   },
   {
@@ -481,9 +489,9 @@ export function demoPersonalJourneyStats(
 
 export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
   summary: {
-    attendedVisitCount: 5,
-    attendedPlaceCount: 5,
-    readableGroupCount: 3,
+    attendedVisitCount: 4,
+    attendedPlaceCount: 4,
+    readableGroupCount: 2,
     activeGroupCount: 2,
   },
   pendingReviews: [
@@ -497,7 +505,7 @@ export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
       groups: [groups.friends, groups.family],
     },
   ],
-  topRatedPlaces: [...DEMO_PERSONAL_JOURNEY_PLACES]
+  topRatedPlaces: [...ACTIVE_DEMO_PLACES]
     .filter((place) => place.rating != null)
     .sort(
       (left, right) =>
@@ -506,8 +514,8 @@ export const DEMO_PERSONAL_JOURNEY_OVERVIEW: PersonalJourneyOverview = {
         left.name.localeCompare(right.name, "sv"),
     )
     .slice(0, 3),
-  favoritePlaces: DEMO_PERSONAL_JOURNEY_PLACES.filter((place) => place.isFavorite),
-  recentVisits: [...DEMO_PERSONAL_JOURNEY_VISITS]
+  favoritePlaces: ACTIVE_DEMO_PLACES.filter((place) => place.isFavorite),
+  recentVisits: [...ACTIVE_DEMO_VISITS]
     .filter((visit) => visit.participated)
     .sort((left, right) => right.visitedOn.localeCompare(left.visitedOn))
     .slice(0, 2),
@@ -530,12 +538,12 @@ export function demoPersonalJourneyPlaces({
 }) {
   const normalized = query.trim().toLocaleLowerCase("sv-SE");
   const latestVisitByPlace = new Map<string, string>();
-  for (const visit of DEMO_PERSONAL_JOURNEY_VISITS) {
+  for (const visit of ACTIVE_DEMO_VISITS) {
     const current = latestVisitByPlace.get(visit.placeId);
     if (!current || visit.visitedOn > current)
       latestVisitByPlace.set(visit.placeId, visit.visitedOn);
   }
-  const matching = DEMO_PERSONAL_JOURNEY_PLACES.filter(
+  const matching = ACTIVE_DEMO_PLACES.filter(
     (place) =>
       (!favoritesOnly || place.isFavorite) &&
       (!visitedByMeOnly || place.visitedByMe) &&
@@ -582,18 +590,18 @@ export function demoPersonalJourneyPlaces({
 
 export function demoPersonalJourneyVisits(participatedOnly: boolean) {
   return {
-    items: DEMO_PERSONAL_JOURNEY_VISITS.filter((visit) => !participatedOnly || visit.participated),
+    items: ACTIVE_DEMO_VISITS.filter((visit) => !participatedOnly || visit.participated),
     nextCursor: null,
   };
 }
 
 export function demoPersonalJourneyPlace(placeId: string): PersonalJourneyPlaceDetail | null {
-  const place = DEMO_PERSONAL_JOURNEY_PLACES.find((item) => item.id === placeId);
+  const place = ACTIVE_DEMO_PLACES.find((item) => item.id === placeId);
   return place ? { ...place, cuisines: ["Nordiskt", "Vegetariskt"], lat: null, lng: null } : null;
 }
 
 export function demoPersonalJourneyVisit(visitId: string): PersonalJourneyVisitDetail | null {
-  const visit = DEMO_PERSONAL_JOURNEY_VISITS.find((item) => item.id === visitId);
+  const visit = ACTIVE_DEMO_VISITS.find((item) => item.id === visitId);
   if (!visit) return null;
   return {
     ...visit,

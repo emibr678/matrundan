@@ -185,7 +185,7 @@ minst en aktiv grupp.
 
 Den globala personstatistiken:
 
-- härleds server-side från faktiska kanoniska deltaganden över personens grupper;
+- härleds server-side från faktiska kanoniska deltaganden i personens **aktiva** grupper; arkiverade grupper bidrar inte förrän de återaktiveras;
 - räknar samma kanoniska besök högst en gång men räknar verkliga återbesök;
 - får omfatta totalsiffror som besök, unika ställen, köksbredd, nivå och hur
   många grupper som faktiskt bidrar med deltagna besök;
