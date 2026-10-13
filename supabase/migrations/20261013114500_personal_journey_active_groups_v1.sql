@@ -124,7 +124,7 @@ BEGIN
     'recentVisits', _recent_visits
   );
 END;
-$function$
+$function$;
 
 
 -- get_personal_journey_place_v1
@@ -210,7 +210,7 @@ BEGIN
 
   RETURN _result;
 END;
-$function$
+$function$;
 
 
 -- get_personal_journey_stats_v1
@@ -503,7 +503,7 @@ BEGIN
     'leaderboard', _leaderboard
   );
 END;
-$function$
+$function$;
 
 
 -- get_personal_journey_toplist_v1
@@ -711,7 +711,7 @@ BEGIN
 
   RETURN jsonb_build_object('items', _items, 'nextCursor', _next_cursor);
 END;
-$function$
+$function$;
 
 
 -- get_personal_journey_visit_v1
@@ -881,7 +881,7 @@ BEGIN
 
   RETURN _result;
 END;
-$function$
+$function$;
 
 
 -- list_personal_journey_places_v1
@@ -1033,7 +1033,7 @@ BEGIN
 
   RETURN jsonb_build_object('items', _items, 'nextCursor', _next_cursor);
 END;
-$function$
+$function$;
 
 
 -- list_personal_journey_places_v2
@@ -1258,7 +1258,7 @@ BEGIN
 
   RETURN jsonb_build_object('items', _items, 'nextCursor', _next_cursor);
 END;
-$function$
+$function$;
 
 
 -- list_personal_journey_visits_v1
@@ -1416,7 +1416,7 @@ BEGIN
 
   RETURN jsonb_build_object('items', _items, 'nextCursor', _next_cursor);
 END;
-$function$
+$function$;
 
 
 -- Behåll befintliga explicit tillåtna roller efter funktionsersättningen.
