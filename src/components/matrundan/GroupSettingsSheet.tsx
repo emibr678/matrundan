@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Archive,
   ArchiveRestore,
@@ -393,6 +394,7 @@ function ProgressionSettingsSection({ groupId }: { groupId: string }) {
 }
 
 function GroupStatusSection() {
+  const queryClient = useQueryClient();
   const { state, archiveGroup, reactivateGroup, submitting } = useStore();
   const { refreshGroups } = useSession();
   const [confirmOpen, setConfirmOpen] = React.useState(false);
@@ -402,6 +404,7 @@ function GroupStatusSection() {
     try {
       await archiveGroup();
       await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: ["personal-journey"] });
       toast.success("Gruppen är arkiverad.");
       setConfirmOpen(false);
     } catch (error) {
@@ -413,6 +416,7 @@ function GroupStatusSection() {
     try {
       await reactivateGroup();
       await refreshGroups();
+      await queryClient.invalidateQueries({ queryKey: ["personal-journey"] });
       toast.success("Gruppen är återaktiverad.");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kunde inte återaktivera gruppen.");
@@ -425,8 +429,8 @@ function GroupStatusSection() {
       <Card className="rounded-2xl border-border/70 p-4">
         <p className="text-sm leading-relaxed text-muted-foreground">
           {archived
-            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar."
-            : "Arkivering bevarar historiken men gör gruppen skrivskyddad tills den återaktiveras."}
+            ? "Gruppen är arkiverad och skrivskyddad. Historiken finns kvar, men räknas inte i Min matresa."
+            : "Arkivering bevarar historiken men gör gruppen skrivskyddad. Den räknas inte i Min matresa förrän den återaktiveras."}
         </p>
         {archived ? (
           <Button
@@ -456,8 +460,8 @@ function GroupStatusSection() {
             <AlertDialogTitle>Arkivera {state.group.name}?</AlertDialogTitle>
             <AlertDialogDescription>
               Historik, besök, ställen, betyg och kommentarer bevaras. Gruppen blir skrivskyddad,
-              nästa stopp rensas och aktiva inbjudningar återkallas. Du kan återaktivera gruppen
-              senare.
+              nästa stopp rensas och aktiva inbjudningar återkallas. Historiken räknas inte i Min
+              matresa tills gruppen återaktiveras. Du kan återaktivera gruppen senare.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
