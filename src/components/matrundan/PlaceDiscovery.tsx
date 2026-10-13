@@ -62,6 +62,7 @@ import {
   actionableSliceIndex,
   countActionableSuggestions,
   mergePlaceSearchPages,
+  rankNewPlaceSearchPage,
   selectMapCandidates,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
@@ -104,6 +105,7 @@ export interface PlaceDiscoverySnapshot {
   radiusKm: SearchRadiusKm;
   results: PlaceSuggestion[];
   resultsForSearchKey?: string;
+  completedSearchKey?: string | null;
   failedAreas: string[];
   selectedId: string | null;
   resultView: ResultView;
@@ -214,6 +216,9 @@ export function PlaceDiscovery({
     snapshot?.resultsForSearchKey ?? currentSearchKey,
   );
   const resultMatchesSearch = resultsForSearchKey === currentSearchKey;
+  const [completedSearchKey, setCompletedSearchKey] = React.useState<string | null>(
+    snapshot?.completedSearchKey ?? null,
+  );
   const [results, setResults] = React.useState<PlaceSuggestion[]>(snapshot?.results ?? []);
   const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
   const [localSourceLinks, setLocalSourceLinks] = React.useState<LocalManualSourceLink[]>([]);
@@ -249,7 +254,11 @@ export function PlaceDiscovery({
     () => new Set(),
   );
   const requestRef = React.useRef(0);
-  const skipInitialSearchRef = React.useRef(Boolean(snapshot));
+  // Reuse only a fully settled result for exactly the same search key.
+  const skipInitialSearchRef = React.useRef(
+    snapshot?.completedSearchKey === currentSearchKey &&
+      snapshot?.resultsForSearchKey === currentSearchKey,
+  );
   const previousBulkBusyRef = React.useRef(false);
   const interactionsDisabled = submitting || bulkBusy;
 
@@ -266,6 +275,7 @@ export function PlaceDiscovery({
       radiusKm,
       results,
       resultsForSearchKey,
+      completedSearchKey,
       failedAreas,
       selectedId,
       resultView,
@@ -283,6 +293,7 @@ export function PlaceDiscovery({
     budgetRemaining,
     bulkMode,
     canonicalHints,
+    completedSearchKey,
     displayLimit,
     error,
     existingOpen,
@@ -612,7 +623,10 @@ export function PlaceDiscovery({
           credits: Math.max(0, remaining.credits - response.budgetUsage.reservedCredits),
         };
         canonicalIncomplete ||= response.canonicalIncomplete;
-        collected = mergePlaceSearchPages(collected, response.results);
+        collected = mergePlaceSearchPages(
+          collected,
+          rankNewPlaceSearchPage(response.results, effectiveQuery),
+        );
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);
         response.failedAreaLabels.forEach((label: string) => failedAreaLabels.add(label));
@@ -658,6 +672,7 @@ export function PlaceDiscovery({
       // Never launch multi-page Places name recovery while the user types.
       setResults([]);
       setResultsForSearchKey(currentSearchKey);
+      setCompletedSearchKey(null);
       setLoading(false);
       setError(null);
       setFailedAreas([]);
@@ -683,6 +698,7 @@ export function PlaceDiscovery({
       setNextOffset(0);
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
+      setCompletedSearchKey(currentSearchKey);
       return;
     }
     if (activeAreas.length === 0) {
@@ -696,8 +712,11 @@ export function PlaceDiscovery({
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
       setQueuedMore(false);
+      setLoading(false);
+      setCompletedSearchKey(currentSearchKey);
       return;
     }
+    setCompletedSearchKey(null);
     const requestId = ++requestRef.current;
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -775,6 +794,7 @@ export function PlaceDiscovery({
         setNextOffset(followingOffset);
         setAreaProgress(followingProgress);
         setBudgetRemaining(followingBudget);
+        setCompletedSearchKey(currentSearchKey);
         // Keep an explicit point/autocomplete choice if the refreshed result still exists.
         setSelectedId((current) =>
           nextResults.some((result) => result.externalId === current) ? current : null,
@@ -788,6 +808,7 @@ export function PlaceDiscovery({
         setAreaProgress({ offsets: {}, exhaustedIds: [] });
         setBudgetRemaining(AUTO_SEARCH_BUDGET);
         setError(providerMessage(caught));
+        setCompletedSearchKey(currentSearchKey);
       } finally {
         if (requestId === requestRef.current) setLoading(false);
       }
@@ -1227,10 +1248,14 @@ export function PlaceDiscovery({
     activeAreas.length > 0 && activeAreas.every((area) => searchAreaMode(area) === "point");
   const editingMobileAreas = mobileMode === "areas";
   const showingMobileSuggestions = mobileMode === "search";
-  const visibleGenericSuggestionCount = Math.min(genericSuggestions.length, 2);
-  const showFullResultsLink = nameHintsActive
-    ? nameHints.length + canonicalHints.length > 3 - visibleGenericSuggestionCount
-    : filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
+  // Navigation to the full list/map is never conditional on the suggestion count.
+  const confirmedMore = bufferedActionableCount > RESULT_PAGE_SIZE;
+  const finishedCount = !searchInFlight && !hasMore && bufferedActionableCount > 0;
+  const resultCountText = confirmedMore
+    ? ` (${RESULT_PAGE_SIZE}+)`
+    : finishedCount
+      ? ` (${bufferedActionableCount})`
+      : "";
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileModeChange("browse");
@@ -1320,11 +1345,13 @@ export function PlaceDiscovery({
         <PlaceSearchCombobox
           query={query}
           onQueryChange={(value) => {
+            setCompletedSearchKey(null);
             setQuery(value);
             setSelectedFilter(null);
             setIncludeDistantNameHints(false);
           }}
           onSelectFilter={(selection) => {
+            setCompletedSearchKey(null);
             setSelectedFilter(selection);
             setQuery("");
             setIncludeDistantNameHints(false);
@@ -1388,7 +1415,7 @@ export function PlaceDiscovery({
           Sök efter ett matställe eller välj ett kök.
         </p>
       ) : null}
-      {showingMobileSuggestions && showFullResultsLink ? (
+      {showingMobileSuggestions ? (
         <Button
           type="button"
           variant="ghost"
@@ -1398,7 +1425,8 @@ export function PlaceDiscovery({
             document.getElementById("place-query")?.blur();
           }}
         >
-          Visa alla resultat <ChevronRight className="ml-1 h-4 w-4" />
+          {query.trim() ? `Visa sökresultat${resultCountText}` : "Visa ställen i området"}
+          <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       ) : null}
 
