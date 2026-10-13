@@ -246,6 +246,19 @@ VALUES (
 )
 ON CONFLICT (media_id, group_id) DO NOTHING;
 
+-- Bygg historiken medan gruppen fortfarande är skrivbar.
+INSERT INTO public.visits (id, place_id, visited_on, meal_type, is_takeaway, created_by)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10920000-0000-4000-8000-000000000001', current_date - 6, 'middag', false,
+  '10900000-0000-4000-8000-000000000002');
+INSERT INTO public.visit_group_links (visit_id, group_id, link_type, linked_by)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10910000-0000-4000-8000-000000000003', 'original',
+  '10900000-0000-4000-8000-000000000002');
+INSERT INTO public.visit_participants (visit_id, user_id)
+VALUES ('10930000-0000-4000-8000-000000000009',
+  '10900000-0000-4000-8000-000000000001');
+
 UPDATE public.groups
 SET lifecycle_status = 'archived',
     archived_at = now(),
@@ -606,17 +619,6 @@ SELECT is(
 
 -- Arkiverat exklusivt besök är osynligt utan att besöket raderas.
 RESET ROLE;
-INSERT INTO public.visits (id, place_id, visited_on, meal_type, is_takeaway, created_by)
-VALUES ('10930000-0000-4000-8000-000000000009',
-  '10920000-0000-4000-8000-000000000001', current_date - 6, 'middag', false,
-  '10900000-0000-4000-8000-000000000002');
-INSERT INTO public.visit_group_links (visit_id, group_id, link_type, linked_by)
-VALUES ('10930000-0000-4000-8000-000000000009',
-  '10910000-0000-4000-8000-000000000003', 'original',
-  '10900000-0000-4000-8000-000000000002');
-INSERT INTO public.visit_participants (visit_id, user_id)
-VALUES ('10930000-0000-4000-8000-000000000009',
-  '10900000-0000-4000-8000-000000000001');
 SET LOCAL ROLE authenticated;
 SET LOCAL request.jwt.claim.sub = '10900000-0000-4000-8000-000000000001';
 SELECT is((public.get_personal_journey_stats_v1('visits')->'self'->>'visits')::integer, 1,
