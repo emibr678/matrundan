@@ -137,6 +137,9 @@ test("bekräftelsedialogens handlingar förblir synliga även på desktop med l�
   await scrollArea.evaluate((element) => {
     element.scrollTop = element.scrollHeight;
   });
+  // Efter en viewportändring kan dialogens centrerings-/öppningsanimation
+  // fortfarande vara i rörelse. Vänta på full synlighet utan att lätta på gränsen.
+  await expect(actions).toBeInViewport({ ratio: 1 });
   await expectInsideViewport(page, actions, "Fast desktopnederdel vid kort höjd");
   await expectInsideViewport(page, addButton, "Desktopknapp efter scroll");
   await expectNoHorizontalOverflow(page, "Bekräfta ställe kort desktop");
