@@ -496,7 +496,8 @@ test("sökområden är ett direktverkande filter med synlig återgång på 360 p
     "true",
   );
   await expect(input).toBeHidden();
-  await expect(input).toHaveValue("Pelikan");
+  // Dolda kontroller försvinner korrekt ur tillgänglighetsträdet men värdet bevaras.
+  await expect(dialog.locator("#place-query")).toHaveValue("Pelikan");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();

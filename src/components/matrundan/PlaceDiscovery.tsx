@@ -1392,7 +1392,7 @@ export function PlaceDiscovery({
           </div>
         ) : null}
       </div>
-      <div className={editingMobileAreas ? "hidden lg:block" : "min-w-0"}>
+      <div className={editingMobileAreas ? "hidden min-w-0 lg:block" : "min-w-0"}>
         <PlaceSearchCombobox
           query={query}
           onQueryChange={(value) => {
