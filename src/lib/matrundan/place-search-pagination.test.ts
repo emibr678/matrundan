@@ -3,6 +3,7 @@ import {
   actionableSliceIndex,
   countActionableSuggestions,
   mergePlaceSearchPages,
+  rankNewPlaceSearchPage,
   selectMapCandidates,
 } from "./place-search-pagination";
 import type { PlaceSuggestion } from "./places-provider";
@@ -119,6 +120,72 @@ describe("mergePlaceSearchPages", () => {
     );
 
     expect(merged[0].matchingAreaLabels).toEqual(["Stockholm", "Nacka", "Stavsnäs"]);
+  });
+});
+
+describe("relevanta inkommande träffar (#491)", () => {
+  test("ett exakt kanoniskt namn går före en svag extern namnmatch", () => {
+    const rows = rankNewPlaceSearchPage(
+      [
+        suggestion({ externalId: "map", kind: "provider", name: "Månbageriet", distanceKm: 0.5 }),
+        suggestion({
+          externalId: "local",
+          kind: "canonical",
+          name: "Månbageriet i Haga",
+          distanceKm: 0.6,
+        }),
+        suggestion({
+          externalId: "exact",
+          kind: "canonical",
+          name: "Månbageriet Haga",
+          distanceKm: 0.6,
+        }),
+      ],
+      "Månbageriet Haga",
+    );
+    expect(rows.map((r) => r.externalId)).toEqual(["exact", "map", "local"]);
+  });
+
+  test("en extern kartträff vinner en likvärdig intern kandidat", () => {
+    const rows = rankNewPlaceSearchPage(
+      [
+        suggestion({ externalId: "canonical", kind: "canonical", name: "Sushi", distanceKm: 0.32 }),
+        suggestion({ externalId: "provider", kind: "provider", name: "Sushi", distanceKm: 0.3 }),
+      ],
+      "Sushi",
+    );
+    expect(rows.map((r) => r.externalId)).toEqual(["provider", "canonical"]);
+  });
+
+  test("områdesträffar visas före stödjande namnträffar utanför", () => {
+    const rows = rankNewPlaceSearchPage(
+      [
+        suggestion({ externalId: "far", name: "Precis", searchAreaGroup: "name-outside" }),
+        suggestion({ externalId: "within", name: "Precis restaurang" }),
+      ],
+      "Precis",
+    );
+    expect(rows.map((r) => r.externalId)).toEqual(["within", "far"]);
+  });
+
+  test("nya sidor omkastar inte redan synliga träffar", () => {
+    const previous = [
+      suggestion({ externalId: "first", name: "Kvarterskrogen" }),
+      suggestion({ externalId: "second", name: "Restaurang" }),
+    ];
+    const incoming = rankNewPlaceSearchPage(
+      [
+        suggestion({ externalId: "internal", name: "Precis", kind: "canonical" }),
+        suggestion({ externalId: "external", name: "Precis", kind: "provider" }),
+      ],
+      "Precis",
+    );
+    expect(mergePlaceSearchPages(previous, incoming).map((r) => r.externalId)).toEqual([
+      "first",
+      "second",
+      "external",
+      "internal",
+    ]);
   });
 });
 

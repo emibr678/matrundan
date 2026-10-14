@@ -62,6 +62,7 @@ import {
   actionableSliceIndex,
   countActionableSuggestions,
   mergePlaceSearchPages,
+  rankNewPlaceSearchPage,
   selectMapCandidates,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
@@ -104,6 +105,7 @@ export interface PlaceDiscoverySnapshot {
   radiusKm: SearchRadiusKm;
   results: PlaceSuggestion[];
   resultsForSearchKey?: string;
+  completedSearchKey?: string | null;
   failedAreas: string[];
   selectedId: string | null;
   resultView: ResultView;
@@ -129,6 +131,7 @@ export function PlaceDiscovery({
   onSnapshotChange,
   mobileMode,
   onMobileModeChange,
+  onSearchAreaCriteriaChange,
   onToggleSelected,
   onClearSelected,
   onAddSelected,
@@ -147,6 +150,7 @@ export function PlaceDiscovery({
   onSnapshotChange?: (snapshot: PlaceDiscoverySnapshot) => void;
   mobileMode: PlaceDiscoveryMobileMode;
   onMobileModeChange: (mode: PlaceDiscoveryMobileMode) => void;
+  onSearchAreaCriteriaChange: () => void;
   onToggleSelected: (suggestion: PlaceSuggestion) => void;
   onClearSelected: () => void;
   onAddSelected: () => void;
@@ -214,6 +218,9 @@ export function PlaceDiscovery({
     snapshot?.resultsForSearchKey ?? currentSearchKey,
   );
   const resultMatchesSearch = resultsForSearchKey === currentSearchKey;
+  const [completedSearchKey, setCompletedSearchKey] = React.useState<string | null>(
+    snapshot?.completedSearchKey ?? null,
+  );
   const [results, setResults] = React.useState<PlaceSuggestion[]>(snapshot?.results ?? []);
   const [hiddenKeys, setHiddenKeys] = React.useState<Set<string>>(() => new Set());
   const [localSourceLinks, setLocalSourceLinks] = React.useState<LocalManualSourceLink[]>([]);
@@ -249,7 +256,11 @@ export function PlaceDiscovery({
     () => new Set(),
   );
   const requestRef = React.useRef(0);
-  const skipInitialSearchRef = React.useRef(Boolean(snapshot));
+  // Reuse only a fully settled result for exactly the same search key.
+  const skipInitialSearchRef = React.useRef(
+    snapshot?.completedSearchKey === currentSearchKey &&
+      snapshot?.resultsForSearchKey === currentSearchKey,
+  );
   const previousBulkBusyRef = React.useRef(false);
   const interactionsDisabled = submitting || bulkBusy;
 
@@ -266,6 +277,7 @@ export function PlaceDiscovery({
       radiusKm,
       results,
       resultsForSearchKey,
+      completedSearchKey,
       failedAreas,
       selectedId,
       resultView,
@@ -283,6 +295,7 @@ export function PlaceDiscovery({
     budgetRemaining,
     bulkMode,
     canonicalHints,
+    completedSearchKey,
     displayLimit,
     error,
     existingOpen,
@@ -612,7 +625,10 @@ export function PlaceDiscovery({
           credits: Math.max(0, remaining.credits - response.budgetUsage.reservedCredits),
         };
         canonicalIncomplete ||= response.canonicalIncomplete;
-        collected = mergePlaceSearchPages(collected, response.results);
+        collected = mergePlaceSearchPages(
+          collected,
+          rankNewPlaceSearchPage(response.results, effectiveQuery),
+        );
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);
         response.failedAreaLabels.forEach((label: string) => failedAreaLabels.add(label));
@@ -658,6 +674,7 @@ export function PlaceDiscovery({
       // Never launch multi-page Places name recovery while the user types.
       setResults([]);
       setResultsForSearchKey(currentSearchKey);
+      setCompletedSearchKey(null);
       setLoading(false);
       setError(null);
       setFailedAreas([]);
@@ -683,6 +700,7 @@ export function PlaceDiscovery({
       setNextOffset(0);
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
+      setCompletedSearchKey(currentSearchKey);
       return;
     }
     if (activeAreas.length === 0) {
@@ -696,8 +714,11 @@ export function PlaceDiscovery({
       setAreaProgress({ offsets: {}, exhaustedIds: [] });
       setBudgetRemaining(AUTO_SEARCH_BUDGET);
       setQueuedMore(false);
+      setLoading(false);
+      setCompletedSearchKey(currentSearchKey);
       return;
     }
+    setCompletedSearchKey(null);
     const requestId = ++requestRef.current;
     const timer = window.setTimeout(async () => {
       setLoading(true);
@@ -775,6 +796,7 @@ export function PlaceDiscovery({
         setNextOffset(followingOffset);
         setAreaProgress(followingProgress);
         setBudgetRemaining(followingBudget);
+        setCompletedSearchKey(currentSearchKey);
         // Keep an explicit point/autocomplete choice if the refreshed result still exists.
         setSelectedId((current) =>
           nextResults.some((result) => result.externalId === current) ? current : null,
@@ -788,6 +810,7 @@ export function PlaceDiscovery({
         setAreaProgress({ offsets: {}, exhaustedIds: [] });
         setBudgetRemaining(AUTO_SEARCH_BUDGET);
         setError(providerMessage(caught));
+        setCompletedSearchKey(currentSearchKey);
       } finally {
         if (requestId === requestRef.current) setLoading(false);
       }
@@ -1152,6 +1175,26 @@ export function PlaceDiscovery({
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
+      pagination={
+        canShowMore ? (
+          <Button
+            type="button"
+            variant="secondary"
+            size="sm"
+            className="min-h-11 w-full"
+            disabled={loadingMore || interactionsDisabled}
+            onClick={() => void showMoreResults()}
+          >
+            {loadingMore ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+              </>
+            ) : (
+              "Visa fler"
+            )}
+          </Button>
+        ) : null
+      }
       selectedId={selectedId}
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
@@ -1227,10 +1270,14 @@ export function PlaceDiscovery({
     activeAreas.length > 0 && activeAreas.every((area) => searchAreaMode(area) === "point");
   const editingMobileAreas = mobileMode === "areas";
   const showingMobileSuggestions = mobileMode === "search";
-  const visibleGenericSuggestionCount = Math.min(genericSuggestions.length, 2);
-  const showFullResultsLink = nameHintsActive
-    ? nameHints.length + canonicalHints.length > 3 - visibleGenericSuggestionCount
-    : filteredResults.length > 3 - visibleGenericSuggestionCount || hasMore;
+  // Navigation to the full list/map is never conditional on the suggestion count.
+  const confirmedMore = bufferedRemaining > 0;
+  const finishedCount = !searchInFlight && !hasMore && actionableResultCount > 0;
+  const resultCountText = confirmedMore
+    ? ` (${actionableResultCount}+)`
+    : finishedCount
+      ? ` (${actionableResultCount})`
+      : "";
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
     onMobileModeChange("browse");
@@ -1288,7 +1335,7 @@ export function PlaceDiscovery({
         id="mobile-search-area-editor"
         className={
           editingMobileAreas
-            ? "space-y-3 rounded-xl border border-border/70 bg-muted/10 p-3 lg:border-0 lg:bg-transparent lg:p-0"
+            ? "space-y-2 rounded-xl border border-border/70 bg-muted/10 p-3 lg:space-y-3 lg:border-0 lg:bg-transparent lg:p-0"
             : "hidden lg:block"
         }
       >
@@ -1298,16 +1345,19 @@ export function PlaceDiscovery({
           savedAreas={savedAreas}
           selectedAreaIds={selectedAreaIds}
           onSelectedAreaIdsChange={(ids) => {
+            onSearchAreaCriteriaChange();
             setSelectedAreaIds(ids);
             setIncludeDistantNameHints(false);
           }}
           temporaryAreas={temporaryAreas}
           onTemporaryAreasChange={(areas) => {
+            onSearchAreaCriteriaChange();
             setTemporaryAreas(areas);
             setIncludeDistantNameHints(false);
           }}
           radiusKm={radiusKm}
           onRadiusChange={(radius) => {
+            if (radius !== radiusKm) onSearchAreaCriteriaChange();
             setRadiusKm(radius);
             setIncludeDistantNameHints(false);
           }}
@@ -1315,16 +1365,44 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
           mobileEditorOpen={editingMobileAreas}
         />
+        {editingMobileAreas ? (
+          <div className="space-y-3 border-t border-border/60 pt-3 lg:hidden">
+            {selectedFilter ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">{selectedFilter.groupLabel}:</span>
+                <span className="inline-flex max-w-full items-center rounded-full border border-border bg-muted/40 px-3 py-1 font-medium">
+                  <span className="truncate">{selectedFilter.label}</span>
+                </span>
+              </div>
+            ) : null}
+            {activeAreas.length > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 w-full"
+                onClick={() => {
+                  document.getElementById("search-area-query")?.blur();
+                  onMobileModeChange("browse");
+                }}
+              >
+                Visa resultat
+                <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
       </div>
-      <div className="min-w-0">
+      <div className={editingMobileAreas ? "hidden min-w-0 lg:block" : "min-w-0"}>
         <PlaceSearchCombobox
           query={query}
           onQueryChange={(value) => {
+            setCompletedSearchKey(null);
             setQuery(value);
             setSelectedFilter(null);
             setIncludeDistantNameHints(false);
           }}
           onSelectFilter={(selection) => {
+            setCompletedSearchKey(null);
             setSelectedFilter(selection);
             setQuery("");
             setIncludeDistantNameHints(false);
@@ -1388,7 +1466,7 @@ export function PlaceDiscovery({
           Sök efter ett matställe eller välj ett kök.
         </p>
       ) : null}
-      {showingMobileSuggestions && showFullResultsLink ? (
+      {showingMobileSuggestions ? (
         <Button
           type="button"
           variant="ghost"
@@ -1398,7 +1476,8 @@ export function PlaceDiscovery({
             document.getElementById("place-query")?.blur();
           }}
         >
-          Visa alla resultat <ChevronRight className="ml-1 h-4 w-4" />
+          {query.trim() ? `Visa sökresultat${resultCountText}` : "Visa ställen i området"}
+          <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       ) : null}
 
@@ -1467,7 +1546,7 @@ export function PlaceDiscovery({
                         <span className="text-xs text-muted-foreground">
                           {resultView === "karta"
                             ? `Visar ${mappableResultCount} ställen på kartan`
-                            : `Visar ${actionableResultCount} ${actionableResultCount === 1 ? "träff" : "träffar"} i listan`}
+                            : `Visar ${actionableResultCount}${confirmedMore ? "+" : ""} ${actionableResultCount === 1 ? "träff" : "träffar"}${!confirmedMore && hasMore ? " hittills" : " i listan"}`}
                         </span>
                         {availableResults.length > 0 ? (
                           <Button
@@ -1510,26 +1589,6 @@ export function PlaceDiscovery({
                     <div className="hidden lg:block">{resultSections}</div>
                   </>
                 )}
-                {canShowMore ? (
-                  <div className="flex justify-center">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="min-h-11 w-full sm:w-auto"
-                      disabled={loadingMore || interactionsDisabled}
-                      onClick={() => void showMoreResults()}
-                    >
-                      {loadingMore ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-                        </>
-                      ) : (
-                        "Visa fler"
-                      )}
-                    </Button>
-                  </div>
-                ) : null}
                 {unmappedCount > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
                     {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
@@ -1659,7 +1718,13 @@ function placeOptionMeta(suggestion: PlaceSuggestion): string {
   const location = suggestion.address?.trim()
     ? formatPlaceAddressWithCity(suggestion.address, suggestion.city)
     : [suggestion.area, suggestion.city].filter(Boolean).join(" · ");
-  return [CATEGORY_LABEL[suggestion.category], location].filter(Boolean).join(" · ");
+  return [
+    CATEGORY_LABEL[suggestion.category],
+    location,
+    suggestion.kind === "canonical" ? "Förslag från Matrundan" : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 function PlaceSearchCombobox({
@@ -1721,44 +1786,49 @@ function PlaceSearchCombobox({
     suggestion,
   }));
   // Keep mobile suggestions concise; all results remain available in browse mode.
-  const placeOptions: PlaceSearchOption[] = placeSuggestions
-    .slice(0, (focused ? 3 : 5) - genericOptions.length)
-    .map((suggestion) => ({
-      kind: "place",
+  const normalizedQuery = query.trim().toLocaleLowerCase("sv-SE");
+  const placeOptions: PlaceSearchOption[] = [
+    ...placeSuggestions.map((suggestion) => ({
+      kind: "place" as const,
       key: suggestion.externalId,
       label: suggestion.name,
       meta: placeOptionMeta(suggestion),
       suggestion,
-    }));
-  const hintOptions: PlaceSearchOption[] = nameHints
-    .slice(0, Math.max(0, (focused ? 3 : 5) - genericOptions.length - placeOptions.length))
-    .map((hint) => ({
-      kind: "hint",
+    })),
+    ...nameHints.map((hint) => ({
+      kind: "hint" as const,
       key: hint.placeId,
       label: hint.name,
       meta: [hint.address || hint.area, hint.city].filter(Boolean).join(" · "),
       hint,
-    }));
-  const isInternalOption = (option: PlaceSearchOption) =>
-    option.kind === "place" &&
-    (option.suggestion.kind === "canonical" ||
-      !!unambiguousPlaceCandidate(option.suggestion) ||
-      !!option.suggestion.identity?.knownPlace);
-  const internalOptions = placeOptions.filter(isInternalOption);
-  const externalOptions = placeOptions.filter((option) => !isInternalOption(option));
-  const nearbyOptions = [
-    ...hintOptions.filter((option) => option.kind === "hint" && !option.hint.outsideArea),
-    ...externalOptions.filter(
-      (option) => option.kind === "place" && option.suggestion.searchAreaGroup !== "name-outside",
-    ),
+    })),
   ];
-  const outsideOptions = [
-    ...hintOptions.filter((option) => option.kind === "hint" && option.hint.outsideArea),
-    ...externalOptions.filter(
-      (option) => option.kind === "place" && option.suggestion.searchAreaGroup === "name-outside",
-    ),
-  ];
-  const options = [...genericOptions, ...internalOptions, ...nearbyOptions, ...outsideOptions];
+  const outside = (option: PlaceSearchOption) =>
+    option.kind === "hint"
+      ? option.hint.outsideArea
+      : option.kind === "place" && option.suggestion.searchAreaGroup === "name-outside";
+  const nameRelevance = (option: PlaceSearchOption) => {
+    const label = option.label.toLocaleLowerCase("sv-SE");
+    if (label === normalizedQuery) return 0;
+    if (label.startsWith(normalizedQuery)) return 1;
+    if (label.includes(normalizedQuery)) return 2;
+    return option.kind === "place" && option.suggestion.searchMatchType === "tolerant" ? 3 : 4;
+  };
+  const sourceRank = (option: PlaceSearchOption) =>
+    option.kind === "hint" || (option.kind === "place" && option.suggestion.kind !== "canonical")
+      ? 0
+      : 1;
+  const rankedOptions = placeOptions
+    .sort(
+      (a, b) =>
+        Number(outside(a)) - Number(outside(b)) ||
+        nameRelevance(a) - nameRelevance(b) ||
+        sourceRank(a) - sourceRank(b),
+    )
+    .slice(0, (focused ? 3 : 5) - genericOptions.length);
+  const nearbyOptions = rankedOptions.filter((option) => !outside(option));
+  const outsideOptions = rankedOptions.filter(outside);
+  const options = [...genericOptions, ...nearbyOptions, ...outsideOptions];
   const hasQuery = query.trim().length >= 2;
   const showList = !suppressSuggestions && (open || focused) && hasQuery;
   const canOfferMissing = !loading && !error && !incomplete && !noAreas && query.trim().length >= 6;
@@ -1870,7 +1940,6 @@ function PlaceSearchCombobox({
         className="border-t border-border/60 pt-1 first:border-t-0 first:pt-0"
       >
         <p className="flex items-center gap-1.5 px-2 pb-1 pt-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {label === "Finns i Matrundan" ? <MatrundanBrand variant="mark" size="xs" /> : null}
           {label}
         </p>
         {groupOptions.map((option, index) => {
@@ -1971,7 +2040,9 @@ function PlaceSearchCombobox({
             onMouseDown={(event) => event.preventDefault()}
             onClick={() => {
               onQueryChange("");
-              inputRef.current?.focus();
+              setOpen(false);
+              onFocusChange(false);
+              inputRef.current?.blur();
             }}
           >
             <X className="h-4 w-4" />
@@ -2026,16 +2097,11 @@ function PlaceSearchCombobox({
               ) : (
                 <>
                   {renderGroup("Kök och typer", genericOptions, 0)}
-                  {renderGroup("Finns i Matrundan", internalOptions, genericOptions.length)}
-                  {renderGroup(
-                    "Matställen",
-                    nearbyOptions,
-                    genericOptions.length + internalOptions.length,
-                  )}
+                  {renderGroup("Matställen", nearbyOptions, genericOptions.length)}
                   {renderGroup(
                     outsideHeading,
                     outsideOptions,
-                    genericOptions.length + internalOptions.length + nearbyOptions.length,
+                    genericOptions.length + nearbyOptions.length,
                   )}
                   {loading ? (
                     <p className="px-2 py-2 text-xs text-muted-foreground">

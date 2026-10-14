@@ -63,6 +63,7 @@ async function setup(
     hintPartialOnce?: boolean;
     hintResolution?: "slow" | "fail-once";
     mapPaging?: boolean;
+    mapPagingExtra?: boolean;
     mapFailOnce?: boolean;
   } = {},
 ) {
@@ -317,31 +318,34 @@ async function setup(
           await route.abort("failed");
           return;
         }
-        const results = Array.from({ length: 20 }, (_, index) => {
-          const id = `search-${filter}-${offset + index}`;
-          return {
-            ...provider,
-            externalId: id,
-            resultKey: `provider:geoapify:${id}`,
-            name: `Matställe ${offset + index}`,
-            provider: "geoapify",
-            category: "restaurang",
-            lat: 59 + (offset + index) * 0.00001,
-            lng: 18,
-            nearestAreaId: "area-1",
-            nearestAreaLabel: "Teststad",
-            matchingAreaIds: ["area-1"],
-            matchingAreaLabels: ["Teststad"],
-            identity: {
-              providerPlaceId: id,
-              providerVersion: "b".repeat(32),
-              knownPlace: null,
-              candidates: [],
-              reviewRequired: false,
-              identityConflict: false,
-            },
-          };
-        });
+        const results = Array.from(
+          { length: options.mapPagingExtra && offset === 0 ? 21 : 20 },
+          (_, index) => {
+            const id = `search-${filter}-${offset + index}`;
+            return {
+              ...provider,
+              externalId: id,
+              resultKey: `provider:geoapify:${id}`,
+              name: `Matställe ${offset + index}`,
+              provider: "geoapify",
+              category: "restaurang",
+              lat: 59 + (offset + index) * 0.00001,
+              lng: 18,
+              nearestAreaId: "area-1",
+              nearestAreaLabel: "Teststad",
+              matchingAreaIds: ["area-1"],
+              matchingAreaLabels: ["Teststad"],
+              identity: {
+                providerPlaceId: id,
+                providerVersion: "b".repeat(32),
+                knownPlace: null,
+                candidates: [],
+                reviewRequired: false,
+                identityConflict: false,
+              },
+            };
+          },
+        );
         reply = {
           ...(reply as Record<string, unknown>),
           results,
@@ -516,9 +520,9 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
   const internalOption = search.getByRole("option").filter({ hasText: canonical.name });
-  const internalGroup = search.getByRole("group", { name: "Finns i Matrundan", exact: true });
-  await expect(internalGroup.getByText("Finns i Matrundan", { exact: true })).toHaveCount(1);
-  await expect(internalGroup.locator('[data-matrundan-brand="mark"]')).toBeVisible();
+  const resultsGroup = search.getByRole("group", { name: "Matställen", exact: true });
+  await expect(resultsGroup).toBeVisible();
+  await expect(resultsGroup.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
   await expect(internalOption).toContainText("Skolvägen 3, Stockholm");
   await expect(internalOption).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
   await expect(internalOption.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
@@ -535,9 +539,9 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
     exact: true,
   });
   await expect(row).toHaveCount(1);
-  const resultHeading = search.getByRole("heading", { name: "Finns i Matrundan", exact: true });
-  await expect(resultHeading).toBeVisible();
-  await expect(resultHeading.locator('[data-matrundan-brand="mark"]')).toBeVisible();
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(
+    0,
+  );
   await expect(row.getByText("Finns i Matrundan", { exact: true })).toHaveCount(0);
   await expect(search.getByRole("button", { name: "Granska matchning", exact: true })).toHaveCount(
     0,
@@ -545,7 +549,7 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   await row.click();
   const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
   await expect(search.getByRole("button", { name: "Återställ", exact: true })).toHaveCount(0);
-  await expect(add.getByText("Finns i Matrundan", { exact: true })).toBeVisible();
+  await expect(add.getByText("Förslag från Matrundan", { exact: true })).toBeVisible();
   await expect(add.locator('[data-matrundan-brand="mark"]')).toBeVisible();
   await expect(add.getByText("Skolvägen 3, Stockholm", { exact: true })).toBeVisible();
   await expect(add).not.toContainText("Skolvägen 3, Stockholm · Stockholm");
@@ -602,9 +606,7 @@ test("befintligt ställe visas bara som redan i gruppen", async ({ page }) => {
     exact: true,
   });
   await expect(suggestions).toBeVisible();
-  await expect(
-    suggestions.getByRole("group", { name: "Finns i Matrundan", exact: true }),
-  ).toBeVisible();
+  await expect(suggestions.getByRole("group", { name: "Matställen", exact: true })).toBeVisible();
   await search.getByRole("button", { name: "Tillbaka till resultaten" }).click();
   await expect(suggestions).toHaveCount(0);
   await expect(
@@ -777,9 +779,7 @@ for (const kind of ["provider", "internal"] as const) {
     const search = page.getByRole("dialog", { name: "Lägg till matställe" });
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Astrom");
     if (kind === "internal")
-      await expect(
-        search.getByRole("group", { name: "Finns i Matrundan", exact: true }),
-      ).toBeVisible();
+      await expect(search.getByRole("group", { name: "Matställen", exact: true })).toBeVisible();
     await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
     await expect(search.getByRole("button", { name: "Lägg till", exact: true })).toHaveCount(1);
     await expect(search).not.toContainText(/SECRET|besök i andra|antal grupper|skapad av/);
@@ -879,9 +879,9 @@ test("demo använder samma lugna söksemantik utan externa skrivningar", async (
     .getByRole("combobox", { name: "Sök matställen", exact: true })
     .fill("Månbackens Matrum");
   await search.getByRole("combobox", { name: "Sök matställen", exact: true }).press("Escape");
-  await expect(
-    search.getByRole("heading", { name: "Finns i Matrundan", exact: true }),
-  ).toBeVisible();
+  await expect(search.getByRole("heading", { name: "Finns i Matrundan", exact: true })).toHaveCount(
+    0,
+  );
   await expect(
     search.getByRole("button", { name: "Visa information om Månbackens Matrum", exact: true }),
   ).toHaveCount(1);
@@ -970,6 +970,33 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await input.fill("Pelikan");
   await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("resultaträkningen skiljer kända fler träffar från möjliga nästa sidor (#491)", async ({
+  page,
+}) => {
+  await setup(page, { mapPaging: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(search.getByText("Visar 20 träffar hittills")).toBeVisible();
+  await expect(search.getByRole("button", { name: "Visa fler", exact: true })).toBeVisible();
+  await noOverflow(page);
+});
+
+test("20+ visas först när en ytterligare handlingsbar träff finns i bufferten (#491)", async ({
+  page,
+}) => {
+  await setup(page, { mapPaging: true, mapPagingExtra: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(search.getByText("Visar 20+ träffar i listan")).toBeVisible();
+  await search.getByRole("button", { name: "Visa fler", exact: true }).click();
+  await expect(search.getByText("Visar 40 träffar hittills")).toBeVisible();
   await noOverflow(page);
 });
 
@@ -1127,6 +1154,33 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   expect(bounds!.y).toBeLessThanOrEqual(20);
   await noOverflow(page);
   await page.screenshot({ path: "visual-review/issue-465-name-hint-return-360.png" });
+});
+
+test("autocomplete → detalj → tillbaka → full söklista hämtar resultat efter ommontering (#491)", async ({
+  page,
+}) => {
+  await setup(page, { hintFixtures: true, providerOnly: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Ox Lan");
+  await search
+    .getByRole("listbox")
+    .getByRole("option")
+    .filter({ hasText: "Ox Lan i närheten" })
+    .click();
+  const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(details.getByTestId("pending-place-practical-info")).toBeVisible();
+  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+  await expect(search).toHaveAttribute("data-search-shell", "focused");
+  await search.getByRole("button", { name: /Visa sökresultat/ }).click();
+  await expect(search).toHaveAttribute("data-search-shell", "browse");
+  await expect(search.getByText("Söker…", { exact: true })).toBeHidden({ timeout: 15_000 });
+  await expect(
+    search.getByRole("button", { name: `Visa information om ${provider.name}` }),
+  ).toBeVisible();
+  await noOverflow(page);
 });
 
 test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte öppna stället (#465)", async ({

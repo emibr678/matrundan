@@ -6,7 +6,6 @@ import {
 } from "@/lib/matrundan/place-discovery";
 import { Link } from "@tanstack/react-router";
 import { Check, ChevronDown, Link2, Plus } from "lucide-react";
-import { MatrundanBrand } from "./MatrundanBrand";
 import { OwnPlaceSuggestionReportBadge, PlaceDataSignalBadge } from "./PlaceDataSignalNotice";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -43,6 +42,7 @@ export function SearchResultSections({
   onLinkSource,
   places,
   showNearestAreaLabel,
+  pagination,
   disabled,
 }: {
   available: PlaceSuggestion[];
@@ -59,6 +59,7 @@ export function SearchResultSections({
   onLinkSource: (match: SourceMatchResult) => void;
   places: Place[];
   showNearestAreaLabel: boolean;
+  pagination?: React.ReactNode;
   disabled: boolean;
 }) {
   const signalSuggestions = React.useMemo(() => {
@@ -124,18 +125,10 @@ export function SearchResultSections({
     [hasOwnOpenReport],
   );
 
-  const isInternal = (row: PlaceSuggestion) =>
-    row.kind === "canonical" || !!unambiguousPlaceCandidate(row) || !!row.identity?.knownPlace;
-  const regularAvailable = available.filter((row) => !row.searchAreaGroup);
-  const nearbyAvailable = available.filter((row) => row.searchAreaGroup === "nearby");
-  const farAvailable = available.filter((row) => row.searchAreaGroup === "name-outside");
   const orderedAvailable = [
-    ...regularAvailable.filter(isInternal),
-    ...regularAvailable.filter((row) => !isInternal(row)),
-    ...nearbyAvailable.filter(isInternal),
-    ...nearbyAvailable.filter((row) => !isInternal(row)),
-    ...farAvailable.filter(isInternal),
-    ...farAvailable.filter((row) => !isInternal(row)),
+    ...available.filter((row) => !row.searchAreaGroup),
+    ...available.filter((row) => row.searchAreaGroup === "nearby"),
+    ...available.filter((row) => row.searchAreaGroup === "name-outside"),
   ];
   return (
     <div className="space-y-4">
@@ -190,10 +183,6 @@ export function SearchResultSections({
           orderedAvailable.flatMap((result, index) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
             const signal = signalFor(result);
-            const internal =
-              result.kind === "canonical" ||
-              !!unambiguousPlaceCandidate(result) ||
-              !!result.identity?.knownPlace;
             const previous = orderedAvailable.slice(0, index);
             const firstNearby =
               result.searchAreaGroup === "nearby" &&
@@ -201,14 +190,6 @@ export function SearchResultSections({
             const firstFar =
               result.searchAreaGroup === "name-outside" &&
               !previous.some((row) => row.searchAreaGroup === "name-outside");
-            const firstExternal =
-              !result.searchAreaGroup &&
-              !internal &&
-              !previous.some((row) => !row.searchAreaGroup && !isInternal(row));
-            const firstInternal =
-              !result.searchAreaGroup &&
-              internal &&
-              !previous.some((row) => !row.searchAreaGroup && isInternal(row));
             return [
               ...(firstNearby
                 ? [
@@ -221,24 +202,6 @@ export function SearchResultSections({
                 ? [
                     <h4 key="name-outside-heading" className="pt-2 text-sm font-medium">
                       Namnträffar utanför sökområdet
-                    </h4>,
-                  ]
-                : []),
-              ...(firstInternal
-                ? [
-                    <h4
-                      key="matrundan-heading"
-                      className="inline-flex items-center gap-1.5 pt-2 text-sm font-medium"
-                    >
-                      <MatrundanBrand variant="mark" size="xs" />
-                      Finns i Matrundan
-                    </h4>,
-                  ]
-                : []),
-              ...(firstExternal && orderedAvailable.some(isInternal)
-                ? [
-                    <h4 key="map-heading" className="pt-2 text-sm font-medium">
-                      Fler matställen
                     </h4>,
                   ]
                 : []),
@@ -296,6 +259,8 @@ export function SearchResultSections({
           </p>
         ) : null}
       </section>
+
+      {pagination}
 
       {existing.length > 0 ? (
         <Collapsible open={existingOpen} onOpenChange={onExistingOpenChange}>
@@ -434,6 +399,9 @@ function SuggestionRow({
             {CATEGORY_LABEL[result.category]}
             {result.cuisines?.length ? ` · ${result.cuisines.join(", ")}` : ""}
           </span>
+          {result.kind === "canonical" ? (
+            <span className="block text-[11px] text-muted-foreground">Förslag från Matrundan</span>
+          ) : null}
           <span className="block break-words text-[11px] text-muted-foreground">
             {result.area ? `${result.area} · ` : ""}
             {result.city}

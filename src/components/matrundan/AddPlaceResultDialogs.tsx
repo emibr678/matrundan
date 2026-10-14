@@ -555,7 +555,7 @@ export function AddPlaceResultDialogs({
                 <div className="space-y-1 rounded-xl border p-4">
                   <p className="inline-flex items-center gap-1 text-xs text-muted-foreground">
                     <MatrundanBrand variant="mark" size="xs" />
-                    Finns i Matrundan
+                    Förslag från Matrundan
                   </p>
                   <h2 className="break-words font-display text-2xl">
                     {simpleCandidate?.name ?? pending.name}

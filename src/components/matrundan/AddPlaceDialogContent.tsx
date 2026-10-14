@@ -626,6 +626,11 @@ export function AddPlaceDialogContent({
               onSnapshotChange={setDiscoverySnapshot}
               mobileMode={mobileMode}
               onMobileModeChange={changeMobileMode}
+              onSearchAreaCriteriaChange={() => {
+                // A changed search must start at the top of the new result set.
+                // Reopening the editor without changing criteria preserves the old position.
+                browseScrollTopRef.current = 0;
+              }}
               onToggleSelected={(suggestion) =>
                 setSelectedResults((current) => toggleBulkPlaceSelection(current, suggestion))
               }
