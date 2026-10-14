@@ -482,7 +482,7 @@ test("mobil inriktningsval leder till full resultatlista med synligt filter", as
   await expectNoHorizontalOverflow(page, "Normal dialog med lång resultatlista");
 });
 
-test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({ page }) => {
+test("sökområden är ett direktverkande filter med synlig återgång på 360 px", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 690 });
   const dialog = await openPlaceSearch(page);
   const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
@@ -515,8 +515,9 @@ test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({
     "aria-expanded",
     "true",
   );
-  // The radius is already updated without an extra confirmation.
-  await dialog.getByRole("button", { name: "Dölj sökområden" }).click();
+  // Avståndet verkställs direkt. Visa resultat navigerar tillbaka utan att spara på nytt.
+  await expect(dialog.getByRole("button", { name: "Visa resultat", exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Visa resultat", exact: true }).click();
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",
     "false",
@@ -547,6 +548,47 @@ test("sökområden är ett direktverkande filter utan Klar på 360 px", async ({
   await expectInsideViewport(page, input, "Sökfält efter utfällt sökområde");
   await expectInsideViewport(page, dialog.getByRole("listbox"), "Förslag efter områdesbyte");
   await expectNoHorizontalOverflow(page, "Sökning efter direktverkande sökområdesfilter");
+});
+
+test("Pizza och valt kartläge behålls när område och radie justeras (#491)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  const dialog = await openPlaceSearch(page);
+  const search = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  await search.fill("Pizz");
+  await dialog
+    .getByRole("listbox")
+    .getByRole("group", { name: "Kök och typer" })
+    .getByRole("option")
+    .filter({ hasText: "Pizza" })
+    .click();
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Pizza");
+  await dialog.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect(dialog.getByText(/Visar .* ställen på kartan/)).toBeVisible();
+
+  await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "true",
+  );
+  await expect(dialog.getByText("Aktivt filter:", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Pizza", { exact: true })).toBeVisible();
+  await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
+  await page.getByRole("option", { name: "2 km" }).click();
+  await dialog.getByRole("button", { name: "Visa resultat", exact: true }).click();
+
+  await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
+    "data-search-area-editing",
+    "false",
+  );
+  await expect(dialog.getByRole("button", { name: "Ändra sökområden" })).toContainText("2 km");
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Pizza");
+  await expect(dialog.getByText(/Visar .* ställen på kartan/)).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Pizza och karta efter ändrat sökområde");
+  await dialog.getByRole("button", { name: "Lista", exact: true }).click();
+  await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Pizza");
+  await expectNoHorizontalOverflow(page, "Pizza och lista efter ändrat sökområde");
 });
 
 test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas först vid tryck", async ({
