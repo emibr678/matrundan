@@ -321,28 +321,29 @@ async function setup(
         const results = Array.from(
           { length: options.mapPagingExtra && offset === 0 ? 21 : 20 },
           (_, index) => {
-          const id = `search-${filter}-${offset + index}`;
-          return {
-            ...provider,
-            externalId: id,
-            resultKey: `provider:geoapify:${id}`,
-            name: `Matställe ${offset + index}`,
-            provider: "geoapify",
-            category: "restaurang",
-            lat: 59 + (offset + index) * 0.00001,
-            lng: 18,
-            nearestAreaId: "area-1",
-            nearestAreaLabel: "Teststad",
-            matchingAreaIds: ["area-1"],
-            matchingAreaLabels: ["Teststad"],
-            identity: {
-              providerPlaceId: id,
-              providerVersion: "b".repeat(32),
-              knownPlace: null,
-              candidates: [],
-              reviewRequired: false,
-              identityConflict: false,
-            },
+            const id = `search-${filter}-${offset + index}`;
+            return {
+              ...provider,
+              externalId: id,
+              resultKey: `provider:geoapify:${id}`,
+              name: `Matställe ${offset + index}`,
+              provider: "geoapify",
+              category: "restaurang",
+              lat: 59 + (offset + index) * 0.00001,
+              lng: 18,
+              nearestAreaId: "area-1",
+              nearestAreaLabel: "Teststad",
+              matchingAreaIds: ["area-1"],
+              matchingAreaLabels: ["Teststad"],
+              identity: {
+                providerPlaceId: id,
+                providerVersion: "b".repeat(32),
+                knownPlace: null,
+                candidates: [],
+                reviewRequired: false,
+                identityConflict: false,
+              },
+            };
           },
         );
         reply = {
