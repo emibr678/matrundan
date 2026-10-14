@@ -318,7 +318,9 @@ async function setup(
           await route.abort("failed");
           return;
         }
-        const results = Array.from({ length: options.mapPagingExtra && offset === 0 ? 21 : 20 }, (_, index) => {
+        const results = Array.from(
+          { length: options.mapPagingExtra && offset === 0 ? 21 : 20 },
+          (_, index) => {
           const id = `search-${filter}-${offset + index}`;
           return {
             ...provider,
@@ -341,8 +343,8 @@ async function setup(
               reviewRequired: false,
               identityConflict: false,
             },
-          };
-        });
+          },
+        );
         reply = {
           ...(reply as Record<string, unknown>),
           results,
