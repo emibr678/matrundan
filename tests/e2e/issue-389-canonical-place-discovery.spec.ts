@@ -63,6 +63,7 @@ async function setup(
     hintPartialOnce?: boolean;
     hintResolution?: "slow" | "fail-once";
     mapPaging?: boolean;
+    mapPagingExtra?: boolean;
     mapFailOnce?: boolean;
   } = {},
 ) {
@@ -317,7 +318,7 @@ async function setup(
           await route.abort("failed");
           return;
         }
-        const results = Array.from({ length: 20 }, (_, index) => {
+        const results = Array.from({ length: options.mapPagingExtra && offset === 0 ? 21 : 20 }, (_, index) => {
           const id = `search-${filter}-${offset + index}`;
           return {
             ...provider,
@@ -966,6 +967,33 @@ test("Sök längre bort kräver eget val och går att återställa vid 360 px (#
   await input.fill("Pelikan");
   await expect(list.getByRole("button", { name: "Sök längre bort" })).toBeVisible();
   await expect(list.getByText("Ox Lan i Stuttgart")).toHaveCount(0);
+  await noOverflow(page);
+});
+
+test("resultaträkningen skiljer kända fler träffar från möjliga nästa sidor (#491)", async ({
+  page,
+}) => {
+  await setup(page, { mapPaging: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(search.getByText("Visar 20 träffar hittills")).toBeVisible();
+  await expect(search.getByRole("button", { name: "Visa fler", exact: true })).toBeVisible();
+  await noOverflow(page);
+});
+
+test("20+ visas först när en ytterligare handlingsbar träff finns i bufferten (#491)", async ({
+  page,
+}) => {
+  await setup(page, { mapPaging: true, mapPagingExtra: true });
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await expect(search.getByText("Visar 20+ träffar i listan")).toBeVisible();
+  await search.getByRole("button", { name: "Visa fler", exact: true }).click();
+  await expect(search.getByText(/Visar 21 träffar/)).toBeVisible();
   await noOverflow(page);
 });
 
