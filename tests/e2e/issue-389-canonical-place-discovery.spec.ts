@@ -993,7 +993,7 @@ test("20+ visas först när en ytterligare handlingsbar träff finns i bufferten
   const search = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(search.getByText("Visar 20+ träffar i listan")).toBeVisible();
   await search.getByRole("button", { name: "Visa fler", exact: true }).click();
-  await expect(search.getByText(/Visar 21 träffar/)).toBeVisible();
+  await expect(search.getByText("Visar 40+ träffar i listan")).toBeVisible();
   await noOverflow(page);
 });
 
