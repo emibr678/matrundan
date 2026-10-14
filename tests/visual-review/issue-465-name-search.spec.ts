@@ -39,7 +39,10 @@ test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ pa
     await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
     await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
     await expect(dialog.getByText("Avstånd", { exact: true })).toBeVisible();
-    await expect(dialog.getByRole("combobox", { name: "Sök matställen" })).toBeVisible();
+    // The area editor intentionally hides the ordinary place-search field.
+    await expect(input).toBeHidden();
+    await expect(dialog.locator("#place-query")).toHaveValue("Päronträdets");
+    await expect(dialog.getByRole("button", { name: "Visa resultat" })).toBeVisible();
     await page.screenshot({
       path: path.join(dir, "issue-465-area-filter-expanded.png"),
       fullPage: false,
@@ -52,8 +55,10 @@ test("namnsökning för mobilt och desktop i exempelgruppen (#465)", async ({ pa
       path: path.join(dir, "issue-465-area-location-input.png"),
       fullPage: false,
     });
-    await dialog.getByRole("combobox", { name: "Sök matställen" }).focus();
+    await dialog.getByRole("button", { name: "Visa resultat" }).click();
     await expect(dialog.locator("#mobile-search-area-editor")).toBeHidden();
+    await expect(input).toBeVisible();
+    await expect(input).toHaveValue("Päronträdets");
   }
 
   const metrics = await page.evaluate(() => ({
