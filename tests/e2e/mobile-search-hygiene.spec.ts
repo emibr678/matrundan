@@ -550,9 +550,7 @@ test("sökområden är ett direktverkande filter med synlig återgång på 360 p
   await expectNoHorizontalOverflow(page, "Sökning efter direktverkande sökområdesfilter");
 });
 
-test("Pizza och valt kartläge behålls när område och radie justeras (#491)", async ({
-  page,
-}) => {
+test("Pizza och valt kartläge behålls när område och radie justeras (#491)", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 690 });
   const dialog = await openPlaceSearch(page);
   const search = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
