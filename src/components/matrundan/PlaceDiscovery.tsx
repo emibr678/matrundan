@@ -131,6 +131,7 @@ export function PlaceDiscovery({
   onSnapshotChange,
   mobileMode,
   onMobileModeChange,
+  onSearchAreaCriteriaChange,
   onToggleSelected,
   onClearSelected,
   onAddSelected,
@@ -149,6 +150,7 @@ export function PlaceDiscovery({
   onSnapshotChange?: (snapshot: PlaceDiscoverySnapshot) => void;
   mobileMode: PlaceDiscoveryMobileMode;
   onMobileModeChange: (mode: PlaceDiscoveryMobileMode) => void;
+  onSearchAreaCriteriaChange: () => void;
   onToggleSelected: (suggestion: PlaceSuggestion) => void;
   onClearSelected: () => void;
   onAddSelected: () => void;
@@ -1333,7 +1335,7 @@ export function PlaceDiscovery({
         id="mobile-search-area-editor"
         className={
           editingMobileAreas
-            ? "space-y-3 rounded-xl border border-border/70 bg-muted/10 p-3 lg:border-0 lg:bg-transparent lg:p-0"
+            ? "space-y-2 rounded-xl border border-border/70 bg-muted/10 p-3 lg:space-y-3 lg:border-0 lg:bg-transparent lg:p-0"
             : "hidden lg:block"
         }
       >
@@ -1343,16 +1345,19 @@ export function PlaceDiscovery({
           savedAreas={savedAreas}
           selectedAreaIds={selectedAreaIds}
           onSelectedAreaIdsChange={(ids) => {
+            onSearchAreaCriteriaChange();
             setSelectedAreaIds(ids);
             setIncludeDistantNameHints(false);
           }}
           temporaryAreas={temporaryAreas}
           onTemporaryAreasChange={(areas) => {
+            onSearchAreaCriteriaChange();
             setTemporaryAreas(areas);
             setIncludeDistantNameHints(false);
           }}
           radiusKm={radiusKm}
           onRadiusChange={(radius) => {
+            if (radius !== radiusKm) onSearchAreaCriteriaChange();
             setRadiusKm(radius);
             setIncludeDistantNameHints(false);
           }}
@@ -1364,28 +1369,30 @@ export function PlaceDiscovery({
           <div className="space-y-3 border-t border-border/60 pt-3 lg:hidden">
             {selectedFilter ? (
               <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
-                <span className="text-muted-foreground">Aktivt filter:</span>
+                <span className="text-muted-foreground">{selectedFilter.groupLabel}:</span>
                 <span className="inline-flex max-w-full items-center rounded-full border border-border bg-muted/40 px-3 py-1 font-medium">
                   <span className="truncate">{selectedFilter.label}</span>
                 </span>
               </div>
             ) : null}
-            <Button
-              type="button"
-              variant="secondary"
-              className="min-h-11 w-full"
-              onClick={() => {
-                document.getElementById("search-area-query")?.blur();
-                onMobileModeChange("browse");
-              }}
-            >
-              Visa resultat
-              <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
-            </Button>
+            {activeAreas.length > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                className="min-h-11 w-full"
+                onClick={() => {
+                  document.getElementById("search-area-query")?.blur();
+                  onMobileModeChange("browse");
+                }}
+              >
+                Visa resultat
+                <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </div>
-      <div className="min-w-0">
+      <div className={editingMobileAreas ? "hidden lg:block" : "min-w-0"}>
         <PlaceSearchCombobox
           query={query}
           onQueryChange={(value) => {

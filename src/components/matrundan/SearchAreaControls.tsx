@@ -246,7 +246,7 @@ export function SearchAreaControls({
   }
 
   return (
-    <section className="space-y-3" aria-label={heading}>
+    <section className={mobileEditorOpen ? "space-y-2 lg:space-y-3" : "space-y-3"} aria-label={heading}>
       <h3 className="sr-only lg:not-sr-only lg:text-sm lg:font-medium">{heading}</h3>
       <SelectedAreas
         savedAreas={selectedSavedAreas}
