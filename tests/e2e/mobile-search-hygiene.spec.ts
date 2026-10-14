@@ -495,7 +495,7 @@ test("sökområden är ett direktverkande filter med synlig återgång på 360 p
     "data-search-area-editing",
     "true",
   );
-  await expect(input).toBeVisible();
+  await expect(input).toBeHidden();
   await expect(input).toHaveValue("Pelikan");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
   await expect(dialog.getByRole("listbox")).toHaveCount(0);
@@ -536,15 +536,18 @@ test("sökområden är ett direktverkande filter med synlig återgång på 360 p
   await page.setViewportSize({ width: 360, height: 420 });
   await expectInsideViewport(page, areaInput, "Områdessökfält med tangentbord");
   await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeHidden();
-  // A tap on the restaurant search is enough to collapse area settings.
-  await input.focus();
-  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  // Redigeringsläget har en enda tydlig utgång även med simulerat mobilt tangentbord.
+  await expect(input).toBeHidden();
+  await dialog.getByRole("button", { name: "Visa resultat", exact: true }).click();
   await expect(dialog.locator("[data-search-area-editing]")).toHaveAttribute(
     "data-search-area-editing",
     "false",
   );
   await expect(areaEditor).toBeHidden();
+  await expect(input).toBeVisible();
   await expect(input).toHaveValue("Pelikan");
+  await input.focus();
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
   await expectInsideViewport(page, input, "Sökfält efter utfällt sökområde");
   await expectInsideViewport(page, dialog.getByRole("listbox"), "Förslag efter områdesbyte");
   await expectNoHorizontalOverflow(page, "Sökning efter direktverkande sökområdesfilter");
@@ -570,8 +573,9 @@ test("Pizza och valt kartläge behålls när område och radie justeras (#491)",
     "data-search-area-editing",
     "true",
   );
-  await expect(dialog.getByText("Aktivt filter:", { exact: true })).toBeVisible();
+  await expect(dialog.getByText("Inriktning:", { exact: true })).toBeVisible();
   await expect(dialog.getByText("Pizza", { exact: true })).toBeVisible();
+  await expect(search).toBeHidden();
   await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
   await page.getByRole("option", { name: "2 km" }).click();
   await dialog.getByRole("button", { name: "Visa resultat", exact: true }).click();
@@ -587,6 +591,52 @@ test("Pizza och valt kartläge behålls när område och radie justeras (#491)",
   await dialog.getByRole("button", { name: "Lista", exact: true }).click();
   await expect(dialog.getByTestId("active-place-search-filter")).toContainText("Pizza");
   await expectNoHorizontalOverflow(page, "Pizza och lista efter ändrat sökområde");
+});
+
+test("utan valda områden kan man välja nytt men inte visa tomma resultat (#491)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  const dialog = await openPlaceSearch(page);
+  await dialog.getByRole("button", { name: "Ändra sökområden" }).click();
+  const remove = dialog.getByRole("button", { name: /Ta bort .* från sökningen/ });
+  while (await remove.count()) {
+    await remove.first().click();
+  }
+  await expect(dialog.getByText("Välj minst ett område eller en plats.")).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Visa resultat", exact: true })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Lägg till sökområde" })).toBeVisible();
+  await expectNoHorizontalOverflow(page, "Områdesval utan valda områden");
+});
+
+test("oförändrad sökning bevarar scroll medan ny radie återgår till start (#491)", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  const dialog = await openPlaceSearch(page);
+  const area = dialog.getByRole("button", { name: "Ändra sökområden" });
+  const show = dialog.getByRole("button", { name: "Visa resultat", exact: true });
+  await dialog.evaluate((element) => {
+    element.scrollTop = 200;
+  });
+  const topBefore = await dialog.evaluate((element) => element.scrollTop);
+  expect(topBefore).toBeGreaterThan(0);
+
+  // Klick direkt på kontrollen utan Playwrights automatiska scrollning till viewport.
+  await area.evaluate((element: HTMLButtonElement) => element.click());
+  await expect(show).toBeVisible();
+  await show.evaluate((element: HTMLButtonElement) => element.click());
+  await expect.poll(() => dialog.evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+
+  await dialog.evaluate((element) => {
+    element.scrollTop = 200;
+  });
+  await area.evaluate((element: HTMLButtonElement) => element.click());
+  await dialog.getByRole("combobox", { name: "Avstånd runt adresser och platser" }).click();
+  await page.getByRole("option", { name: "2 km" }).click();
+  await show.click();
+  await expect.poll(() => dialog.evaluate((element) => element.scrollTop)).toBe(0);
+  await expectNoHorizontalOverflow(page, "Återgång till början efter ändrad radie");
 });
 
 test("ursprunglig dialog på mobil är kompakt och fokuserad sökning öppnas först vid tryck", async ({
