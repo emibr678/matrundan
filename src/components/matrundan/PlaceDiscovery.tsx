@@ -1269,12 +1269,12 @@ export function PlaceDiscovery({
   const editingMobileAreas = mobileMode === "areas";
   const showingMobileSuggestions = mobileMode === "search";
   // Navigation to the full list/map is never conditional on the suggestion count.
-  const confirmedMore = bufferedActionableCount > RESULT_PAGE_SIZE;
-  const finishedCount = !searchInFlight && !hasMore && bufferedActionableCount > 0;
+  const confirmedMore = bufferedRemaining > 0;
+  const finishedCount = !searchInFlight && !hasMore && actionableResultCount > 0;
   const resultCountText = confirmedMore
-    ? ` (${RESULT_PAGE_SIZE}+)`
+    ? ` (${actionableResultCount}+)`
     : finishedCount
-      ? ` (${bufferedActionableCount})`
+      ? ` (${actionableResultCount})`
       : "";
 
   const activateSearchSuggestion = (suggestion: PlaceSuggestion) => {
@@ -1360,6 +1360,30 @@ export function PlaceDiscovery({
           fallbackCity={state.group.city}
           mobileEditorOpen={editingMobileAreas}
         />
+        {editingMobileAreas ? (
+          <div className="space-y-3 border-t border-border/60 pt-3 lg:hidden">
+            {selectedFilter ? (
+              <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm">
+                <span className="text-muted-foreground">Aktivt filter:</span>
+                <span className="inline-flex max-w-full items-center rounded-full border border-border bg-muted/40 px-3 py-1 font-medium">
+                  <span className="truncate">{selectedFilter.label}</span>
+                </span>
+              </div>
+            ) : null}
+            <Button
+              type="button"
+              variant="secondary"
+              className="min-h-11 w-full"
+              onClick={() => {
+                document.getElementById("search-area-query")?.blur();
+                onMobileModeChange("browse");
+              }}
+            >
+              Visa resultat
+              <ChevronRight className="ml-1 h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        ) : null}
       </div>
       <div className="min-w-0">
         <PlaceSearchCombobox
@@ -1515,7 +1539,7 @@ export function PlaceDiscovery({
                         <span className="text-xs text-muted-foreground">
                           {resultView === "karta"
                             ? `Visar ${mappableResultCount} ställen på kartan`
-                            : `Visar ${actionableResultCount} ${actionableResultCount === 1 ? "träff" : "träffar"} i listan`}
+                            : `Visar ${actionableResultCount}${confirmedMore ? "+" : ""} ${actionableResultCount === 1 ? "träff" : "träffar"}${!confirmedMore && hasMore ? " hittills" : " i listan"}`}
                         </span>
                         {availableResults.length > 0 ? (
                           <Button
