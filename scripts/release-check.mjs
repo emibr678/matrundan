@@ -107,7 +107,8 @@ function onlyLatestReleaseEntryChanged(before, after, pattern) {
   return (
     beforeEntries[0][1] === afterEntries[0][1] &&
     before.slice(0, beforeEntries[0].index) === after.slice(0, afterEntries[0].index) &&
-    before.slice(beforeEntries[1].index) === after.slice(afterEntries[1].index)
+    before.slice(beforeEntries[1].index).trimEnd() ===
+      after.slice(afterEntries[1].index).trimEnd()
   );
 }
 
