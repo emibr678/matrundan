@@ -330,8 +330,12 @@ Ordinarie CI läser underlaget från PR-eventet.
 
 När en separat releasekandidat skapas materialiseras valda mergade
 releaseunderlag till riktig version, datum, `CHANGELOG.md` och in-app-historik.
-Om `version.ts` ändras kräver releasekontrollen fortfarande en högre semver och
-en samtidig changeloguppdatering. Redan pågående versionerade feature-PR:er
+Om `version.ts` ändras kräver releasekontrollen en samtidig changeloguppdatering.
+En ny release kräver högre semver. En redan materialiserad men **otaggad** kandidat
+får kompletteras med oförändrad version endast i sin senaste releasepost; äldre
+historik och all annan användarsynlig kod måste vara oförändrade. När versionen
+väl fått sin release-tagg får den inte skrivas om. CI behöver full Git-historik
+inklusive taggar för den kontrollen. Redan pågående versionerade feature-PR:er
 accepteras under övergången men är inte mönstret för nya features.
 
 `Version: inte relevant` används fortsatt endast för dokumentations-, test- och

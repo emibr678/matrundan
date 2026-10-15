@@ -88,6 +88,29 @@ function versionFromSource(source) {
   return /version:\s*"(\d+\.\d+\.\d+)"/.exec(source)?.[1] ?? null;
 }
 
+function releaseTagExists(version) {
+  const result = spawnSync("git", ["show-ref", "--verify", "--quiet", `refs/tags/v${version}`], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  // A broken tag lookup must not silently unlock published history.
+  errors.push(`Kunde inte kontrollera Git-taggen v${version}.`);
+  return true;
+}
+
+function onlyLatestReleaseEntryChanged(before, after, pattern) {
+  const beforeEntries = [...before.matchAll(pattern)];
+  const afterEntries = [...after.matchAll(pattern)];
+  if (beforeEntries.length < 2 || afterEntries.length < 2) return false;
+  return (
+    beforeEntries[0][1] === afterEntries[0][1] &&
+    before.slice(0, beforeEntries[0].index) === after.slice(0, afterEntries[0].index) &&
+    before.slice(beforeEntries[1].index).trimEnd() === after.slice(afterEntries[1].index).trimEnd()
+  );
+}
+
 function pullRequestBody(eventName) {
   if (eventName !== "pull_request") return "";
 
@@ -218,13 +241,41 @@ if (base) {
   const baseSource = git(["show", `${base}:src/lib/matrundan/version.ts`], true);
   const baseVersion = versionFromSource(baseSource);
   if (versionChanged) {
+    if (!changelogChanged) {
+      errors.push(
+        "En ändring av appens versionshistorik kräver en samtidig uppdatering av CHANGELOG.md.",
+      );
+    }
     if (!baseVersion) {
       errors.push("Kunde inte läsa appversionen på målgrenen.");
-    } else if (compareSemver(APP_VERSION, baseVersion) <= 0) {
-      errors.push(`Ny appversion ${APP_VERSION} måste vara högre än ${baseVersion}.`);
-    }
-    if (!changelogChanged) {
-      errors.push("En versionshöjning kräver en samtidig uppdatering av CHANGELOG.md.");
+    } else if (releaseTagExists(APP_VERSION)) {
+      errors.push(`Release v${APP_VERSION} är redan taggad och får inte skrivas om.`);
+    } else {
+      const comparison = compareSemver(APP_VERSION, baseVersion);
+      if (comparison < 0) {
+        errors.push(`Ny appversion ${APP_VERSION} får inte vara lägre än ${baseVersion}.`);
+      } else if (comparison === 0) {
+        const baseMarkdown = git(["show", `${base}:CHANGELOG.md`], true);
+        const candidateOnly =
+          changelogChanged &&
+          !userFacingChanged &&
+          git(["rev-parse", "--is-shallow-repository"]) === "false" &&
+          onlyLatestReleaseEntryChanged(
+            baseMarkdown,
+            markdown,
+            /^## \[(\d+\.\d+\.\d+)\]\s+[–-]\s+\d{4}-\d{2}-\d{2}$/gm,
+          ) &&
+          onlyLatestReleaseEntryChanged(
+            baseSource,
+            readFileSync(versionPath, "utf8"),
+            /^const (VERSION_\d+_\d+_\d+_CHANGELOG)(?::\s*ChangelogEntry)?\s*=\s*\{/gm,
+          );
+        if (!candidateOnly) {
+          errors.push(
+            `Samma appversion ${APP_VERSION} får bara kompletteras i sin senaste otaggade releasepost, utan annan användarsynlig kod eller ändring av äldre historik.`,
+          );
+        }
+      }
     }
   }
 
