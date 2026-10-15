@@ -14,7 +14,7 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
-## [1.45.0] – 2026-10-12
+## [1.45.0] – 2026-10-15
 
 ### Nytt
 
@@ -30,6 +30,9 @@ Inga ändringar ännu.
 - Min matresa introduceras när flera grupper gör den relevant, och profil- och gruppväljaren visar diskret när omdömen väntar.
 - Inloggning och gruppbyte upplevs snabbare. Gruppsymboler, matställessymboler och användarspråk är mer konsekventa.
 - Sökområden skiljer tydligare på sökning runt en punkt och inom ett område.
+- Dina grupper går att bläddra hela vägen ned även på mobil och dialogen har samma rundade hörn som övriga appen.
+- Min matresa visar bara statistik, besök, favoriter och topplista från aktiva grupper. Arkiverade gruppers bidrag visas igen när gruppen återaktiveras.
+- Sökområden kan ändras med en tydlig väg tillbaka till resultaten utan att förlora vald inriktning eller list-/kartläge. Resultatlistan visar tydligare vilka träffar som är kända och när fler kan hämtas.
 
 ### Rättat
 
