@@ -107,8 +107,7 @@ function onlyLatestReleaseEntryChanged(before, after, pattern) {
   return (
     beforeEntries[0][1] === afterEntries[0][1] &&
     before.slice(0, beforeEntries[0].index) === after.slice(0, afterEntries[0].index) &&
-    before.slice(beforeEntries[1].index).trimEnd() ===
-      after.slice(afterEntries[1].index).trimEnd()
+    before.slice(beforeEntries[1].index).trimEnd() === after.slice(afterEntries[1].index).trimEnd()
   );
 }
 
@@ -243,7 +242,9 @@ if (base) {
   const baseVersion = versionFromSource(baseSource);
   if (versionChanged) {
     if (!changelogChanged) {
-      errors.push("En ändring av appens versionshistorik kräver en samtidig uppdatering av CHANGELOG.md.");
+      errors.push(
+        "En ändring av appens versionshistorik kräver en samtidig uppdatering av CHANGELOG.md.",
+      );
     }
     if (!baseVersion) {
       errors.push("Kunde inte läsa appversionen på målgrenen.");

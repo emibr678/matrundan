@@ -154,8 +154,10 @@ function editCandidate(root: string) {
   writeFixtureFile(
     root,
     "CHANGELOG.md",
-    readFileSync(changelogPath, "utf8")
-      .replace("## [1.0.0] – 2026-07-31", "## [1.0.0] – 2026-08-01\n\n- Ny releasepunkt."),
+    readFileSync(changelogPath, "utf8").replace(
+      "## [1.0.0] – 2026-07-31",
+      "## [1.0.0] – 2026-08-01\n\n- Ny releasepunkt.",
+    ),
   );
 }
 
