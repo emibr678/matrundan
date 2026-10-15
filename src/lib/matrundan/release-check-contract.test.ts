@@ -99,6 +99,67 @@ function commitAll(root: string, message: string) {
   expect(run(root, "git", ["commit", "-m", message]).status).toBe(0);
 }
 
+
+// En materialiserad kandidat har samma struktur som appens riktiga releasehistorik.
+function createUnpublishedCandidateFixture() {
+  const { root } = createReleaseFixture();
+  writeFixtureFile(
+    root,
+    "src/lib/matrundan/version.ts",
+    `const VERSION_1_0_0_CHANGELOG = {
+  version: "1.0.0",
+  date: "2026-07-31",
+  summary: "Aktuell kandidat",
+  sections: [],
+};
+const VERSION_0_9_0_CHANGELOG = {
+  version: "0.9.0",
+  date: "2026-07-20",
+  summary: "Historisk release",
+  sections: [],
+};
+export const CHANGELOG = [VERSION_1_0_0_CHANGELOG, VERSION_0_9_0_CHANGELOG];
+export const APP_VERSION = CHANGELOG[0].version;
+export const APP_VERSION_DATE = CHANGELOG[0].date;
+`,
+  );
+  writeFixtureFile(
+    root,
+    "CHANGELOG.md",
+    `# Changelog
+
+## [Unreleased]
+
+Inga ändringar ännu.
+
+## [1.0.0] – 2026-07-31
+
+## [0.9.0] – 2026-07-20
+`,
+  );
+  commitAll(root, "materialized candidate");
+  const base = run(root, "git", ["rev-parse", "HEAD"]).stdout.trim();
+  return { root, base };
+}
+
+function editCandidate(root: string) {
+  const sourcePath = join(root, "src/lib/matrundan/version.ts");
+  const changelogPath = join(root, "CHANGELOG.md");
+  writeFixtureFile(
+    root,
+    "src/lib/matrundan/version.ts",
+    readFileSync(sourcePath, "utf8")
+      .replace('date: "2026-07-31"', 'date: "2026-08-01"')
+      .replace('summary: "Aktuell kandidat"', 'summary: "Kompletterad kandidat"'),
+  );
+  writeFixtureFile(
+    root,
+    "CHANGELOG.md",
+    readFileSync(changelogPath, "utf8")
+      .replace("## [1.0.0] – 2026-07-31", "## [1.0.0] – 2026-08-01\\n\\n- Ny releasepunkt."),
+  );
+}
+
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
     rmSync(directory, { recursive: true, force: true });
@@ -106,6 +167,60 @@ afterEach(() => {
 });
 
 describe("releasekontrollens staging-first-kontrakt", () => {
+  test("tillåter komplettering av senaste otaggade kandidat utan versionshöjning", () => {
+    const { root, base } = createUnpublishedCandidateFixture();
+    editCandidate(root);
+    commitAll(root, "complete untagged release notes");
+
+    const result = runReleaseCheck(root, base, { eventName: "pull_request" });
+    expect(result.status).toBe(0);
+  }, 15_000);
+
+  test("blockerar komplettering om kandidatversionen redan är taggad", () => {
+    const { root, base } = createUnpublishedCandidateFixture();
+    expect(run(root, "git", ["tag", "v1.0.0"]).status).toBe(0);
+    editCandidate(root);
+    commitAll(root, "attempt to rewrite tagged candidate");
+
+    const result = runReleaseCheck(root, base, { eventName: "pull_request" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("redan taggad");
+  }, 15_000);
+
+  test("skyddar äldre versionshistorik även när aktuell kandidat är otaggad", () => {
+    const { root, base } = createUnpublishedCandidateFixture();
+    editCandidate(root);
+    const path = join(root, "src/lib/matrundan/version.ts");
+    writeFixtureFile(
+      root,
+      "src/lib/matrundan/version.ts",
+      readFileSync(path, "utf8").replace("Historisk release", "Ändrad historisk release"),
+    );
+    commitAll(root, "attempt to rewrite older history");
+
+    const result = runReleaseCheck(root, base, { eventName: "pull_request" });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("ändring av äldre historik");
+  }, 15_000);
+
+  test("samma kandidatversion får inte kombineras med ny användarsynlig kod", () => {
+    const { root, base } = createUnpublishedCandidateFixture();
+    editCandidate(root);
+    writeFixtureFile(
+      root,
+      "src/components/matrundan/TestView.tsx",
+      "export function TestView() { return <div>Ny funktion</div>; }\\n",
+    );
+    commitAll(root, "attempt to bundle feature in same-version release");
+
+    const result = runReleaseCheck(root, base, {
+      eventName: "pull_request",
+      prBody: releaseNoteBody,
+    });
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("utan annan användarsynlig kod");
+  }, 15_000);
+
   test("godkänner feature-PR med releaseunderlag utan versionshöjning", () => {
     const { root, base } = createReleaseFixture();
     writeFixtureFile(
@@ -249,7 +364,7 @@ export const CHANGELOG = [
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain(
-      "versionshöjning kräver en samtidig uppdatering av CHANGELOG.md",
+      "versionshistorik kräver en samtidig uppdatering av CHANGELOG.md",
     );
   }, 15_000);
 
