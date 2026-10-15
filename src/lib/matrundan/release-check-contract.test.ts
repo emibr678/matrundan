@@ -99,7 +99,6 @@ function commitAll(root: string, message: string) {
   expect(run(root, "git", ["commit", "-m", message]).status).toBe(0);
 }
 
-
 // En materialiserad kandidat har samma struktur som appens riktiga releasehistorik.
 function createUnpublishedCandidateFixture() {
   const { root } = createReleaseFixture();
@@ -156,7 +155,7 @@ function editCandidate(root: string) {
     root,
     "CHANGELOG.md",
     readFileSync(changelogPath, "utf8")
-      .replace("## [1.0.0] – 2026-07-31", "## [1.0.0] – 2026-08-01\\n\\n- Ny releasepunkt."),
+      .replace("## [1.0.0] – 2026-07-31", "## [1.0.0] – 2026-08-01\n\n- Ny releasepunkt."),
   );
 }
 
@@ -209,7 +208,7 @@ describe("releasekontrollens staging-first-kontrakt", () => {
     writeFixtureFile(
       root,
       "src/components/matrundan/TestView.tsx",
-      "export function TestView() { return <div>Ny funktion</div>; }\\n",
+      "export function TestView() { return <div>Ny funktion</div>; }\n",
     );
     commitAll(root, "attempt to bundle feature in same-version release");
 
