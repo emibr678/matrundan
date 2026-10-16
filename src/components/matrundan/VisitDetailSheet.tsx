@@ -75,7 +75,7 @@ export function VisitDetailSheet({
   onReviewFlowExit?: () => void;
 }) {
   const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
-  const { mode, activeGroupId, activeGroupRole } = useSession();
+  const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
   const visit = React.useMemo(
     () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
     [visitId, state.visits],
@@ -90,6 +90,8 @@ export function VisitDetailSheet({
     visit?.currentUserParticipationStatus ?? (participantFallback ? "participant" : "none");
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
+  // Gruppantal behövs för delning, men inte för att koppla gäster i originalgruppen.
+  const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const privateGuests =
     visit?.participants?.filter((participant) => participant.status === "guest") ?? [];
   const hasPrivateGuests = privateGuests.length > 0;
