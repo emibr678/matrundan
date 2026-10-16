@@ -51,11 +51,17 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
 
   test("originalgruppens egen medlem får väljas utan att privata behörighetskrav försvinner", () => {
     const targets = sameGroupMigration.slice(
-      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.list_visit_guest_member_targets_v1("),
-      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1("),
+      sameGroupMigration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.list_visit_guest_member_targets_v1(",
+      ),
+      sameGroupMigration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1(",
+      ),
     );
     const proposal = sameGroupMigration.slice(
-      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1("),
+      sameGroupMigration.indexOf(
+        "CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1(",
+      ),
       sameGroupMigration.indexOf("REVOKE ALL ON FUNCTION"),
     );
     expect(targets).toContain("source_link.link_type = 'original'");

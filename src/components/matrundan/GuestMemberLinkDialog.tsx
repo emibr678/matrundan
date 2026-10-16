@@ -266,8 +266,8 @@ export function GuestMemberLinkDialog({
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
             <p className="text-sm font-medium">Ingen möjlig koppling just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Det finns ingen ledig koppling för den här gästen. Personen kan redan vara
-              deltagare eller ha en fråga som väntar på svar.
+              Det finns ingen ledig koppling för den här gästen. Personen kan redan vara deltagare
+              eller ha en fråga som väntar på svar.
             </p>
           </Card>
         ) : (

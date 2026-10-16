@@ -457,7 +457,6 @@ for (const viewport of VIEWPORTS) {
     await expectNoHorizontalOverflow(page, `gästkoppling ${viewport.name}`);
   });
 
-
   test(`tidigare gäst kan kopplas till en senare medlem i endast originalgruppen — ${viewport.name}`, async ({
     page,
   }) => {
