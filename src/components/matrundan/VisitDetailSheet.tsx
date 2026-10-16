@@ -75,7 +75,7 @@ export function VisitDetailSheet({
   onReviewFlowExit?: () => void;
 }) {
   const { state, getPlace, memberById, deleteVisit, demoReadOnly } = useStore();
-  const { mode, activeGroupId, activeGroupRole, userGroups } = useSession();
+  const { mode, activeGroupId, activeGroupRole } = useSession();
   const visit = React.useMemo(
     () => (visitId ? state.visits.find((item) => item.id === visitId) : undefined),
     [visitId, state.visits],
