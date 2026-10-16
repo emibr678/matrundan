@@ -232,7 +232,7 @@ export function GuestMemberLinkDialog({
               : "Koppla gäst till gruppmedlem"}
           </DialogTitle>
           <DialogDescription>
-            Välj vem gästen är i en grupp där besöket redan finns. Personen bekräftar själv.
+            Välj vilken medlem gästen är. Personen får en fråga och bekräftar själv.
           </DialogDescription>
         </DialogHeader>
 
@@ -266,8 +266,8 @@ export function GuestMemberLinkDialog({
           <Card className="space-y-1 rounded-2xl border-border/70 bg-muted/30 p-4">
             <p className="text-sm font-medium">Ingen möjlig koppling just nu</p>
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Besöket måste finnas i en annan aktiv grupp där du också är medlem. Gäster med en
-              väntande eller bekräftad koppling visas inte här.
+              Det finns ingen ledig koppling för den här gästen. Personen kan redan vara
+              deltagare eller ha en fråga som väntar på svar.
             </p>
           </Card>
         ) : (
@@ -295,7 +295,7 @@ export function GuestMemberLinkDialog({
               </section>
             ) : null}
 
-            {selectedGuestId ? (
+            {selectedGuestId && groups.length > 1 ? (
               <section className="space-y-2">
                 <h3 className="text-sm font-medium">
                   {contextual ? "1. I vilken grupp?" : "2. I vilken grupp?"}
@@ -332,7 +332,9 @@ export function GuestMemberLinkDialog({
             {selectedGroupId ? (
               <section className="space-y-2">
                 <h3 className="text-sm font-medium">
-                  {contextual ? `2. Vem är ${initialGuestName ?? "gästen"}?` : "3. Vem är gästen?"}
+                  {contextual
+                    ? `${groups.length > 1 ? "2. " : ""}Vem är ${initialGuestName ?? "gästen"}?`
+                    : `${groups.length > 1 ? "3" : "2"}. Vem är gästen?`}
                 </h3>
                 <div className="space-y-2">
                   {members.map((member) => {

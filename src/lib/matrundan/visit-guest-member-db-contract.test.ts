@@ -3,6 +3,9 @@ import { describe, expect, test } from "bun:test";
 const migration = await Bun.file(
   "supabase/migrations/20260908190000_visit_guest_member_confirmation_v1.sql",
 ).text();
+const sameGroupMigration = await Bun.file(
+  "supabase/migrations/20261016235000_visit_guest_member_same_group_v1.sql",
+).text();
 const dedupMigration = await Bun.file(
   "supabase/migrations/20260910171500_visit_guest_member_multi_group_dedup_v1.sql",
 ).text();
@@ -44,6 +47,31 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
     expect(migration).toContain("membership.status = 'active'");
     expect(migration).toContain("guest.id = _guest_id");
     expect(migration).toContain("guest.visit_id = _visit_id");
+  });
+
+  test("originalgruppens egen medlem får väljas utan att privata behörighetskrav försvinner", () => {
+    const targets = sameGroupMigration.slice(
+      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.list_visit_guest_member_targets_v1("),
+      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1("),
+    );
+    const proposal = sameGroupMigration.slice(
+      sameGroupMigration.indexOf("CREATE OR REPLACE FUNCTION public.propose_visit_guest_member_v1("),
+      sameGroupMigration.indexOf("REVOKE ALL ON FUNCTION"),
+    );
+    expect(targets).toContain("source_link.link_type = 'original'");
+    expect(targets).toContain("JOIN public.visit_group_links target_link");
+    expect(targets).not.toContain("target_link.group_id <> _source_group_id");
+    expect(targets).toContain("actor_membership.user_id = _uid");
+    expect(targets).toContain("actor_membership.status = 'active'");
+    expect(targets).toContain("candidate.status = 'active'");
+    expect(targets).toContain("participant.user_id = candidate.user_id");
+    expect(proposal).not.toContain("IF _source_group_id = _target_group_id THEN");
+    expect(proposal).toContain("source_link.link_type = 'original'");
+    expect(proposal).toContain("target_link.group_id = _target_group_id");
+    expect(proposal).toContain("membership.user_id = _target_user_id");
+    expect(proposal).toContain("membership.status = 'active'");
+    expect(proposal).toContain("proposal.status IN ('pending', 'deferred', 'accepted')");
+    expect(proposal).toContain("participant.user_id = _target_user_id");
   });
 
   test("målmedlemmen får ett minimerat eget förslag utan source-data", () => {
@@ -88,6 +116,8 @@ describe("databaskontrakt för cross-group gäst till medlem", () => {
   test("preflight skyddar grants, ägarskap och minimerad output", () => {
     expect(preflight).toContain("guard:targets-original-group-only");
     expect(preflight).toContain("guard:targets-require-linked-target");
+    expect(preflight).toContain("guard:targets-include-original-group");
+    expect(preflight).toContain("guard:proposal-allows-original-group");
     expect(preflight).toContain("guard:response-owned-by-target-user");
     expect(preflight).toContain("guard:accept-writes-canonical-participation");
     expect(preflight).toContain("guard:own-proposal-minimized");
