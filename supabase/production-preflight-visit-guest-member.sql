@@ -115,6 +115,24 @@ WITH checks(name, ok) AS (
       )
     ),
     (
+      'guard:targets-include-original-group',
+      COALESCE(
+        position('target_link.group_id <> _source_group_id' IN pg_get_functiondef(
+          to_regprocedure('public.list_visit_guest_member_targets_v1(uuid,uuid)')
+        )) = 0,
+        false
+      )
+    ),
+    (
+      'guard:proposal-allows-original-group',
+      COALESCE(
+        position('IF _source_group_id = _target_group_id THEN' IN pg_get_functiondef(
+          to_regprocedure('public.propose_visit_guest_member_v1(uuid,uuid,uuid,uuid,uuid)')
+        )) = 0,
+        false
+      )
+    ),
+    (
       'guard:response-owned-by-target-user',
       COALESCE(
         position('proposal.target_user_id = _uid' IN pg_get_functiondef(

@@ -182,7 +182,7 @@ function sourceState() {
   };
 }
 
-async function mockSource(page: Page) {
+async function mockSource(page: Page, sameGroupOnly = false) {
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
     if (rpc === "list_user_groups_v4b") {
@@ -224,9 +224,9 @@ async function mockSource(page: Page) {
           {
             guestId: GUEST_ID,
             guestName: "Joppe",
-            groupId: TARGET_GROUP_ID,
-            groupName: "Jobbgänget",
-            groupEmoji: "🥘",
+            groupId: sameGroupOnly ? SOURCE_GROUP_ID : TARGET_GROUP_ID,
+            groupName: sameGroupOnly ? "Kompisgänget" : "Jobbgänget",
+            groupEmoji: sameGroupOnly ? "🍜" : "🥘",
             memberId: TARGET_USER_ID,
             memberName: "Johan Andersson",
             memberAvatar: "🦊",
@@ -274,4 +274,20 @@ test("fånga exempelgruppens mottagna deltagandefråga", async ({ page }, testIn
   await expect(visitDialog.getByRole("button", { name: "Lägg till deltagare" })).toHaveCount(0);
   await stabilize(page);
   await capture(page, testInfo, "issue-214-bekrafta-deltagande");
+});
+
+test("fånga koppling till medlem i samma grupp utan gruppsteg", async ({ page }, testInfo) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
+  await seedSourceSession(page);
+  await mockSource(page, true);
+  await page.goto(`/besok?visit=${VISIT_ID}`, { waitUntil: "domcontentloaded" });
+  const visitDialog = page.getByRole("dialog").first();
+  await visitDialog.getByRole("button", { name: "Koppla Joppe till gruppmedlem" }).click();
+  const linkDialog = page.getByRole("dialog", { name: "Koppla Joppe till gruppmedlem" });
+  await expect(linkDialog.getByRole("button", { name: "Kompisgänget" })).toHaveCount(0);
+  await expect(linkDialog.getByRole("button", { name: "Johan Andersson" })).toBeVisible();
+  await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
+  await stabilize(page);
+  await capture(page, testInfo, "issue-497-gast-samma-grupp-360");
 });

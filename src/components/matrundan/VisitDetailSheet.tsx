@@ -90,13 +90,13 @@ export function VisitDetailSheet({
     visit?.currentUserParticipationStatus ?? (participantFallback ? "participant" : "none");
   const isParticipant = participationStatus === "participant";
   const isShared = visit?.linkType === "shared";
+  // Gruppantal behövs för delning, men inte för att koppla gäster i originalgruppen.
   const activeGroupCount = userGroups.filter((group) => group.lifecycleStatus === "active").length;
   const privateGuests =
     visit?.participants?.filter((participant) => participant.status === "guest") ?? [];
   const hasPrivateGuests = privateGuests.length > 0;
   const hasExternalParticipants = (visit?.externalParticipantCount ?? 0) > 0;
-  const canLinkGuest =
-    !groupArchived && isLive && !isShared && hasPrivateGuests && activeGroupCount >= 2;
+  const canLinkGuest = !groupArchived && isLive && !isShared && hasPrivateGuests;
   const canUnlink =
     !groupArchived &&
     isLive &&

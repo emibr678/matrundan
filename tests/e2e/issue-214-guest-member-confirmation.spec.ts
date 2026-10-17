@@ -110,9 +110,9 @@ async function expectNoHorizontalOverflow(page: Page, context: string) {
   );
 }
 
-function sourceState() {
+function sourceState(accepted = false, currentUserId = SOURCE_USER_ID) {
   return {
-    currentUserId: SOURCE_USER_ID,
+    currentUserId,
     group: {
       id: SOURCE_GROUP_ID,
       name: "Kompisgänget",
@@ -136,6 +136,13 @@ function sourceState() {
         avatarImage: null,
         role: "ägare",
       },
+      {
+        id: TARGET_USER_ID,
+        name: "Johan Andersson",
+        avatar: "🦊",
+        avatarImage: null,
+        role: "medlem",
+      },
     ],
     places: [place()],
     visits: [
@@ -150,8 +157,9 @@ function sourceState() {
         linkedAt: "2026-09-01T20:00:00Z",
         externalParticipantCount: 0,
         countsForProgression: true,
-        participantIds: [SOURCE_USER_ID],
-        currentUserParticipationStatus: "participant",
+        participantIds: accepted ? [SOURCE_USER_ID, TARGET_USER_ID] : [SOURCE_USER_ID],
+        currentUserParticipationStatus:
+          currentUserId === SOURCE_USER_ID ? "participant" : accepted ? "participant" : "none",
         participants: [
           {
             id: SOURCE_USER_ID,
@@ -160,13 +168,21 @@ function sourceState() {
             avatarImage: null,
             status: "active",
           },
-          {
-            id: `guest:${GUEST_ID}`,
-            name: "Joppe",
-            avatar: "👤",
-            avatarImage: null,
-            status: "guest",
-          },
+          accepted
+            ? {
+                id: TARGET_USER_ID,
+                name: "Johan Andersson",
+                avatar: "🦊",
+                avatarImage: null,
+                status: "active",
+              }
+            : {
+                id: `guest:${GUEST_ID}`,
+                name: "Joppe",
+                avatar: "👤",
+                avatarImage: null,
+                status: "guest",
+              },
         ],
         reviews: [],
         photo: null,
@@ -243,7 +259,7 @@ function targetState(accepted: boolean) {
   };
 }
 
-async function mockSource(page: Page) {
+async function mockSource(page: Page, sameGroupOnly = false) {
   let proposedPayload: Record<string, unknown> | null = null;
   await page.route("**/rest/v1/rpc/**", async (route) => {
     const rpc = new URL(route.request().url()).pathname.split("/").pop() ?? "";
@@ -260,13 +276,17 @@ async function mockSource(page: Page) {
             role: "owner",
             lifecycleStatus: "active",
           },
-          {
-            id: TARGET_GROUP_ID,
-            name: "Jobbgänget",
-            emoji: "🥘",
-            role: "member",
-            lifecycleStatus: "active",
-          },
+          ...(!sameGroupOnly
+            ? [
+                {
+                  id: TARGET_GROUP_ID,
+                  name: "Jobbgänget",
+                  emoji: "🥘",
+                  role: "member",
+                  lifecycleStatus: "active",
+                },
+              ]
+            : []),
         ]),
       });
       return;
@@ -289,15 +309,31 @@ async function mockSource(page: Page) {
           {
             guestId: GUEST_ID,
             guestName: "Joppe",
-            groupId: TARGET_GROUP_ID,
-            groupName: "Jobbgänget",
-            groupEmoji: "🥘",
+            groupId: SOURCE_GROUP_ID,
+            groupName: "Kompisgänget",
+            groupEmoji: "🍜",
             memberId: TARGET_USER_ID,
             memberName: "Johan Andersson",
             memberAvatar: "🦊",
             memberAvatarImage: null,
             proposalStatus: null,
           },
+          ...(!sameGroupOnly
+            ? [
+                {
+                  guestId: GUEST_ID,
+                  guestName: "Joppe",
+                  groupId: TARGET_GROUP_ID,
+                  groupName: "Jobbgänget",
+                  groupEmoji: "🥘",
+                  memberId: TARGET_USER_ID,
+                  memberName: "Johan Andersson",
+                  memberAvatar: "🦊",
+                  memberAvatarImage: null,
+                  proposalStatus: null,
+                },
+              ]
+            : []),
         ]),
       });
       return;
@@ -324,7 +360,7 @@ async function mockSource(page: Page) {
   return { proposedPayload: () => proposedPayload };
 }
 
-async function mockTarget(page: Page) {
+async function mockTarget(page: Page, sameGroupOnly = false) {
   let accepted = false;
   let responsePayload: Record<string, unknown> | null = null;
 
@@ -337,10 +373,10 @@ async function mockTarget(page: Page) {
         contentType: "application/json",
         body: JSON.stringify([
           {
-            id: TARGET_GROUP_ID,
-            name: "Jobbgänget",
-            emoji: "🥘",
-            role: "owner",
+            id: sameGroupOnly ? SOURCE_GROUP_ID : TARGET_GROUP_ID,
+            name: sameGroupOnly ? "Kompisgänget" : "Jobbgänget",
+            emoji: sameGroupOnly ? "🍜" : "🥘",
+            role: "member",
             lifecycleStatus: "active",
           },
         ]),
@@ -352,7 +388,9 @@ async function mockTarget(page: Page) {
       await route.fulfill({
         status: 200,
         contentType: "application/json",
-        body: JSON.stringify(targetState(accepted)),
+        body: JSON.stringify(
+          sameGroupOnly ? sourceState(accepted, TARGET_USER_ID) : targetState(accepted),
+        ),
       });
       return;
     }
@@ -399,8 +437,8 @@ for (const viewport of VIEWPORTS) {
     ).toBeVisible();
     await expect(linkDialog.getByText("1. Vilken gäst?", { exact: true })).toHaveCount(0);
     await expect(linkDialog.getByText("1. I vilken grupp?", { exact: true })).toBeVisible();
+    await linkDialog.getByRole("button", { name: /Jobbgänget/ }).click();
     await expect(linkDialog.getByText("2. Vem är Joppe?", { exact: true })).toBeVisible();
-    await expect(linkDialog.getByText("Jobbgänget", { exact: true })).toBeVisible();
     await expect(linkDialog.getByRole("button", { name: "Johan Andersson" })).toBeVisible();
     await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
     await linkDialog.getByRole("button", { name: "Skicka fråga" }).click();
@@ -417,6 +455,54 @@ for (const viewport of VIEWPORTS) {
       page.getByText("Frågan är skickad till Johan Andersson.", { exact: true }),
     ).toBeVisible();
     await expectNoHorizontalOverflow(page, `gästkoppling ${viewport.name}`);
+  });
+
+  test(`tidigare gäst kan kopplas till en senare medlem i endast originalgruppen — ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await seedSession(page, SOURCE_USER_ID, SOURCE_GROUP_ID);
+    const mock = await mockSource(page, true);
+
+    await page.goto(`/besok?visit=${VISIT_ID}`);
+    const visitDialog = page.getByRole("dialog").first();
+    await visitDialog.getByRole("button", { name: "Koppla Joppe till gruppmedlem" }).click();
+    const linkDialog = page.getByRole("dialog", { name: "Koppla Joppe till gruppmedlem" });
+    await expect(linkDialog.getByText("Ingen möjlig koppling just nu")).toHaveCount(0);
+    await expect(linkDialog.getByText("I vilken grupp?", { exact: false })).toHaveCount(0);
+    await expect(linkDialog.getByText("Vem är Joppe?", { exact: true })).toBeVisible();
+    await linkDialog.getByRole("button", { name: "Johan Andersson" }).click();
+    await linkDialog.getByRole("button", { name: "Skicka fråga" }).click();
+    await expect.poll(mock.proposedPayload).toEqual({
+      _source_group_id: SOURCE_GROUP_ID,
+      _visit_id: VISIT_ID,
+      _guest_id: GUEST_ID,
+      _target_group_id: SOURCE_GROUP_ID,
+      _target_user_id: TARGET_USER_ID,
+    });
+    await expectNoHorizontalOverflow(page, `gästkoppling i samma grupp ${viewport.name}`);
+  });
+
+  test(`senare medlem bekräftar sin historiska närvaro i originalgruppen — ${viewport.name}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await seedSession(page, TARGET_USER_ID, SOURCE_GROUP_ID);
+    const mock = await mockTarget(page, true);
+    await page.goto(`/besok?visit=${VISIT_ID}`);
+    const visitDialog = page.getByRole("dialog").first();
+    const prompt = visitDialog.getByLabel("Bekräfta deltagande");
+    await expect(prompt).toBeVisible();
+    await expect(visitDialog.getByText("Joppe", { exact: true })).toBeVisible();
+    await prompt.getByRole("button", { name: "Ja, jag var med" }).click();
+    await expect.poll(mock.responsePayload).toEqual({
+      _group_id: SOURCE_GROUP_ID,
+      _proposal_id: PROPOSAL_ID,
+      _response: "accept",
+    });
+    await expect(visitDialog.getByText("Joppe", { exact: true })).toHaveCount(0);
+    await expect(visitDialog.getByText("Johan Andersson", { exact: true }).first()).toBeVisible();
+    await expectNoHorizontalOverflow(page, `bekräftat deltagande i samma grupp ${viewport.name}`);
   });
 
   test(`målmedlemmen bekräftar neutralt och blir faktisk deltagare — ${viewport.name}`, async ({
