@@ -557,7 +557,7 @@ test("entydig träff visas en gång och admin bekräftar via vanligt tillägg", 
   await noOverflow(page);
   await expect(add).toHaveCSS("opacity", "1");
   await page.screenshot({ path: `visual-review/issue-389-canonical-${info.project.name}.png` });
-  await add.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await add.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(search.getByRole("combobox", { name: "Sök matställen", exact: true })).toHaveValue(
     "Astrom",
   );
@@ -665,7 +665,7 @@ test("motstridiga kartidentiteter stoppar både koppling och nytt skapande", asy
       exact: true,
     }),
   ).toBeDisabled();
-  await review.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await review.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(search.getByRole("combobox", { name: "Sök matställen", exact: true })).toHaveValue(
     "Astrom",
   );
@@ -824,7 +824,7 @@ for (const outcome of ["hit", "none", "error", "internal"] as const) {
       });
       await manual.getByRole("button", { name: "Använd det här stället", exact: true }).click();
       const add = page.getByRole("dialog", { name: "Lägg till i gruppen", exact: true });
-      await add.getByRole("button", { name: "Tillbaka", exact: true }).click();
+      await add.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
       await expect(page.locator("#manual-name")).toHaveValue("Espresso House");
       await expect(page.locator("#manual-location")).toHaveValue("Stationsgatan 2");
     } else {
@@ -1113,9 +1113,9 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(details).toBeVisible({ timeout: 1000 });
   await expect(details.getByTestId("pending-name-hint-loading")).toBeVisible();
   await expect(details).toHaveCSS("outline-style", "none");
-  await expect(details).toHaveCSS("top", "12px");
   const loadingPosition = await details.boundingBox();
   expect(loadingPosition).not.toBeNull();
+  expect(Math.abs(loadingPosition!.y - (await search.boundingBox())!.y)).toBeLessThan(2);
   await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
   await expect(details.getByText("Näragatan 1")).toBeVisible();
   await expect(
@@ -1132,7 +1132,6 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   });
   await expect(details.getByTestId("pending-name-hint-loading")).toHaveCount(0);
   await expect(details).toHaveCSS("outline-style", "none");
-  await expect(details).toHaveCSS("top", "12px");
   const resolvedPosition = await details.boundingBox();
   expect(resolvedPosition).not.toBeNull();
   // Tiny subpixel/animation drift is acceptable; a recentering jump is not.
@@ -1140,7 +1139,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(
     details.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
   ).toBeVisible();
-  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+  await details.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
 
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(returned).toHaveAttribute("data-search-shell", "focused");
@@ -1172,7 +1171,7 @@ test("autocomplete → detalj → tillbaka → full söklista hämtar resultat e
     .click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details.getByTestId("pending-place-practical-info")).toBeVisible();
-  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+  await details.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(search).toHaveAttribute("data-search-shell", "focused");
   await search.getByRole("button", { name: /Visa sökresultat/ }).click();
   await expect(search).toHaveAttribute("data-search-shell", "browse");
@@ -1206,7 +1205,7 @@ test("misslyckad namnverifiering kan försöka igen och avbrutet anrop får inte
   await expect(detail.getByText("Inget har lagts till i gruppen.")).toBeVisible();
   await detail.getByRole("button", { name: "Försök igen" }).click();
   await expect(detail.getByTestId("pending-name-hint-loading")).toBeVisible();
-  await detail.getByRole("button", { name: "Tillbaka till sökningen" }).click();
+  await detail.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
 
   await expect(search).toHaveAttribute("data-search-shell", "focused");
   await expect(input).toHaveValue("Ox Lan");
@@ -1240,7 +1239,7 @@ test("breddad namnsökning bevaras efter öppning och stängning av stället (#4
   await expect(details.getByTestId("pending-place-practical-info")).toBeVisible({
     timeout: 15_000,
   });
-  await details.getByRole("button", { name: "Stäng", exact: true }).click();
+  await details.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
 
   const returned = page.getByRole("dialog", { name: "Lägg till matställe" });
   await expect(returned).toHaveAttribute("data-search-shell", "focused");

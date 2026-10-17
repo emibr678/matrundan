@@ -178,6 +178,7 @@ export function AddPlaceResultDialogs({
   onCancelNameHint,
   onRetryNameHint,
   onAdded,
+  onCloseAll,
 }: {
   parentOpen: boolean;
   pending: PlaceSuggestion | null;
@@ -189,6 +190,7 @@ export function AddPlaceResultDialogs({
   onCancelNameHint: () => void;
   onRetryNameHint: () => void;
   onAdded: (externalId: string) => void;
+  onCloseAll: () => void;
 }) {
   const { state, addPlace, addProviderPlace, submitting } = useStore();
   const { mode, activeGroupId, activeGroupRole } = useSession();
@@ -217,16 +219,17 @@ export function AddPlaceResultDialogs({
   const [syncBusy, setSyncBusy] = React.useState(false);
   const isBusy = busy || hideBusy || submitting || syncBusy;
   const pendingDialogRef = React.useRef<HTMLDivElement>(null);
+  const nameHintDialogRef = React.useRef<HTMLDivElement>(null);
   const allSyncVisitsSelected =
     syncVisits.length > 0 && syncVisits.every((visit) => syncVisitIds.includes(visit.visitId));
 
   // Android keyboards can shrink the visual viewport without changing 100dvh.
   // Give the scrollable content a real height so the actions stay in view.
   React.useLayoutEffect(() => {
-    if (!pending) return;
+    if (!pending && !pendingNameHint) return;
     const viewport = window.visualViewport;
     const update = () => {
-      const dialog = pendingDialogRef.current;
+      const dialog = pendingDialogRef.current ?? nameHintDialogRef.current;
       if (!dialog) return;
       if (window.innerWidth >= 1024) {
         dialog.style.removeProperty("height");
@@ -235,10 +238,10 @@ export function AddPlaceResultDialogs({
         return;
       }
       const visibleHeight = viewport?.height ?? window.innerHeight;
-      const height = Math.max(180, Math.min(visibleHeight * 0.9, visibleHeight - 24));
-      dialog.style.height = `${height}px`;
-      dialog.style.maxHeight = `${height}px`;
-      dialog.style.top = `${(viewport?.offsetTop ?? 0) + 12}px`;
+      const availableHeight = Math.max(180, visibleHeight - 16);
+      dialog.style.maxHeight = `${availableHeight}px`;
+      if (pending) dialog.style.height = `${Math.min(visibleHeight * 0.9, availableHeight)}px`;
+      dialog.style.top = `${(viewport?.offsetTop ?? 0) + 8}px`;
     };
     update();
     window.addEventListener("resize", update);
@@ -249,7 +252,7 @@ export function AddPlaceResultDialogs({
       viewport?.removeEventListener("resize", update);
       viewport?.removeEventListener("scroll", update);
     };
-  }, [pending]);
+  }, [pending, pendingNameHint]);
 
   React.useEffect(() => {
     if (!pending) return;
@@ -477,10 +480,22 @@ export function AddPlaceResultDialogs({
       >
         {pendingNameHint && !pending ? (
           <DialogContent
+            ref={nameHintDialogRef}
             data-testid="pending-name-hint-dialog"
-            className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
+            onCloseButtonClick={onCloseAll}
+            className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:[&>button:last-child]:right-2 max-lg:[&>button:last-child]:top-3 max-lg:[&>button:last-child]:flex max-lg:[&>button:last-child]:h-11 max-lg:[&>button:last-child]:w-11 max-lg:[&>button:last-child]:items-center max-lg:[&>button:last-child]:justify-center sm:max-w-lg sm:rounded-lg"
           >
-            <DialogHeader>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Tillbaka till sökresultaten"
+              className="absolute left-2 top-3 z-10 h-11 w-11 sm:left-3 sm:top-4"
+              onClick={onCancelNameHint}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <DialogHeader className="px-12 text-center">
               <DialogTitle className="font-display text-2xl">Lägg till i gruppen</DialogTitle>
               <DialogDescription className="sr-only">
                 Hämtar uppgifter om det valda matstället innan det kan läggas till.
@@ -518,9 +533,6 @@ export function AddPlaceResultDialogs({
               </div>
             )}
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" onClick={onCancelNameHint}>
-                Tillbaka till sökningen
-              </Button>
               {pendingNameHint.error ? (
                 <Button type="button" onClick={onRetryNameHint}>
                   Försök igen
@@ -532,9 +544,22 @@ export function AddPlaceResultDialogs({
           <DialogContent
             ref={pendingDialogRef}
             data-testid="pending-place-dialog"
-            className="flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-3 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg"
+            onCloseButtonClick={onCloseAll}
+            closeButtonDisabled={isBusy}
+            className="flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:[&>button:last-child]:right-2 max-lg:[&>button:last-child]:top-3 max-lg:[&>button:last-child]:flex max-lg:[&>button:last-child]:h-11 max-lg:[&>button:last-child]:w-11 max-lg:[&>button:last-child]:items-center max-lg:[&>button:last-child]:justify-center sm:max-w-lg sm:rounded-lg"
           >
-            <DialogHeader className="shrink-0 px-4 pb-3 pr-10 pt-5 sm:px-6 sm:pt-6">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label="Tillbaka till sökresultaten"
+              className="absolute left-2 top-3 z-10 h-11 w-11 sm:left-3 sm:top-4"
+              disabled={isBusy}
+              onClick={closePending}
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <DialogHeader className="shrink-0 px-14 pb-3 pt-5 text-center sm:pt-6">
               <DialogTitle className="font-display text-2xl">
                 {review
                   ? "Är det samma ställe?"
@@ -742,21 +767,13 @@ export function AddPlaceResultDialogs({
                 </>
               ) : null}
             </div>
-            <DialogFooter
-              data-testid="pending-place-actions"
-              className="shrink-0 flex-row items-center justify-between gap-2 border-t border-border/60 bg-background px-4 py-3 sm:px-6"
-            >
-              <Button
-                variant="ghost"
-                className="min-h-11 shrink-0 px-2 sm:px-4"
-                disabled={isBusy}
-                onClick={closePending}
+            {!review && !conflictMessage ? (
+              <DialogFooter
+                data-testid="pending-place-actions"
+                className="shrink-0 flex-row items-center justify-end border-t border-border/60 bg-background px-4 py-3 sm:px-6"
               >
-                <ArrowLeft className="h-4 w-4" /> Tillbaka
-              </Button>
-              {!review && !conflictMessage ? (
                 <Button
-                  className="min-h-11 min-w-0 flex-1 sm:flex-none"
+                  className="min-h-11 min-w-0 w-full whitespace-normal lg:w-auto"
                   disabled={isBusy}
                   onClick={() =>
                     void confirmAdd(
@@ -771,8 +788,8 @@ export function AddPlaceResultDialogs({
                     ? "Återställ i gruppen"
                     : "Lägg till i gruppen"}
                 </Button>
-              ) : null}
-            </DialogFooter>
+              </DialogFooter>
+            ) : null}
           </DialogContent>
         ) : null}
       </Dialog>

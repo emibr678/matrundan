@@ -155,8 +155,12 @@ export function AddPlaceDialogContent({
     setMobileMode("browse");
   }, [activeGroupId, mode]);
 
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen && (pending != null || pendingNameHint != null || pendingSourceMatch != null))
+  function handleOpenChange(nextOpen: boolean, closeDetails = false) {
+    if (
+      !nextOpen &&
+      !closeDetails &&
+      (pending != null || pendingNameHint != null || pendingSourceMatch != null)
+    )
       return;
     if (!nextOpen && !bulkBusy && !sourceLinkBusy) {
       nameHintAttemptRef.current += 1;
@@ -678,6 +682,7 @@ export function AddPlaceDialogContent({
           }
         }}
         onAdded={handleSingleAdded}
+        onCloseAll={() => handleOpenChange(false, true)}
       />
       <AlertDialog
         open={open && pendingSourceMatch != null}
