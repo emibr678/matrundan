@@ -14,6 +14,13 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.45.1] – 2026-10-17
+
+### Rättat
+
+- En tidigare gäst kan kopplas till en person som senare gått med i samma grupp, även för äldre besök.
+- Gästkoppling hoppar över onödigt gruppval när bara en grupp är aktuell. Personen bekräftar själv.
+
 ## [1.45.0] – 2026-10-15
 
 ### Nytt
