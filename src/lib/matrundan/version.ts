@@ -3,6 +3,21 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_45_1_CHANGELOG: ChangelogEntry = {
+  version: "1.45.1",
+  date: "2026-10-17",
+  summary: "Tidigare gäster kan kopplas till medlemmar i samma grupp.",
+  sections: [
+    {
+      kind: "Rättat",
+      items: [
+        "En tidigare gäst kan kopplas till en person som senare gått med i samma grupp, även för äldre besök.",
+        "Gästkoppling hoppar över onödigt gruppval när bara en grupp är aktuell. Personen bekräftar själv.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_45_0_CHANGELOG: ChangelogEntry = {
   version: "1.45.0",
   date: "2026-10-15",
@@ -555,6 +570,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_45_1_CHANGELOG,
   VERSION_1_45_0_CHANGELOG,
   VERSION_1_44_0_CHANGELOG,
   VERSION_1_43_1_CHANGELOG,
