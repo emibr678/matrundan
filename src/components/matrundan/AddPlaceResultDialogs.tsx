@@ -55,6 +55,9 @@ import { useStore } from "@/lib/matrundan/store";
 import { CATEGORY_LABEL, type Occasion } from "@/lib/matrundan/types";
 import { usePlaceDataSignalForReportableSuggestion } from "@/lib/matrundan/use-place-data-signals";
 
+const detailCloseButtonClass =
+  "[&>button:last-child]:right-2 [&>button:last-child]:top-3 [&>button:last-child]:flex [&>button:last-child]:h-11 [&>button:last-child]:w-11 [&>button:last-child]:items-center [&>button:last-child]:justify-center sm:[&>button:last-child]:right-3 sm:[&>button:last-child]:top-4";
+
 function suggestionWebsite(suggestion: PlaceSuggestion): string | undefined {
   return normalizeWebsiteUrl((suggestion as PlaceSuggestion & { website?: string | null }).website);
 }
@@ -179,6 +182,7 @@ export function AddPlaceResultDialogs({
   onRetryNameHint,
   onAdded,
   onCloseAll,
+  parentBusy,
 }: {
   parentOpen: boolean;
   pending: PlaceSuggestion | null;
@@ -191,6 +195,7 @@ export function AddPlaceResultDialogs({
   onRetryNameHint: () => void;
   onAdded: (externalId: string) => void;
   onCloseAll: () => void;
+  parentBusy: boolean;
 }) {
   const { state, addPlace, addProviderPlace, submitting } = useStore();
   const { mode, activeGroupId, activeGroupRole } = useSession();
@@ -217,7 +222,7 @@ export function AddPlaceResultDialogs({
   const [syncError, setSyncError] = React.useState<string | null>(null);
   const syncBatch = useVisitShareBatch();
   const [syncBusy, setSyncBusy] = React.useState(false);
-  const isBusy = busy || hideBusy || submitting || syncBusy;
+  const isBusy = busy || hideBusy || submitting || syncBusy || parentBusy;
   const pendingDialogRef = React.useRef<HTMLDivElement>(null);
   const nameHintDialogRef = React.useRef<HTMLDivElement>(null);
   const allSyncVisitsSelected =
@@ -483,7 +488,7 @@ export function AddPlaceResultDialogs({
             ref={nameHintDialogRef}
             data-testid="pending-name-hint-dialog"
             onCloseButtonClick={onCloseAll}
-            className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:[&>button:last-child]:right-2 max-lg:[&>button:last-child]:top-3 max-lg:[&>button:last-child]:flex max-lg:[&>button:last-child]:h-11 max-lg:[&>button:last-child]:w-11 max-lg:[&>button:last-child]:items-center max-lg:[&>button:last-child]:justify-center sm:max-w-lg sm:rounded-lg"
+            className={`max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-2 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
           >
             <Button
               type="button"
@@ -532,13 +537,13 @@ export function AddPlaceResultDialogs({
                 <span className="text-sm">Hämtar uppgifter om stället…</span>
               </div>
             )}
-            <DialogFooter className="gap-2">
-              {pendingNameHint.error ? (
+            {pendingNameHint.error ? (
+              <DialogFooter>
                 <Button type="button" onClick={onRetryNameHint}>
                   Försök igen
                 </Button>
-              ) : null}
-            </DialogFooter>
+              </DialogFooter>
+            ) : null}
           </DialogContent>
         ) : pending && reportablePending ? (
           <DialogContent
@@ -546,7 +551,7 @@ export function AddPlaceResultDialogs({
             data-testid="pending-place-dialog"
             onCloseButtonClick={onCloseAll}
             closeButtonDisabled={isBusy}
-            className="flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:[&>button:last-child]:right-2 max-lg:[&>button:last-child]:top-3 max-lg:[&>button:last-child]:flex max-lg:[&>button:last-child]:h-11 max-lg:[&>button:last-child]:w-11 max-lg:[&>button:last-child]:items-center max-lg:[&>button:last-child]:justify-center sm:max-w-lg sm:rounded-lg"
+            className={`flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-2 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
           >
             <Button
               type="button"

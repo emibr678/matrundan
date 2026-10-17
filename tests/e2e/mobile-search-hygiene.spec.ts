@@ -84,7 +84,7 @@ test("sökning och detalj har samma mobila överkant och tillbakapilen bevarar s
   const search = await openPlaceSearch(page);
   const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
   const area = search.getByRole("button", { name: "Ändra sökområden" });
-  const areaText = await area.innerText();
+  const areaText = await area.textContent();
   const searchTop = (await search.boundingBox())!.y;
   await search.evaluate((element) => (element.scrollTop = 120));
   const scrollTop = await search.evaluate((element) => element.scrollTop);
@@ -98,7 +98,7 @@ test("sökning och detalj har samma mobila överkant och tillbakapilen bevarar s
   await detail.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(search).toBeVisible();
   await expect(query).toHaveValue(PLACE_NAME);
-  await expect(area).toHaveText(areaText);
+  await expect(area).toHaveText(areaText ?? "");
   await expect
     .poll(() => search.evaluate((element) => element.scrollTop))
     .toBeCloseTo(scrollTop, 0);

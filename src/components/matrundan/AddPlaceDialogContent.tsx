@@ -156,6 +156,7 @@ export function AddPlaceDialogContent({
   }, [activeGroupId, mode]);
 
   function handleOpenChange(nextOpen: boolean, closeDetails = false) {
+    if (!nextOpen && (bulkBusy || sourceLinkBusy)) return;
     if (
       !nextOpen &&
       !closeDetails &&
@@ -683,6 +684,7 @@ export function AddPlaceDialogContent({
         }}
         onAdded={handleSingleAdded}
         onCloseAll={() => handleOpenChange(false, true)}
+        parentBusy={bulkBusy || sourceLinkBusy}
       />
       <AlertDialog
         open={open && pendingSourceMatch != null}
