@@ -454,7 +454,7 @@ export function AddPlaceDialogContent({
 
   // Keep the active mobile editor inside the visual viewport, including with Android IME.
   React.useLayoutEffect(() => {
-    if (!searchDialogOpen || view !== "search" || mobileMode === "browse") return;
+    if (!searchDialogOpen || view !== "search") return;
     const viewport = window.visualViewport;
     const update = () => {
       const dialog = searchDialogRef.current;
@@ -565,15 +565,15 @@ export function AddPlaceDialogContent({
           data-search-shell={mobileMode === "search" && view === "search" ? "focused" : "browse"}
           className={[
             "max-h-[94dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none sm:max-w-5xl sm:rounded-lg",
-            mobileMode !== "browse" && view === "search"
-              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:bg-background max-lg:gap-3 max-lg:duration-0"
+            view === "search"
+              ? "max-lg:top-[calc(var(--search-viewport-top,0px)_+_0.5rem)] max-lg:max-h-[calc(var(--search-viewport-height,100dvh)_-_1rem)] max-lg:translate-y-0 max-lg:gap-3 max-lg:duration-0"
               : "",
           ].join(" ")}
         >
           <DialogHeader
             className={
-              mobileMode === "search" && view === "search"
-                ? "max-lg:relative max-lg:flex-row max-lg:items-center max-lg:justify-center max-lg:space-y-0 max-lg:px-11 max-lg:text-center"
+              view === "search"
+                ? `max-lg:relative max-lg:min-h-11 max-lg:flex-row max-lg:items-center max-lg:justify-center max-lg:space-y-0 max-lg:text-center ${mobileMode === "search" ? "max-lg:px-11" : "max-lg:px-0"}`
                 : undefined
             }
           >
