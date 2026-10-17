@@ -20,6 +20,7 @@ import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
 import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
 import { Route as PlatsunderhallRouteImport } from './routes/platsunderhall'
 import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
+import { Route as UxGranskningRouteImport } from './routes/ux-granskning'
 import { Route as InbjudanTokenRouteImport } from './routes/inbjudan.$token'
 import { Route as MatstallenPlaceIdRouteImport } from './routes/matstallen.$placeId'
 import { Route as MinMatresaIndexRouteImport } from './routes/min-matresa.index'
@@ -83,6 +84,11 @@ const RapporteradeFelRoute = RapporteradeFelRouteImport.update({
   path: '/rapporterade-fel',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UxGranskningRoute = UxGranskningRouteImport.update({
+  id: '/ux-granskning',
+  path: '/ux-granskning',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InbjudanTokenRoute = InbjudanTokenRouteImport.update({
   id: '/inbjudan/$token',
   path: '/inbjudan/$token',
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
+  '/ux-granskning': typeof UxGranskningRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/min-matresa/besok': typeof MinMatresaBesokRoute
@@ -152,6 +159,7 @@ export interface FileRoutesByTo {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
+  '/ux-granskning': typeof UxGranskningRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/min-matresa/besok': typeof MinMatresaBesokRoute
@@ -173,6 +181,7 @@ export interface FileRoutesById {
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
+  '/ux-granskning': typeof UxGranskningRoute
   '/inbjudan/$token': typeof InbjudanTokenRoute
   '/matstallen/$placeId': typeof MatstallenPlaceIdRoute
   '/min-matresa/besok': typeof MinMatresaBesokRoute
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
+    | '/ux-granskning'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/min-matresa/besok'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
+    | '/ux-granskning'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/min-matresa/besok'
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
+    | '/ux-granskning'
     | '/inbjudan/$token'
     | '/matstallen/$placeId'
     | '/min-matresa/besok'
@@ -255,6 +267,7 @@ export interface RootRouteChildren {
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
   PlatsunderhallRoute: typeof PlatsunderhallRoute
   RapporteradeFelRoute: typeof RapporteradeFelRoute
+  UxGranskningRoute: typeof UxGranskningRoute
   InbjudanTokenRoute: typeof InbjudanTokenRoute
   ApiVisitPhotoDeliveryTokenRoute: typeof ApiVisitPhotoDeliveryTokenRoute
   ApiPublicHooksPushDispatchRoute: typeof ApiPublicHooksPushDispatchRoute
@@ -337,6 +350,13 @@ declare module '@tanstack/react-router' {
       path: '/rapporterade-fel'
       fullPath: '/rapporterade-fel'
       preLoaderRoute: typeof RapporteradeFelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ux-granskning': {
+      id: '/ux-granskning'
+      path: '/ux-granskning'
+      fullPath: '/ux-granskning'
+      preLoaderRoute: typeof UxGranskningRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/inbjudan/$token': {
@@ -431,6 +451,7 @@ const rootRouteChildren: RootRouteChildren = {
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
   PlatsunderhallRoute: PlatsunderhallRoute,
   RapporteradeFelRoute: RapporteradeFelRoute,
+  UxGranskningRoute: UxGranskningRoute,
   InbjudanTokenRoute: InbjudanTokenRoute,
   ApiVisitPhotoDeliveryTokenRoute: ApiVisitPhotoDeliveryTokenRoute,
   ApiPublicHooksPushDispatchRoute: ApiPublicHooksPushDispatchRoute,

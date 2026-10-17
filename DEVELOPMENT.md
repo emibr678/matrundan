@@ -39,6 +39,21 @@ den lokala Matrundan-appen, aldrig för godtyckliga externa webbplatser. Flera
 routes körs sekventiellt eftersom Work-browserns enkelprocessläge inte kan
 återanvändas säkert mellan parallella testkontexter.
 
+### Prov för interaktiv layoutgranskning i Work
+
+`/ux-granskning` är en olistad provsida för lokal miljö och staging. Den svarar
+404 i produktion och okänd miljö. Mobil 360 × 800 och Desktop 1280 × 900 ändrar
+storleken på samma iframe med appen från samma origin, så att navigation och
+påbörjad inmatning kan behållas. Sidan visar den uppmätta iframeviewporten.
+
+Öppna sidan på den branchpreview som ska granskas och använd browserns
+`frameLocator("#review-app")` för interaktion i appen. Välj Exempelgruppen eller
+Vanliga appen. Vid behov sker inloggning genom länken som öppnar den vanliga
+appen i en separat flik på samma origin; granskningssidan hanterar inga tokens.
+Detta är ett layoutprov, inte emulering av touch, Androidtangentbord eller
+mobilbrowserns övriga egenskaper. GitHub Issue #500 äger provets resultat och
+eventuellt beslut om fortsatt användning.
+
 Scriptet är idempotent och gör endast följande:
 
 1. läser den låsta Bun-versionen från `package.json`;
