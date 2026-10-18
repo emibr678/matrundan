@@ -5,6 +5,7 @@
  * grupper så att historiken kan öppnas utan att medlemskapets livscykel ändras.
  */
 import { AccountGroups } from "./account-groups";
+import { EXAMPLE_SESSION_KEY } from "./demo-state";
 import * as React from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -69,7 +70,6 @@ interface SessionState {
 const SessionContext = React.createContext<SessionState | null>(null);
 const ACTIVE_GROUP_KEY = "matrundan.activeGroup.v1";
 const PENDING_INVITE_KEY = "matrundan.pendingInvite.v1";
-const EXAMPLE_SESSION_KEY = "matrundan.exampleSession.v1";
 
 function resolveDemoRoute(): { forceDemo: boolean; exampleMode: boolean } {
   if (typeof window === "undefined") return { forceDemo: false, exampleMode: false };

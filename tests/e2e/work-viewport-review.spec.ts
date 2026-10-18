@@ -79,4 +79,11 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
   await expect.poll(dimensions).toEqual([1280, 900]);
   await expectSeparateToolbar();
   await expect.poll(() => app.locator("html").evaluate(() => location.pathname)).toBe("/gruppen");
+  await page.getByRole("combobox", { name: "Startvy", exact: true }).selectOption("/");
+  await expect(
+    app.getByRole("heading", { name: "Fortsätt till Matrundan", exact: true }),
+  ).toBeVisible();
+  await expect(app.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeHidden();
+  await page.getByRole("combobox", { name: "Startvy", exact: true }).selectOption("/exempel");
+  await expect(app.getByText("Exempelgrupp · Stockholm", { exact: true })).toBeVisible();
 });

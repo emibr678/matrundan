@@ -1,5 +1,6 @@
 import { APP_ENVIRONMENT, type AppEnvironment } from "./app-environment";
 import { environmentForRequestUrl } from "./observability";
+import { EXAMPLE_SESSION_KEY } from "./matrundan/demo-state";
 
 // A separate document gives the real app its own viewport without changing
 // AppShell, responsive breakpoints, authentication or production navigation.
@@ -95,6 +96,11 @@ function reviewDocument(nonce: string): string {
     document.querySelector('#start-view').addEventListener('change', event => {
       // Hardcoded same-origin destinations only; never accept a URL from query parameters.
       const next = event.target.value;
+      // Leaving the example group clears only its non-auth mode flag, as the app does.
+      if (next === '/') {
+        try { frame.contentWindow.sessionStorage.removeItem(${JSON.stringify(EXAMPLE_SESSION_KEY)}); }
+        catch { /* Storage restrictions do not grant access to any session. */ }
+      }
       if (next === '/' || next === '/exempel') frame.src = next;
     });
   </script>
