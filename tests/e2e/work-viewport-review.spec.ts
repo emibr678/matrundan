@@ -33,6 +33,8 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
     ).toBe(true);
   };
   await expectSeparateToolbar();
+  // A short outer browser scrolls the app surface while keeping controls visible.
+  await stage.press("End");
   await app
     .getByRole("link", { name: "Matställen", exact: true })
     .filter({ visible: true })
@@ -70,6 +72,7 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
   await dialog.getByRole("button", { name: "Stäng", exact: true }).click();
   await expect(dialog).toBeHidden();
   await expectSeparateToolbar();
+  await stage.press("End");
   await app.getByRole("link", { name: "Gruppen", exact: true }).filter({ visible: true }).click();
   await expect.poll(() => app.locator("html").evaluate(() => location.pathname)).toBe("/gruppen");
   await page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }).click();

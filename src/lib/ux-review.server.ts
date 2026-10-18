@@ -67,7 +67,7 @@ function reviewDocument(nonce: string): string {
       <output id="viewport" aria-label="Uppmätt viewport" aria-live="polite">Laddar appen…</output>
       <a href="/" target="_blank" rel="noopener">Logga in i appen ↗</a>
   </header>
-  <main id="stage" aria-label="App i vald visningsstorlek">
+  <main id="stage" tabindex="0" aria-label="App i vald visningsstorlek">
     <iframe id="review-app" title="Matrundan i granskningsvy" src="/exempel"></iframe>
   </main>
   <script nonce="${nonce}">
