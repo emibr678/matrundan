@@ -79,6 +79,21 @@ svarar 404, även vid direkt URL. Länken visas bara i stagingens Testverktyg.
 Detta ger riktiga CSS-viewportar, inte Androidemulering: skärmtangentbord,
 touchgester, mobilbrowserns chrome och hårdvaru-GPU kräver en riktig enhet.
 
+Produktionsspärren kan integrationsprovas utan driftsättning eller credentials:
+
+```bash
+bun run test:ux-review:production
+```
+
+Kommandot bygger Cloudflare-artefakten med `MATRUNDAN_ENVIRONMENT=prod` och
+isolerade testvärden för externa tjänster. Därefter kör Bun dess riktiga
+Worker-`fetch` och TanStack-routning över lokal HTTP: direkt URL, manipulerade
+parametrar/headers och HEAD ska ge 404, medan appens rot ger 200. Byggning och
+prov körs i följd; kör inte ett annat bygge samtidigt eftersom `.output/` delas.
+Det verifierar den produktionsbyggda serverrouten, inte Cloudflares edge-runtime
+eller den faktiskt driftsatta adressen. Dessa kontroller hör till en separat
+produktionssmoke; att flytta en uttrycklig acceptansgrind dit kräver beslut.
+
 ## Codex Cloud
 
 Skapa eller redigera Codex-miljön för repot `emibr678/matrundan` och använd följande inställningar.

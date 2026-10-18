@@ -99,6 +99,8 @@ function reviewDocument(nonce: string): string {
         const desktop = input.value === 'desktop';
         frame.style.width = (desktop ? 1280 : 360) + 'px';
         frame.style.height = (desktop ? 900 : 800) + 'px';
+        // A previous outer scroll must not clip a dialog's top after resizing.
+        document.querySelector('#stage').scrollTo(0, 0);
         requestAnimationFrame(reportSize);
       });
     });

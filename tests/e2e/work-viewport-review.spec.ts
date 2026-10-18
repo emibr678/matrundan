@@ -27,6 +27,8 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
     expect(header.y).toBe(0);
     expect(surface.y).toBeGreaterThanOrEqual(header.height);
     expect(surface.height).toBeGreaterThan(500);
+    // Main's top-anchored dialogs must remain reachable after viewport changes.
+    expect((await iframe.boundingBox())!.y).toBeGreaterThanOrEqual(surface.y);
     await expect(
       page.getByRole("radio", { name: "Mobil 360 × 800", exact: true }),
     ).toBeInViewport();
