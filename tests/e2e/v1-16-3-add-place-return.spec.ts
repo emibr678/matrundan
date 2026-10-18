@@ -26,7 +26,7 @@ async function openSearchResult(page: import("@playwright/test").Page) {
   return searchDialog;
 }
 
-test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglager", async ({
+test("tillbakapil bevarar sökningen och kryss stänger flödet med ett aktivt dialoglager", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 360, height: 640 });
@@ -38,7 +38,7 @@ test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglage
   await expect(resultDialog).toBeVisible();
   await expect(searchDialog).toBeHidden();
   await expect(page.locator('[role="dialog"]:visible')).toHaveCount(1);
-  await resultDialog.getByRole("button", { name: "Stäng", exact: true }).click();
+  await resultDialog.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
 
   await expect(searchDialog).toBeVisible();
   await expect(searchInput(searchDialog)).toHaveValue(PLACE_NAME);
@@ -49,9 +49,11 @@ test("kryss och Tillbaka återgår till samma sökning med ett aktivt dialoglage
   await expect(resultDialog).toBeVisible();
   await expect(searchDialog).toBeHidden();
   await expect(page.locator('[role="dialog"]:visible')).toHaveCount(1);
-  await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await resultDialog.getByRole("button", { name: "Stäng", exact: true }).click();
 
-  await expect(searchDialog).toBeVisible();
-  await expect(searchInput(searchDialog)).toHaveValue(PLACE_NAME);
-  await expect(searchResult(searchDialog)).toBeInViewport();
+  await expect(searchDialog).toBeHidden();
+  await expect(resultDialog).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Matställen", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  await expect(searchInput(searchDialog)).toHaveValue("");
 });

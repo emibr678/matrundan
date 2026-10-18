@@ -1303,7 +1303,7 @@ export function PlaceDiscovery({
 
   return (
     <div
-      className={showingMobileSuggestions ? "space-y-3 lg:space-y-4" : "space-y-4"}
+      className="space-y-3 lg:space-y-4"
       data-mobile-place-mode={mobileMode}
       data-search-area-editing={editingMobileAreas ? "true" : "false"}
     >
@@ -1481,7 +1481,14 @@ export function PlaceDiscovery({
         </Button>
       ) : null}
 
-      <div className={mobileMode !== "browse" ? "hidden lg:block" : "lg:overflow-visible"}>
+      <div
+        data-testid="place-discovery-results"
+        className={
+          mobileMode !== "browse"
+            ? "hidden lg:block"
+            : "max-lg:min-h-[min(40dvh,16rem)] lg:overflow-visible"
+        }
+      >
         {activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (
@@ -1989,9 +1996,7 @@ function PlaceSearchCombobox({
 
   return (
     <div className="min-w-0 space-y-1.5">
-      <Label htmlFor="place-query" className={focused ? "sr-only lg:not-sr-only" : undefined}>
-        Sök matställen
-      </Label>
+      <Label htmlFor="place-query">Sök matställen</Label>
       <div className="relative min-w-0">
         <Search className="pointer-events-none absolute left-3 top-[22px] h-4 w-4 -translate-y-1/2 text-muted-foreground sm:top-1/2" />
         <Input
@@ -2070,7 +2075,7 @@ function PlaceSearchCombobox({
               className={[
                 "left-0 right-0 z-30 w-full min-w-0 overflow-auto overscroll-contain rounded-md border bg-popover p-1 text-sm shadow-md",
                 focused
-                  ? "relative mt-2 max-h-[min(18rem,calc(var(--search-viewport-height,100dvh)_-_12rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
+                  ? "relative mt-2 max-h-[min(18rem,calc(var(--search-viewport-height,100dvh)_-_14rem))] shadow-sm lg:absolute lg:top-full lg:mt-1 lg:max-h-72"
                   : "absolute top-full mt-1 max-h-[min(42dvh,20rem)] sm:max-h-72",
               ].join(" ")}
             >
