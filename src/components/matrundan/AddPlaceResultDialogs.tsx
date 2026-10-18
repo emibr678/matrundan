@@ -488,7 +488,7 @@ export function AddPlaceResultDialogs({
             ref={nameHintDialogRef}
             data-testid="pending-name-hint-dialog"
             onCloseButtonClick={onCloseAll}
-            className={`max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-2 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
+            className={`max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto rounded-2xl focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:duration-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
           >
             <Button
               type="button"
@@ -551,7 +551,7 @@ export function AddPlaceResultDialogs({
             data-testid="pending-place-dialog"
             onCloseButtonClick={onCloseAll}
             closeButtonDisabled={isBusy}
-            className={`flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-2 max-lg:translate-y-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
+            className={`flex max-h-[90dvh] max-lg:h-[90dvh] w-[calc(100vw-1rem)] flex-col gap-0 overflow-hidden rounded-2xl p-0 focus:outline-none max-lg:top-2 max-lg:translate-y-0 max-lg:duration-0 sm:max-w-lg sm:rounded-lg ${detailCloseButtonClass}`}
           >
             <Button
               type="button"

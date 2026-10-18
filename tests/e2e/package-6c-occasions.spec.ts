@@ -73,7 +73,7 @@ test("typer av besök väljs likvärdigt och förklaras konsekvent på mobil", a
     resultDialog.getByRole("button", { name: "Lägg till i gruppen", exact: true }),
   ).toBeEnabled();
   await expectNoHorizontalOverflow(page, "Platsinfo före tillägg");
-  await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await resultDialog.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
 
   await addDialog
     .getByRole("button", { name: "Lägg till ett ställe som saknas", exact: true })

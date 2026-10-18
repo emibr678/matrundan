@@ -86,7 +86,7 @@ test("begränsad platsinformation visas först i öppnad träff och egen rapport
   await reportDialog.getByRole("button", { name: "Skicka rapport" }).click();
   await expect(reportDialog).toBeHidden();
 
-  await resultDialog.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await resultDialog.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(addDialog).toBeVisible();
   const reportedSuggestion = addDialog.getByRole("button", {
     name: "Visa information om Päronträdets Trattoria",
