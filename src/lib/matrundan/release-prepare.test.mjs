@@ -12,14 +12,14 @@ import {
 const SHA = "a".repeat(40);
 const BASE_SOURCE =
   'import type { ChangelogEntry } from "./types";\n' +
-  'export type { ChangelogEntry };\n\n' +
-  'const VERSION_1_45_1_CHANGELOG: ChangelogEntry = {\n' +
+  "export type { ChangelogEntry };\n\n" +
+  "const VERSION_1_45_1_CHANGELOG: ChangelogEntry = {\n" +
   '  version: "1.45.1",\n' +
   '  date: "2026-10-17",\n' +
   '  summary: "Tidigare gäster",\n' +
-  '  sections: [],\n};\n\n' +
-  'export const CHANGELOG: ChangelogEntry[] = [\n' +
-  '  VERSION_1_45_1_CHANGELOG,\n];\n';
+  "  sections: [],\n};\n\n" +
+  "export const CHANGELOG: ChangelogEntry[] = [\n" +
+  "  VERSION_1_45_1_CHANGELOG,\n];\n";
 const BASE_MARKDOWN =
   "# Changelog\n\n## [Unreleased]\n\nInga ändringar ännu.\n\n" +
   "## [1.45.1] – 2026-10-17\n\n### Rättat\n\n- Äldre fix.\n";
@@ -43,11 +43,11 @@ const body =
 describe("portabel releaseförberedelse (#485)", () => {
   test("är skrivskyddad som standard och kräver sammanfattning", () => {
     expect(parseOptions(["--summary", "Stabilare sökning"]).write).toBe(false);
-    expect(parseOptions(["--summary", "Stabilare sökning", "--write", "--kind", "Rättat"]).write)
-      .toBe(true);
+    expect(
+      parseOptions(["--summary", "Stabilare sökning", "--write", "--kind", "Rättat"]).write,
+    ).toBe(true);
     expect(() => parseOptions([])).toThrow("--summary");
-    expect(() => parseOptions(["--summary", "Stabilare sökning", "--oops"]))
-      .toThrow("Okänt");
+    expect(() => parseOptions(["--summary", "Stabilare sökning", "--oops"])).toThrow("Okänt");
   });
 
   test("väljer korrekt patchversion och strikt ökande semver", () => {
@@ -66,37 +66,55 @@ describe("portabel releaseförberedelse (#485)", () => {
 
   test("identifierar mergade PR:er på första föräldrakedjan", () => {
     const log =
-      SHA + "\tMerge PR #503 — Förbättra mobilnavigation\n" +
-      "b".repeat(40) + "\tMerge pull request #500 from feature";
+      SHA +
+      "\tMerge PR #503 — Förbättra mobilnavigation\n" +
+      "b".repeat(40) +
+      "\tMerge pull request #500 from feature";
     expect(mergesFromLog(log)).toEqual([
       { sha: "b".repeat(40), number: 500 },
       { sha: SHA, number: 503 },
     ]);
     expect(() => mergesFromLog(SHA + "\tDirektändring på main")).toThrow("saknar");
     expect(() => mergesFromLog("")).toThrow("Inga nya");
-    expect(() => mergesFromLog(SHA + "\tMerge PR #503\n" + SHA + "\tMerge PR #503"))
-      .toThrow("flera gånger");
+    expect(() => mergesFromLog(SHA + "\tMerge PR #503\n" + SHA + "\tMerge PR #503")).toThrow(
+      "flera gånger",
+    );
   });
 
   test("hämtar bara en exakt verifierad mergad PR:s releasepunkter", () => {
     expect(notesFromPr(pr(body), merge)).toEqual([
       "Sökdialogen ligger stilla när resultat laddas.",
     ]);
-    expect(() => notesFromPr(pr(body, { merge_commit_sha: "b".repeat(40) }), merge))
-      .toThrow("inte verifierat mergad");
-    expect(() => notesFromPr(pr(body, { merged_at: null }), merge))
-      .toThrow("inte verifierat mergad");
-    expect(() => notesFromPr(pr(body, { base: { ref: "develop" } }), merge))
-      .toThrow("inte verifierat mergad");
+    expect(() => notesFromPr(pr(body, { merge_commit_sha: "b".repeat(40) }), merge)).toThrow(
+      "inte verifierat mergad",
+    );
+    expect(() => notesFromPr(pr(body, { merged_at: null }), merge)).toThrow(
+      "inte verifierat mergad",
+    );
+    expect(() => notesFromPr(pr(body, { base: { ref: "develop" } }), merge)).toThrow(
+      "inte verifierat mergad",
+    );
   });
 
   test("kräver explicita användarsynliga releasepunkter men tillåter maintenance", () => {
     expect(() => notesFromPr(pr("Ingen releasepunkt"), merge)).toThrow("saknar");
-    expect(() => notesFromPr(pr("<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->\n<!-- x -->\n<!-- MATRUNDAN_RELEASE_NOTE_END -->"), merge))
-      .toThrow("tomt");
+    expect(() =>
+      notesFromPr(
+        pr(
+          "<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->\n<!-- x -->\n<!-- MATRUNDAN_RELEASE_NOTE_END -->",
+        ),
+        merge,
+      ),
+    ).toThrow("tomt");
     expect(notesFromPr(pr("Version: inte relevant"), merge)).toEqual([]);
-    expect(() => notesFromPr(pr("<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->\nText utan punkt\n<!-- MATRUNDAN_RELEASE_NOTE_END -->"), merge))
-      .toThrow("ogiltig");
+    expect(() =>
+      notesFromPr(
+        pr(
+          "<!-- MATRUNDAN_RELEASE_NOTE_BEGIN -->\nText utan punkt\n<!-- MATRUNDAN_RELEASE_NOTE_END -->",
+        ),
+        merge,
+      ),
+    ).toThrow("ogiltig");
   });
 
   test("skapar samma version/datum/nyhet i båda releasefilerna", () => {

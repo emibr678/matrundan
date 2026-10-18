@@ -68,24 +68,35 @@ export function mergesFromLog(log) {
   const lines = log.trim() ? log.trim().split("\n") : [];
   if (lines.length === 0) fail("Inga nya commits efter senaste publicerade versionen.");
   const numbers = new Set();
-  return lines.map((line) => {
-    const [sha, ...subjectParts] = line.split("\t");
-    const subject = subjectParts.join("\t");
-    const match = /^Merge (?:PR|pull request) #(\d+)\b/i.exec(subject) ||
-      /\(#(\d+)\)\s*$/.exec(subject);
-    if (!/^[0-9a-f]{40}$/.test(sha) || !match) {
-      fail("Commit saknar identifierbar mergad PR: " + subject + ". Granska releasens scope manuellt.");
-    }
-    const number = Number(match[1]);
-    if (numbers.has(number)) fail("Samma PR förekommer flera gånger: #" + number);
-    numbers.add(number);
-    return { sha, number };
-  }).reverse();
+  return lines
+    .map((line) => {
+      const [sha, ...subjectParts] = line.split("\t");
+      const subject = subjectParts.join("\t");
+      const match =
+        /^Merge (?:PR|pull request) #(\d+)\b/i.exec(subject) || /\(#(\d+)\)\s*$/.exec(subject);
+      if (!/^[0-9a-f]{40}$/.test(sha) || !match) {
+        fail(
+          "Commit saknar identifierbar mergad PR: " +
+            subject +
+            ". Granska releasens scope manuellt.",
+        );
+      }
+      const number = Number(match[1]);
+      if (numbers.has(number)) fail("Samma PR förekommer flera gånger: #" + number);
+      numbers.add(number);
+      return { sha, number };
+    })
+    .reverse();
 }
 
 export function notesFromPr(pr, merge) {
-  if (!pr || pr.number !== merge.number || !pr.merged_at || pr.base?.ref !== "main" ||
-      pr.merge_commit_sha !== merge.sha) {
+  if (
+    !pr ||
+    pr.number !== merge.number ||
+    !pr.merged_at ||
+    pr.base?.ref !== "main" ||
+    pr.merge_commit_sha !== merge.sha
+  ) {
     fail("PR #" + merge.number + " är inte verifierat mergad på förväntad commit/main.");
   }
   const body = pr.body || "";
@@ -95,8 +106,10 @@ export function notesFromPr(pr, merge) {
     if (/Version:\s*inte relevant/i.test(body)) return [];
     fail("PR #" + merge.number + " saknar releaseunderlag.");
   }
-  const raw = body.slice(start + NOTE_START.length, end)
-    .replace(/<!--[\s\S]*?-->/g, "").trim();
+  const raw = body
+    .slice(start + NOTE_START.length, end)
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .trim();
   if (!raw) {
     if (/Version:\s*inte relevant/i.test(body)) return [];
     fail("PR #" + merge.number + " har tomt releaseunderlag.");
@@ -121,31 +134,54 @@ export function materializeRelease(source, markdown, next, date, summary, kind, 
   if (!current || !oldDate || !newerThan(next, current) || date < oldDate) {
     fail("Ny version/datum måste ligga efter aktuell versionshistorik.");
   }
-  if (source.includes('version: "' + next + '"') ||
-      markdown.includes("## [" + next + "]")) {
+  if (source.includes('version: "' + next + '"') || markdown.includes("## [" + next + "]")) {
     fail("Den föreslagna versionen finns redan.");
   }
   const constant = "VERSION_" + next.replaceAll(".", "_") + "_CHANGELOG";
   const itemLines = notes.map((item) => "        " + JSON.stringify(item) + ",").join("\n");
   const newEntry =
-    "const " + constant + ": ChangelogEntry = {\n" +
-    '  version: "' + next + '",\n' +
-    '  date: "' + date + '",\n' +
-    "  summary: " + JSON.stringify(summary.trim()) + ",\n" +
+    "const " +
+    constant +
+    ": ChangelogEntry = {\n" +
+    '  version: "' +
+    next +
+    '",\n' +
+    '  date: "' +
+    date +
+    '",\n' +
+    "  summary: " +
+    JSON.stringify(summary.trim()) +
+    ",\n" +
     "  sections: [\n    {\n" +
-    "      kind: " + JSON.stringify(kind) + ",\n" +
-    "      items: [\n" + itemLines + "\n      ],\n" +
+    "      kind: " +
+    JSON.stringify(kind) +
+    ",\n" +
+    "      items: [\n" +
+    itemLines +
+    "\n      ],\n" +
     "    },\n  ],\n};\n\n";
   const anchor = "export type { ChangelogEntry };\n\n";
   const arrayAnchor = "export const CHANGELOG: ChangelogEntry[] = [\n";
-  if (source.indexOf(anchor) < 0 || source.indexOf(arrayAnchor) < 0 ||
-      markdown.indexOf("## [Unreleased]") < 0) {
+  if (
+    source.indexOf(anchor) < 0 ||
+    source.indexOf(arrayAnchor) < 0 ||
+    markdown.indexOf("## [Unreleased]") < 0
+  ) {
     fail("Versionsfilernas förväntade struktur har ändrats. Uppdatera verktyget först.");
   }
-  const version = source.replace(anchor, anchor + newEntry)
+  const version = source
+    .replace(anchor, anchor + newEntry)
     .replace(arrayAnchor, arrayAnchor + "  " + constant + ",\n");
-  const section = "## [" + next + "] – " + date + "\n\n### " + kind + "\n\n" +
-    notes.map((item) => "- " + item).join("\n") + "\n\n";
+  const section =
+    "## [" +
+    next +
+    "] – " +
+    date +
+    "\n\n### " +
+    kind +
+    "\n\n" +
+    notes.map((item) => "- " + item).join("\n") +
+    "\n\n";
   const first = markdown.match(/^## \[\d+\.\d+\.\d+\]/m);
   if (!first) fail("CHANGELOG saknar historiska versionsposter.");
   const changelog = markdown.slice(0, first.index) + section + markdown.slice(first.index);
@@ -167,7 +203,8 @@ async function githubPr(repo, number) {
 
 async function run() {
   const opts = parseOptions(process.argv.slice(2));
-  if (git("status", "--porcelain")) fail("Arbetskatalogen måste vara ren före releaseförberedelse.");
+  if (git("status", "--porcelain"))
+    fail("Arbetskatalogen måste vara ren före releaseförberedelse.");
   if (opts.write && git("symbolic-ref", "--quiet", "--short", "HEAD") === "main") {
     fail("Skriv inte releasefiler direkt på main. Skapa en separat releasebranch.");
   }
@@ -180,16 +217,23 @@ async function run() {
 
   const tag = "v" + current;
   if (git("tag", "--list", tag) !== tag) {
-    fail("Nuvarande version " + current + " är inte publiceringstaggad. Utred pågående releasekandidat.");
+    fail(
+      "Nuvarande version " +
+        current +
+        " är inte publiceringstaggad. Utred pågående releasekandidat.",
+    );
   }
   if (spawnSync("git", ["merge-base", "--is-ancestor", tag, "HEAD"]).status !== 0) {
     fail(tag + " är inte förfader till HEAD.");
   }
   const mergeLog = git("log", "--first-parent", "--format=%H%x09%s", tag + "..HEAD");
   const merges = mergesFromLog(mergeLog);
-  const repo = opts.repo || process.env.GITHUB_REPOSITORY ||
+  const repo =
+    opts.repo ||
+    process.env.GITHUB_REPOSITORY ||
     git("config", "--get", "remote.origin.url")
-      .replace(/^.*(?:github\.com[:/])/, "").replace(/\.git$/, "");
+      .replace(/^.*(?:github\.com[:/])/, "")
+      .replace(/\.git$/, "");
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) {
     fail("Kunde inte identifiera GitHub-repo. Ange --repo owner/repo.");
   }
@@ -210,7 +254,9 @@ async function run() {
   console.log("Mergade PR:er: " + releases.map((r) => "#" + r.number).join(", "));
   console.log("Releasepunkter: " + notes.length + ", kategori: " + opts.kind);
   if (!opts.write) {
-    console.log("DRY RUN – inga filer ändrade. Kör med --write för att materialisera på releasebranchen.");
+    console.log(
+      "DRY RUN – inga filer ändrade. Kör med --write för att materialisera på releasebranchen.",
+    );
     return;
   }
   writeFileSync(versionPath, files.version);
