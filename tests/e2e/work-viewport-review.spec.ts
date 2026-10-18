@@ -3,7 +3,7 @@ import { mkdir } from "node:fs/promises";
 
 test("granskningsvyn byter riktig iframeviewport och behåller dialog och navigation", async ({
   page,
-}) => {
+}, testInfo) => {
   const response = await page.goto("/ux-granskning");
   expect(response?.status()).toBe(200);
   const iframe = page.locator("#review-app");
@@ -13,6 +13,11 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
   await expect(app.locator("main")).toBeVisible();
   await expect.poll(dimensions).toEqual([360, 800]);
   await expect(page.locator("#viewport")).toHaveText("360 × 800");
+  await mkdir("visual-review/work-viewport", { recursive: true });
+  await page.screenshot({
+    path: `visual-review/work-viewport/review-${testInfo.project.name}.png`,
+    animations: "disabled",
+  });
 
   const toolbar = page.locator("header");
   const stage = page.locator("#stage");
@@ -27,6 +32,10 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
     ).toBeInViewport();
     await expect(
       page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }),
+    ).toBeInViewport();
+    await expect(page.getByRole("combobox", { name: "Startvy", exact: true })).toBeInViewport();
+    await expect(
+      page.getByRole("link", { name: "Logga in i appen", exact: true }),
     ).toBeInViewport();
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
@@ -46,7 +55,6 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
   await search.fill("pizza");
   await expect(search).toHaveValue("pizza");
   const documentIdentity = await app.locator("html").evaluate(() => performance.timeOrigin);
-  await mkdir("visual-review/work-viewport", { recursive: true });
   await iframe.screenshot({
     path: "visual-review/work-viewport/mobile-dialog.png",
     animations: "disabled",
