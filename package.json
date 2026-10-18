@@ -19,6 +19,7 @@
     "check:shell": "bash -n scripts/*.sh",
     "check:public-readiness": "bun scripts/public-readiness-check.mjs",
     "check:release": "bun scripts/release-check.mjs",
+    "release:prepare": "bun scripts/release-prepare.mjs",
     "check:database": "bun scripts/database-contract-check.mjs && bun scripts/preflight-contract-check.mjs && bun scripts/visit-photo-policy-contract-check.mjs",
     "check:dead-code": "bun scripts/dead-code-check.mjs",
     "supabase:types:generate": "bash scripts/supabase-types.sh generate src/integrations/supabase/types.ts",

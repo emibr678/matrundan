@@ -137,6 +137,44 @@ migration använder fortsatt den explicita `Version: inte relevant`-markeringen 
 PR-mallen. Featuremerge till `main`/staging är inte i sig en release eller
 publicering.
 
+
+#### Portabel releaseförberedelse (#485)
+
+Det är **GitHub och repot**, inte Work/ChatGPT/Lovable, som äger releasekedjan.
+Releaseförberedelsen kan köras av en utvecklare eller valfri agent på en ren
+releasebranch skapad från aktuell `main`, med full Git-historik och taggar.
+Det offentliga GitHub-repot kan läsas utan token; `GITHUB_TOKEN` eller `GH_TOKEN`
+kan användas för högre API-kvot. Exempel:
+
+```bash
+bun run release:prepare --summary "Stabilare sökning på mobil." --kind Rättat
+bun run release:prepare --summary "Stabilare sökning på mobil." --kind Rättat --write
+bun run format:changed
+bun run check:release
+```
+
+Utan `--write` är kommandot en skrivskyddad plan. Det jämför med
+`v<aktuell appversion>`, kräver verifierade merge-PR:er på första
+föräldrakedjan, hämtar deras markerade releaseunderlag direkt från GitHub och
+stoppar vid okända direktcommits, saknat releaseunderlag, fel PR-/merge-SHA,
+ogiltiga versioner eller tidigare publicerad tagg. En maintenance-PR med
+`Version: inte relevant` bidrar inte med användarsynliga releasepunkter.
+Vid skrivning uppdateras endast `CHANGELOG.md` och
+`src/lib/matrundan/version.ts`; befintlig releasekontroll måste godkänna
+resultatet, annars återställs filerna. Granska alltid releasecopy och diff
+innan release-PR skapas; välj vid behov uttryckligen `--version`, `--date`
+eller kategorin `--kind`.
+
+Releaseförberedelse innebär **inte** automatisk merge, DB-apply eller
+produktionspublicering. Efter separat godkänd release-PR följer den redan
+kanoniska GitHub Actions-vägen: `Cloudflare prod preflight` på aktuell
+`main` → verifierad inert kandidat + autentiserat test →
+separat publiceringsgodkännande → `Cloudflare prod publish` med
+`PUBLISH_PROD`. Dessa två driftworkflows startas från GitHubs Actions-UI
+eller en uttryckligen auktoriserad connector; de kräver inte Work eller
+manuell SHA-/Worker-kopiering. Vid databasförändringar gäller fortsatt
+separat migrationsgodkännande och befintliga säkerhetsgrindar.
+
 ### Exekveringslägen
 
 Matrundan stödjer två normala agentlägen och de får inte låtsas ha samma
