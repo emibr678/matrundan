@@ -1108,6 +1108,8 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
     .filter({ hasText: "Ox Lan i närheten" });
   await expect(option).toBeVisible();
   const hintCountBeforeSelection = mocked.getHintSearchCount();
+  const searchPosition = await search.boundingBox();
+  expect(searchPosition).not.toBeNull();
   await option.click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible({ timeout: 1000 });
@@ -1115,7 +1117,7 @@ test("valt namnförslag öppnar samma platsdialog direkt och återgår utan hopp
   await expect(details).toHaveCSS("outline-style", "none");
   const loadingPosition = await details.boundingBox();
   expect(loadingPosition).not.toBeNull();
-  expect(Math.abs(loadingPosition!.y - (await search.boundingBox())!.y)).toBeLessThan(2);
+  expect(Math.abs(loadingPosition!.y - searchPosition!.y)).toBeLessThan(2);
   await expect(details.getByText("Ox Lan i närheten")).toBeVisible();
   await expect(details.getByText("Näragatan 1")).toBeVisible();
   await expect(
