@@ -45,7 +45,8 @@
     "test:visual-smoke": "bun scripts/visual-review-smoke.mjs",
     "test:visual-smoke:work": "bun scripts/work-visual-review.mjs",
     "work:browser:prepare": "bun scripts/work-visual-review.mjs --prepare",
-    "test:visual-review": "bun run build && playwright test --config=playwright.visual.config.ts"
+    "test:visual-review": "bun run build && playwright test --config=playwright.visual.config.ts",
+    "test:ux-review:production": "bun scripts/ux-review-production-smoke.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

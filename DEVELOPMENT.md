@@ -49,6 +49,51 @@ Scriptet är idempotent och gör endast följande:
 
 Det ändrar inte `package.json`, `bun.lock`, produktkod eller Git-historik.
 
+## Interaktiv UX-granskning i Work
+
+Öppna `/ux-granskning` direkt på den stabila branchpreview som ska granskas,
+eller välj **Testverktyg → UX-granskning** i staging (öppnas i separat flik).
+Kontrollera `/api/health` separat mot PR-head före kandidatgranskning.
+
+Välj **Mobil 360 × 800** eller **Desktop 1280 × 900** med ett klick.
+Uppmätt viewport visas bredvid. Samma iframe med den riktiga appen behåller
+navigation och påbörjad inmatning vid storleksbyte. Verktygsfältet har en egen
+rad; appytan scrollas separat om den inte ryms. Ingen skalning används.
+**Startvy** öppnar Exempelgruppen eller vanliga appen och startar om appytan.
+
+Vid behov: logga in med befintligt stagingkonto via **Logga in i appen** i den
+vanliga top-level-fliken på samma origin. Välj sedan Vanliga appen (eller öppna
+om den startvyn efter login). Verktyget hanterar inga lösenord, tokens eller
+sessioner. Autentisering och gruppbehörigheter är appens ordinarie.
+UI-skrivtester får bara göras i särskilt godkända egna stagingtestgrupper.
+
+Work använder `frameLocator("#review-app")` för appens knappar och formulär;
+storleksvalen ligger i föräldradokumentet. Browserns vanliga screenshot kan
+öppnas direkt för riktad visuell kontroll; bilder behövs inte som mellanled
+för navigation. Lokal portabel Work-Chromium och `visual-review/` finns kvar
+för reproducerbara Playwright-prov och screenshots enligt kommandot ovan.
+
+Servern kräver både local/staging-bygge och motsvarande känd request-origin
+från befintlig miljöklassificering. Produktion, okända och blandade miljöer
+svarar 404, även vid direkt URL. Länken visas bara i stagingens Testverktyg.
+Detta ger riktiga CSS-viewportar, inte Androidemulering: skärmtangentbord,
+touchgester, mobilbrowserns chrome och hårdvaru-GPU kräver en riktig enhet.
+
+Produktionsspärren kan integrationsprovas utan driftsättning eller credentials:
+
+```bash
+bun run test:ux-review:production
+```
+
+Kommandot bygger Cloudflare-artefakten med `MATRUNDAN_ENVIRONMENT=prod` och
+isolerade testvärden för externa tjänster. Därefter kör Bun dess riktiga
+Worker-`fetch` och TanStack-routning över lokal HTTP: direkt URL, manipulerade
+parametrar/headers och HEAD ska ge 404, medan appens rot ger 200. Byggning och
+prov körs i följd; kör inte ett annat bygge samtidigt eftersom `.output/` delas.
+Det verifierar den produktionsbyggda serverrouten, inte Cloudflares edge-runtime
+eller den faktiskt driftsatta adressen. Dessa kontroller hör till en separat
+produktionssmoke; att flytta en uttrycklig acceptansgrind dit kräver beslut.
+
 ## Codex Cloud
 
 Skapa eller redigera Codex-miljön för repot `emibr678/matrundan` och använd följande inställningar.

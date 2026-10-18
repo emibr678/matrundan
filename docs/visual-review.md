@@ -165,6 +165,10 @@ Preview och screenshots är granskningsunderlag, inte publicering. De ersätter 
 
 ## Browsergranskning och GitHub-artifacts
 
+För interaktiv granskning i Works vanliga molnbrowser används det tunna
+`/ux-granskning`-skalet på samma stagingpreview som appen. Kort startmetod och
+miljögränser finns i [DEVELOPMENT.md](../DEVELOPMENT.md#interaktiv-ux-granskning-i-work).
+
 Repots browserkontroller är standardvägen för renderad granskning. GitHub-workflowen **Visual review artifacts** verifierar först att produktionsbygget lyckas och skapar därefter kompletterande fullsidesskärmbilder från samma commit i Chromium. Själva bilderna fångas via repots verifierade lokala Vite-server, eftersom Lovables Cloudflare-anpassade produktionsbundle inte är en fristående lokal Node-preview.
 
 Workflowen kan startas på två sätt:

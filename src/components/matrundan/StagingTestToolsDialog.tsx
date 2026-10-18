@@ -33,7 +33,7 @@ export function StagingTestToolsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] w-[calc(100vw-1rem)] overflow-y-auto sm:max-w-lg">
         <DialogHeader className="pr-8 text-left">
           <div className="flex items-center gap-2">
             <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-900">
@@ -47,12 +47,25 @@ export function StagingTestToolsDialog({
             </div>
           </div>
           <DialogDescription className="pt-2 leading-relaxed">
-            Spela upp produktguidning utan att radera eller ändra ditt sparade kvitto. Simuleringen
-            gäller bara den här appsessionen.
+            Granska appen eller prova produktguidning. Guidningens simuleringar gäller bara den här
+            appsessionen och ändrar inte ditt sparade kvitto.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          <a
+            href="/ux-granskning"
+            target="_blank"
+            rel="noopener"
+            className="block rounded-2xl border border-border/70 p-4 transition-colors hover:bg-muted/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+          >
+            <div className="font-medium">
+              UX-granskning <span aria-hidden>↗</span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              Granska Matrundan interaktivt i mobil- och desktopvy.
+            </p>
+          </a>
           <div className="rounded-2xl border border-border/70 p-4">
             <div className="font-medium">Kärnintroduktion</div>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

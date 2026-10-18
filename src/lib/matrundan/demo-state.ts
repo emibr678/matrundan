@@ -1,6 +1,7 @@
 import type { AppState } from "./types";
 
 export const EXAMPLE_STATE_STORAGE_KEY = "matrundan.exampleState.v4";
+export const EXAMPLE_SESSION_KEY = "matrundan.exampleSession.v1";
 export const SANDBOX_STATE_STORAGE_KEY = "matrundan.state.v1";
 export const DEMO_STATE_CHANGED_EVENT = "matrundan:demo-state-changed";
 export const EXAMPLE_GUEST_PROPOSAL_STORAGE_KEY = `${EXAMPLE_STATE_STORAGE_KEY}.guestParticipationProposals.v1`;
