@@ -121,7 +121,7 @@ describe("portabel releaseförberedelse (#485)", () => {
   });
 
   test("vägrar återanvända version, gå bakåt eller skapa tom release", () => {
-    const make = (version: string, date: string, notes: string[]) =>
+    const make = (version, date, notes) =>
       materializeRelease(
         BASE_SOURCE,
         BASE_MARKDOWN,
