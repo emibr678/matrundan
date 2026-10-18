@@ -14,6 +14,16 @@ Tidigare historik är bevarad i:
 
 Inga ändringar ännu.
 
+## [1.45.2] – 2026-10-18
+
+### Förbättrat
+
+- När du öppnar ett matställe från sökningen kan du gå tillbaka till samma resultat utan att förlora dina sökval. Tillbakapilen går tillbaka och krysset stänger hela flödet.
+
+### Rättat
+
+- Sökdialogen och platsinformationen behåller samma placering på mobilen, även när sökresultat och platsuppgifter laddas.
+
 ## [1.45.1] – 2026-10-17
 
 ### Rättat
