@@ -76,6 +76,136 @@ async function openPlaceSearch(page: Page) {
   return searchDialog;
 }
 
+test("sökning och detalj har samma mobila överkant och tillbakapilen bevarar sökningen", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.setViewportSize({ width: 360, height: 620 });
+  const search = await openPlaceSearch(page);
+  const query = search.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const area = search.getByRole("button", { name: "Ändra sökområden" });
+  const areaText = await area.textContent();
+  const searchTop = (await search.boundingBox())!.y;
+  await search.evaluate((element) => (element.scrollTop = 120));
+  const scrollTop = await search.evaluate((element) => element.scrollTop);
+  expect(scrollTop).toBeGreaterThan(0);
+
+  await placeSuggestionButton(search).click();
+  const detail = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await expect(detail).toBeVisible();
+  expect(Math.abs((await detail.boundingBox())!.y - searchTop)).toBeLessThan(2);
+  await expect(detail.getByRole("button", { name: "Tillbaka till sökresultaten" })).toBeVisible();
+  await detail.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
+  await expect(search).toBeVisible();
+  await expect(query).toHaveValue(PLACE_NAME);
+  await expect(area).toHaveText(areaText ?? "");
+  await expect
+    .poll(() => search.evaluate((element) => element.scrollTop))
+    .toBeCloseTo(scrollTop, 0);
+
+  await search.getByRole("button", { name: "Karta", exact: true }).click();
+  await expect(search.getByRole("button", { name: "Karta", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await search.getByRole("button", { name: "Lista", exact: true }).click();
+  await placeSuggestionButton(search).click();
+  await detail.getByLabel("Anteckning till gruppen (valfritt)").fill("Inte sparat");
+  await detail.getByRole("button", { name: "Stäng", exact: true }).click();
+  await expect(detail).toBeHidden();
+  await expect(search).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Matställen", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Lägg till matställe" })).toBeVisible();
+  await expect(query).toHaveValue("");
+});
+
+test("Escape och utanförklick återgår till sökningen medan kryss stänger flödet", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 620 });
+  const search = await openPlaceSearch(page);
+  const detail = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  await placeSuggestionButton(search).click();
+  await detail.press("Escape");
+  await expect(search).toBeVisible();
+  await expect(search.getByRole("combobox", { name: "Sök matställen" })).toHaveValue(PLACE_NAME);
+
+  await placeSuggestionButton(search).click();
+  await page.mouse.click(1, 300);
+  await expect(search).toBeVisible();
+  await placeSuggestionButton(search).click();
+  await detail.getByRole("button", { name: "Stäng", exact: true }).click();
+  await expect(search).toBeHidden();
+});
+
+test("sökdialogens överkant och gemensamma fält står stilla mellan fokus och resultat", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 690 });
+  await page.goto("/matstallen?demo=1");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  const area = dialog.getByRole("button", { name: "Ändra sökområden" });
+  const input = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+  const results = dialog.getByTestId("place-discovery-results");
+  await expect(dialog.getByText("Sök matställen", { exact: true })).toBeVisible();
+
+  const positions = async () => {
+    const [shell, searchArea, searchInput] = await Promise.all([
+      dialog.boundingBox(),
+      area.boundingBox(),
+      input.boundingBox(),
+    ]);
+    expect(shell).not.toBeNull();
+    expect(searchArea).not.toBeNull();
+    expect(searchInput).not.toBeNull();
+    return { shell: shell!, searchArea: searchArea!, searchInput: searchInput! };
+  };
+  const initial = await positions();
+  const expectStable = async (state: string) => {
+    const current = await positions();
+    expect(
+      Math.abs(current.shell.y - initial.shell.y),
+      `${state}: dialogens överkant`,
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(current.searchArea.y - initial.searchArea.y),
+      `${state}: sökområdet`,
+    ).toBeLessThan(2);
+    expect(
+      Math.abs(current.searchInput.y - initial.searchInput.y),
+      `${state}: sökfältet`,
+    ).toBeLessThan(2);
+  };
+
+  await input.focus();
+  await expect(dialog).toHaveAttribute("data-search-shell", "focused");
+  await expectStable("fokuserad sökning");
+  await input.fill("Pizz");
+  await dialog
+    .getByRole("group", { name: "Kök och typer" })
+    .getByRole("button", { name: /Pizza/ })
+    .first()
+    .click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expectStable("ny sökning/laddning");
+  expect((await results.boundingBox())!.height, "resultatytan under ny sökning").toBeGreaterThan(
+    120,
+  );
+  await expect(dialog.getByRole("heading", { name: "Ställen att lägga till" })).toBeVisible();
+  await expectStable("färdiga resultat");
+  await expectNoHorizontalOverflow(page, "Sökdialog vid 360 px");
+
+  await page.setViewportSize({ width: 360, height: 420 });
+  await input.focus();
+  await expectInsideViewport(page, input, "Sökfält med simulerad tangentbordshöjd");
+  await expectInsideViewport(page, dialog, "Dialog med simulerad tangentbordshöjd");
+  await dialog.getByRole("button", { name: "Tillbaka till resultaten" }).click();
+  await expect(dialog).toHaveAttribute("data-search-shell", "browse");
+  await expect(input).not.toBeFocused();
+});
+
 test("huvudknappen för att lägga till ställe är synlig medan innehållet scrollas", async ({
   page,
 }) => {
@@ -84,10 +214,13 @@ test("huvudknappen för att lägga till ställe är synlig medan innehållet scr
   await placeSuggestionButton(searchDialog).click();
 
   const dialog = page.getByRole("dialog", { name: "Lägg till i gruppen" });
+  const back = dialog.getByRole("button", { name: "Tillbaka till sökresultaten" });
   const actions = dialog.getByTestId("pending-place-actions");
   const scrollArea = dialog.getByTestId("pending-place-scroll");
   const addButton = actions.getByRole("button", { name: "Lägg till i gruppen", exact: true });
   await expectInsideViewport(page, addButton, "Spara stället utan att scrolla");
+  await expectInsideViewport(page, back, "Tillbakapil i detaljdialogen");
+  await expect(actions.getByRole("button")).toHaveCount(1);
   await expectInsideViewport(page, actions, "Fast nederdel");
   await expectNoHorizontalOverflow(page, "Bekräfta matställe");
 
@@ -143,7 +276,7 @@ test("bekräftelsedialogens handlingar förblir synliga även på desktop med l�
   await expectInsideViewport(page, actions, "Fast desktopnederdel vid kort höjd");
   await expectInsideViewport(page, addButton, "Desktopknapp efter scroll");
   await expectNoHorizontalOverflow(page, "Bekräfta ställe kort desktop");
-  await actions.getByRole("button", { name: "Tillbaka" }).click();
+  await dialog.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(dialog).toBeHidden();
   await expect(searchDialog).toBeVisible();
 });
@@ -307,7 +440,7 @@ test("efter detaljdialog och rensad sökning kan användaren återgå till områ
     .click();
   const details = page.getByRole("dialog", { name: "Lägg till i gruppen" });
   await expect(details).toBeVisible();
-  await details.getByRole("button", { name: "Tillbaka", exact: true }).click();
+  await details.getByRole("button", { name: "Tillbaka till sökresultaten" }).click();
   await expect(dialog).toBeVisible();
 
   await input.fill("");
