@@ -3,6 +3,26 @@ import { CHANGELOG as CHANGELOG_THROUGH_1_31, type ChangelogEntry } from "./vers
 export { APP_NAME, formatRating } from "./version-through-1-31";
 export type { ChangelogEntry };
 
+const VERSION_1_45_2_CHANGELOG: ChangelogEntry = {
+  version: "1.45.2",
+  date: "2026-10-18",
+  summary: "Stabilare sökning och tydligare navigation när du lägger till matställen på mobilen.",
+  sections: [
+    {
+      kind: "Förbättrat",
+      items: [
+        "När du öppnar ett matställe från sökningen kan du gå tillbaka till samma resultat utan att förlora dina sökval. Tillbakapilen går tillbaka och krysset stänger hela flödet.",
+      ],
+    },
+    {
+      kind: "Rättat",
+      items: [
+        "Sökdialogen och platsinformationen behåller samma placering på mobilen, även när sökresultat och platsuppgifter laddas.",
+      ],
+    },
+  ],
+};
+
 const VERSION_1_45_1_CHANGELOG: ChangelogEntry = {
   version: "1.45.1",
   date: "2026-10-17",
@@ -570,6 +590,7 @@ const VERSION_1_32_0_CHANGELOG: ChangelogEntry = {
 };
 
 export const CHANGELOG: ChangelogEntry[] = [
+  VERSION_1_45_2_CHANGELOG,
   VERSION_1_45_1_CHANGELOG,
   VERSION_1_45_0_CHANGELOG,
   VERSION_1_44_0_CHANGELOG,
