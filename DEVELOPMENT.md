@@ -39,21 +39,6 @@ den lokala Matrundan-appen, aldrig för godtyckliga externa webbplatser. Flera
 routes körs sekventiellt eftersom Work-browserns enkelprocessläge inte kan
 återanvändas säkert mellan parallella testkontexter.
 
-### Prov för interaktiv layoutgranskning i Work
-
-`/ux-granskning` är en olistad provsida för lokal miljö och staging. Den svarar
-404 i produktion och okänd miljö. Mobil 360 × 800 och Desktop 1280 × 900 ändrar
-storleken på samma iframe med appen från samma origin, så att navigation och
-påbörjad inmatning kan behållas. Sidan visar den uppmätta iframeviewporten.
-
-Öppna sidan på den branchpreview som ska granskas och använd browserns
-`frameLocator("#review-app")` för interaktion i appen. Välj Exempelgruppen eller
-Vanliga appen. Vid behov sker inloggning genom länken som öppnar den vanliga
-appen i en separat flik på samma origin; granskningssidan hanterar inga tokens.
-Detta är ett layoutprov, inte emulering av touch, Androidtangentbord eller
-mobilbrowserns övriga egenskaper. GitHub Issue #500 äger provets resultat och
-eventuellt beslut om fortsatt användning.
-
 Scriptet är idempotent och gör endast följande:
 
 1. läser den låsta Bun-versionen från `package.json`;
@@ -63,6 +48,36 @@ Scriptet är idempotent och gör endast följande:
 5. kör miljökontrollen.
 
 Det ändrar inte `package.json`, `bun.lock`, produktkod eller Git-historik.
+
+## Interaktiv UX-granskning i Work
+
+Öppna `/ux-granskning` direkt på den stabila branchpreview som ska granskas,
+eller välj **Testverktyg → UX-granskning** i staging (öppnas i separat flik).
+Kontrollera `/api/health` separat mot PR-head före kandidatgranskning.
+
+Välj **Mobil 360 × 800** eller **Desktop 1280 × 900** med ett klick.
+Uppmätt viewport visas bredvid. Samma iframe med den riktiga appen behåller
+navigation och påbörjad inmatning vid storleksbyte. Verktygsfältet har en egen
+rad; appytan scrollas separat om den inte ryms. Ingen skalning används.
+**Startvy** öppnar Exempelgruppen eller vanliga appen och startar om appytan.
+
+Vid behov: logga in med befintligt stagingkonto via **Logga in i appen** i den
+vanliga top-level-fliken på samma origin. Välj sedan Vanliga appen (eller öppna
+om den startvyn efter login). Verktyget hanterar inga lösenord, tokens eller
+sessioner. Autentisering och gruppbehörigheter är appens ordinarie.
+UI-skrivtester får bara göras i särskilt godkända egna stagingtestgrupper.
+
+Work använder `frameLocator("#review-app")` för appens knappar och formulär;
+storleksvalen ligger i föräldradokumentet. Browserns vanliga screenshot kan
+öppnas direkt för riktad visuell kontroll; bilder behövs inte som mellanled
+för navigation. Lokal portabel Work-Chromium och `visual-review/` finns kvar
+för reproducerbara Playwright-prov och screenshots enligt kommandot ovan.
+
+Servern kräver både local/staging-bygge och motsvarande känd request-origin
+från befintlig miljöklassificering. Produktion, okända och blandade miljöer
+svarar 404, även vid direkt URL. Länken visas bara i stagingens Testverktyg.
+Detta ger riktiga CSS-viewportar, inte Androidemulering: skärmtangentbord,
+touchgester, mobilbrowserns chrome och hårdvaru-GPU kräver en riktig enhet.
 
 ## Codex Cloud
 

@@ -4,7 +4,8 @@ import { mkdir } from "node:fs/promises";
 test("granskningsvyn byter riktig iframeviewport och behåller dialog och navigation", async ({
   page,
 }) => {
-  await page.goto("/ux-granskning");
+  const response = await page.goto("/ux-granskning");
+  expect(response?.status()).toBe(200);
   const iframe = page.locator("#review-app");
   const app = page.frameLocator("#review-app");
   const dimensions = () =>
@@ -13,9 +14,25 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
   await expect.poll(dimensions).toEqual([360, 800]);
   await expect(page.locator("#viewport")).toHaveText("360 × 800");
 
-  // The fixed 800px app extends below the review toolbar; scroll the outer page
-  // just as a reviewer would before using the app's bottom navigation.
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  const toolbar = page.locator("header");
+  const stage = page.locator("#stage");
+  const expectSeparateToolbar = async () => {
+    const header = (await toolbar.boundingBox())!;
+    const surface = (await stage.boundingBox())!;
+    expect(header.y).toBe(0);
+    expect(surface.y).toBeGreaterThanOrEqual(header.height);
+    expect(surface.height).toBeGreaterThan(500);
+    await expect(
+      page.getByRole("radio", { name: "Mobil 360 × 800", exact: true }),
+    ).toBeInViewport();
+    await expect(
+      page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }),
+    ).toBeInViewport();
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+    ).toBe(true);
+  };
+  await expectSeparateToolbar();
   await app
     .getByRole("link", { name: "Matställen", exact: true })
     .filter({ visible: true })
@@ -33,8 +50,9 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
     animations: "disabled",
   });
 
-  await page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }).check();
+  await page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }).click();
   await expect.poll(dimensions).toEqual([1280, 900]);
+  await expectSeparateToolbar();
   await expect(page.locator("#viewport")).toHaveText("1280 × 900");
   await expect(dialog).toBeVisible();
   await expect(search).toHaveValue("pizza");
@@ -44,16 +62,18 @@ test("granskningsvyn byter riktig iframeviewport och behåller dialog och naviga
     animations: "disabled",
   });
 
-  await page.getByRole("radio", { name: "Mobil 360 × 800", exact: true }).check();
+  await page.getByRole("radio", { name: "Mobil 360 × 800", exact: true }).click();
   await expect.poll(dimensions).toEqual([360, 800]);
   await expect(dialog).toBeVisible();
   await expect(search).toHaveValue("pizza");
+  await expectSeparateToolbar();
   await dialog.getByRole("button", { name: "Stäng", exact: true }).click();
   await expect(dialog).toBeHidden();
-  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expectSeparateToolbar();
   await app.getByRole("link", { name: "Gruppen", exact: true }).filter({ visible: true }).click();
   await expect.poll(() => app.locator("html").evaluate(() => location.pathname)).toBe("/gruppen");
-  await page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }).check();
+  await page.getByRole("radio", { name: "Desktop 1280 × 900", exact: true }).click();
   await expect.poll(dimensions).toEqual([1280, 900]);
+  await expectSeparateToolbar();
   await expect.poll(() => app.locator("html").evaluate(() => location.pathname)).toBe("/gruppen");
 });
