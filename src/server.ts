@@ -78,6 +78,11 @@ export default {
         return responseWithRequestId(response, requestId);
       }
 
+      if (url.pathname === "/diagnostics/geoapify") {
+        const { handleGeoapifyProbe } = await import("./lib/geoapify-probe.server");
+        return handleGeoapifyProbe(request);
+      }
+
       const handler = await getServerEntry();
       const response = await handler.fetch(request, env, ctx);
       const normalized = await normalizeCatastrophicSsrResponse(response, request, startedAt);
@@ -100,3 +105,4 @@ export default {
     }
   },
 };
+
