@@ -72,7 +72,7 @@ async function call(job: Job, run: Run | undefined): Promise<Row> {
   try {
     const response = await fetch("https://api.geoapify.com/v2/places", {
       method: "POST", headers: { "content-type": "application/json", "x-api-key": apiKey },
-      body: JSON.stringify({ categories: [...job.categories], ...(job.conditions.length ? { conditions: [...job.conditions] } : {}), filter: { circle: { lat: job.area.lat, lon: job.area.lon, radius: job.area.radius } }, bias: { proximity: { lat: job.area.lat, lon: job.area.lon } }, limit: job.limit ?? LIMIT, offset: job.offset ?? 0, lang: "sv" }),
+      body: JSON.stringify({ categories: [...job.categories], ...(job.conditions.length ? { conditions: [...job.conditions] } : {}), filter: { type: "circle", lat: job.area.lat, lon: job.area.lon, radius: job.area.radius }, bias: { type: "proximity", lat: job.area.lat, lon: job.area.lon }, limit: job.limit ?? LIMIT, offset: job.offset ?? 0, lang: "sv" }),
       signal: AbortSignal.timeout(15_000), redirect: "error",
     });
     row.status = response.status;
