@@ -16,7 +16,8 @@ type Place = { id: string; name: string; address: string; categories: string[]; 
 type Row = { job: Job; at: string; status: number | null; durationMs: number; count: number; capped: boolean; places: Place[]; error?: string; credits: null };
 type Run = { operator: string; busy: boolean; cursor: number; calls: number; queue: Job[]; rows: Row[]; startedAt: number };
 const runs = new Map<string, Run>();
-let isolateCalls = 0;
+// Conservatively carry the one failed attempt from head 12ca7298.
+let isolateCalls = 1;
 let smoke: { operator: string; row: Row } | undefined;
 let activeRun: string | undefined;
 let busy = false;
@@ -73,7 +74,7 @@ async function call(job: Job, run: Run | undefined): Promise<Row> {
     const response = await fetch("https://api.geoapify.com/v2/places", {
       method: "POST", headers: { "content-type": "application/json", "x-api-key": apiKey },
       body: JSON.stringify({ categories: [...job.categories], ...(job.conditions.length ? { conditions: [...job.conditions] } : {}), filter: { type: "circle", lat: job.area.lat, lon: job.area.lon, radius: job.area.radius }, bias: { type: "proximity", lat: job.area.lat, lon: job.area.lon }, limit: job.limit ?? LIMIT, offset: job.offset ?? 0, lang: "sv" }),
-      signal: AbortSignal.timeout(15_000), redirect: "error",
+      signal: AbortSignal.timeout(15_000), redirect: "manual",
     });
     row.status = response.status;
     if (response.ok) {
@@ -87,6 +88,14 @@ async function call(job: Job, run: Run | undefined): Promise<Row> {
 }
 export async function handleGeoapifyProbe(request: Request): Promise<Response> {
   if (!allowedHost(request)) return new Response("Sidan hittades inte", { status: 404 });
+  if (request.method === "GET" && new URL(request.url).searchParams.get("compat") === "1") {
+    // Zero network calls: isolate Request-constructor compatibility only.
+    const supported = (redirect: RequestRedirect) => {
+      try { new Request("https://api.geoapify.com/v2/places", { redirect }); return true; }
+      catch { return false; }
+    };
+    return json({ release: RELEASE_SHA, networkCalls: 0, requestRedirectErrorSupported: supported("error"), requestRedirectManualSupported: supported("manual") });
+  }
   if (request.method === "GET") {
     const nonce = crypto.randomUUID();
     return new Response(probeDocument(nonce, RELEASE_SHA, PROBE_JOBS), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex, nofollow", "referrer-policy": "no-referrer", "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` } });
