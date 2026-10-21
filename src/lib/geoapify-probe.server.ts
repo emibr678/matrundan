@@ -7,7 +7,7 @@ import { probeDocument } from "./geoapify-probe-document";
 
 // Fail closed until the existing operator signs in and their verified subject
 // fingerprint is deliberately pinned in this server-only file. No email export.
-const OPERATOR_SUB_SHA256: readonly string[] = [];
+const OPERATOR_SUB_SHA256: readonly string[] = ["03cc6c266baf3cfc7f99643126866a643ff664132e6fa870e917e1f181c22aa6"];
 const EXPIRES_AT = Date.parse("2026-10-23T00:00:00Z");
 const MAX_CALLS = 60;
 const LIMIT = 100;
@@ -34,7 +34,13 @@ async function operatorFingerprint(request: Request): Promise<string | null> {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_PUBLISHABLE_KEY;
   if (!token || !url || !key) return null;
-  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+  const authFetch = ((input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    if (key.startsWith("sb_publishable_") && headers.get("authorization") === `Bearer ${key}`) headers.delete("authorization");
+    headers.set("apikey", key);
+    return fetch(input, { ...init, headers });
+  }) as typeof fetch;
+  const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false }, global: { fetch: authFetch } });
   try {
     const { data, error } = await client.auth.getClaims(token);
     if (error || !data?.claims?.sub || data.claims.role !== "authenticated") return null;
