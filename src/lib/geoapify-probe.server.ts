@@ -8,8 +8,11 @@ import { probeDocument } from "./geoapify-probe-document";
 // Fail closed until the existing operator signs in and their verified subject
 // fingerprint is deliberately pinned in this server-only file. No email export.
 const OPERATOR_SUB_SHA256: readonly string[] = ["03cc6c266baf3cfc7f99643126866a643ff664132e6fa870e917e1f181c22aa6"];
-const EXPIRES_AT = Date.parse("2026-10-23T00:00:00Z");
-const MAX_CALLS = 60;
+const EXPIRES_AT = Date.parse("2026-10-27T00:00:00Z");
+const MAX_CALLS = 150;
+const MAX_CREDIT_RESERVATION = 750;
+// The earlier completed test used 60 reserved calls, tracked separately.
+const PRIOR_RUN_RESERVED_CALLS = 60;
 const LIMIT = 100;
 type Job = { id: string; area: { id: string; label: string; lat: number; lon: number; radius: number }; strategy: string; categories: readonly string[]; conditions: readonly string[]; offset?: number; limit?: number };
 type Place = { id: string; name: string; address: string; categories: string[]; lat?: number; lon?: number; osm: Record<string, string> };
@@ -17,7 +20,8 @@ type Row = { job: Job; at: string; status: number | null; durationMs: number; co
 type Run = { operator: string; busy: boolean; cursor: number; calls: number; queue: Job[]; rows: Row[]; startedAt: number };
 const runs = new Map<string, Run>();
 // Conservatively carry the one failed attempt from head 12ca7298.
-let isolateCalls = 1;
+let isolateCalls = 0;
+let isolateCreditsReserved = 0;
 let smoke: { operator: string; row: Row } | undefined;
 let activeRun: string | undefined;
 let busy = false;
@@ -63,10 +67,17 @@ function placeFrom(value: unknown): Place {
 }
 async function call(job: Job, run: Run | undefined): Promise<Row> {
   // Reserve before await: overlapping requests and failures cannot reuse budget.
-  if (isolateCalls >= MAX_CALLS || (run && run.calls >= MAX_CALLS)) throw new Error("BUDGET_EXHAUSTED");
+  const requestedLimit = job.limit ?? LIMIT;
+  const estimatedCreditsUpperBound = Math.ceil(requestedLimit / 20);
+  if (requestedLimit < 1 || requestedLimit > LIMIT ||
+      isolateCalls >= MAX_CALLS || (run && run.calls >= MAX_CALLS) ||
+      isolateCreditsReserved + estimatedCreditsUpperBound > MAX_CREDIT_RESERVATION) {
+    throw new Error("BUDGET_EXHAUSTED");
+  }
   const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
   if (!apiKey) throw new Error("KEY_MISSING");
   isolateCalls += 1;
+  isolateCreditsReserved += estimatedCreditsUpperBound;
   if (run) run.calls += 1;
   const start = performance.now();
   const row: Row = { job, at: new Date().toISOString(), status: null, durationMs: 0, count: 0, capped: false, places: [], credits: null };
@@ -108,7 +119,7 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
   // A manual zero-call readiness check exposes only presence, never key values.
   const configured = Boolean(process.env.GEOAPIFY_API_KEY?.trim());
   const operator = await operatorFingerprint(request);
-  if (input.action === "status") return json({ configured, authenticated: !!operator, authorized: !!operator && OPERATOR_SUB_SHA256.includes(operator), operatorFingerprint: operator, release: RELEASE_SHA, calls: isolateCalls, expiresAt: new Date(EXPIRES_AT).toISOString(), credits: "Not verified: no account billing access" });
+  if (input.action === "status") return json({ configured, authenticated: !!operator, authorized: !!operator && OPERATOR_SUB_SHA256.includes(operator), operatorFingerprint: operator, release: RELEASE_SHA, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved, maxCalls: MAX_CALLS, maxReservedCredits: MAX_CREDIT_RESERVATION, previousRunReservedCalls: PRIOR_RUN_RESERVED_CALLS, expiresAt: new Date(EXPIRES_AT).toISOString(), credits: "Not verified: no account billing access" });
   if (!configured) return json({ error: "KEY_MISSING", calls: 0 }, 503);
   if (!operator || !OPERATOR_SUB_SHA256.includes(operator)) return json({ error: "OPERATOR_REQUIRED" }, 403);
   if (input.action === "smoke") {
@@ -116,7 +127,7 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
     busy = true;
     // Failed smoke consumes the one opportunity too. No automatic retry.
     smoke = { operator, row: { job: PROBE_JOBS[0], at: new Date().toISOString(), status: null, durationMs: 0, count: 0, capped: false, places: [], credits: null, error: "IN_PROGRESS" } };
-    try { smoke.row = await call({ ...PROBE_JOBS[3], id: "smoke/sodermalm", limit: 1 }, undefined); return json({ row: smoke.row, calls: isolateCalls }); }
+    try { const initialJob = PROBE_JOBS.find((job) => job.area.id === "sodermalm" && job.strategy === "restaurant") ?? PROBE_JOBS[0]; smoke.row = await call({ ...initialJob, id: "smoke/sodermalm", limit: 1 }, undefined); return json({ row: smoke.row, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved }); }
     finally { busy = false; }
   }
   if (input.action === "start") {
@@ -124,7 +135,7 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
     const runId = crypto.randomUUID();
     activeRun = runId;
     runs.set(runId, { operator, busy: false, cursor: 0, calls: 1, queue: [...PROBE_JOBS], rows: [], startedAt: Date.now() });
-    return json({ runId, cursor: 0, planned: PROBE_JOBS.length, calls: isolateCalls });
+    return json({ runId, cursor: 0, planned: PROBE_JOBS.length, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved });
   }
   const run = runs.get(input.runId ?? "");
   if (!run || run.operator !== operator || Date.now() - run.startedAt > 3_600_000) return json({ error: "RUN_LOST_OR_EXPIRED_STOP_NO_RETRY" }, 410);
@@ -136,10 +147,17 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
   try {
     const row = await call(job, run);
     run.rows.push(row);
-    // Nine extra pages maximum: 1 smoke + 50 fixed jobs + 9 pages = 60.
-    if (row.capped && run.queue.length < 59) run.queue.push({ ...job, offset: (job.offset ?? 0) + LIMIT });
+    // Prioritize representative pagination of broad categories, but keep every
+    // geographic area's fixed comparisons ahead of continuation pages.
+    const maxPages = job.strategy === "restaurant" ? 5
+      : ["cafe", "cafe_bakery", "vegetarian", "vegan"].includes(job.strategy) ? 3
+      : 2;
+    if (row.capped && (job.offset ?? 0) < (maxPages - 1) * LIMIT &&
+        run.queue.length < MAX_CALLS - 1) {
+      run.queue.push({ ...job, offset: (job.offset ?? 0) + LIMIT });
+    }
     const stop = !!row.error;
     if (stop) run.queue.length = run.cursor;
-    return json({ row, calls: isolateCalls, cursor: run.cursor, planned: run.queue.length, done: stop || run.cursor >= run.queue.length || isolateCalls >= MAX_CALLS });
+    return json({ row, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved, cursor: run.cursor, planned: run.queue.length, done: stop || run.cursor >= run.queue.length || isolateCalls >= MAX_CALLS });
   } finally { run.busy = false; }
 }
