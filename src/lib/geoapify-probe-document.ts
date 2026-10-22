@@ -3,7 +3,7 @@ export function probeDocument(nonce: string, release: string, jobs: readonly unk
   const safeJson = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
   return `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Geoapify sökprov · Matrundan</title>
 <style>*{box-sizing:border-box}body{font:16px/1.5 system-ui,sans-serif;margin:0;color:#24332d;background:#f5f5ef}main{max-width:1150px;margin:auto;padding:24px}h1{font-size:28px}h2{font-size:21px}p{max-width:80ch}button,a{min-height:44px}button{font:inherit;padding:10px 16px;border:1px solid #355747;border-radius:6px;background:#355747;color:white;cursor:pointer}button:disabled{opacity:.45;cursor:default}a{color:#26573e}code{font-size:12px;overflow-wrap:anywhere}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #e0a84a;outline-offset:3px}.controls{display:flex;flex-wrap:wrap;gap:10px}.panel{background:white;border:1px solid #d5dbd2;padding:18px;border-radius:8px;margin:18px 0}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid #ddd}td:nth-child(3){min-width:160px;max-width:330px}summary{cursor:pointer;min-height:44px;padding:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}.muted{color:#55655b}#state{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:500px){main{padding:16px}h1{font-size:24px}.controls button{width:100%}td,th{padding:8px}}</style>
-<main><p class="muted">Tillfällig diagnostik · ska inte mergas</p><h1>Geoapify sökprov</h1><p>Kompletterande prov i Göteborg, Malmö och Uppsala. Stockholm, Enskede och Värnamo finns redan i exporterade resultat. Varje svar sparas i IndexedDB innan nästa anrop. Inga anrop sker vid sidladdning och inga osäkra försök körs om automatiskt.</p><p>Version: <code id="release"></code></p>
+<main><p class="muted">Tillfällig diagnostik · ska inte mergas</p><h1>Geoapify sökprov</h1><p>Kompletterande prov i Göteborg, Malmö och Uppsala. Stockholm, Enskede och Värnamo finns redan i exporterade resultat. Varje svar sparas i IndexedDB innan nästa anrop. Inga anrop sker vid sidladdning och inga osäkra försök körs om automatiskt.</p><p>Version: <code id="release">${release}</code></p>
 <div class="panel"><h2>1. Kontrollera åtkomsten</h2><p>Logga vid behov in med det befintliga staging-agentkontot i <a href="/" target="_blank" rel="noopener">vanliga appen</a>, och återvänd hit. Endast en uttryckligen låst operatör får förbruka API-anrop.</p><div class="controls"><button id="status">Kontrollera åtkomst och lagring · 0 API-anrop</button></div><p id="access-result" role="status" aria-live="polite" class="muted">Ingen åtkomstkontroll utförd.</p></div>
 <div class="panel"><h2>2. Kör jämförelsen</h2><p>54 grundsökningar med 2 km radie i Göteborg, Malmö och Uppsala, därefter begränsad paginering inom återstående budget. De tidigare 52 försöken räknas av: högst 98 ytterligare försök och 502 ytterligare reserverade krediter. Kör i den stabila branchpreviewn; samma webbläsarursprung behövs för sparad data.</p><div class="controls"><button id="start" disabled>Starta eller fortsätt undersökningen</button><button id="stop" disabled>Stoppa efter pågående anrop</button></div></div>
 <div class="panel"><h2>Status och export</h2><p id="state" role="status" aria-live="polite">Inga nya API-anrop gjorda. Laddar tidigare delresultat…</p><div class="controls"><button id="json">Exportera JSON</button><button id="csv">Exportera CSV</button></div><p class="muted">Svaren sparas i webbläsarens beständiga IndexedDB. En tappad respons markeras som osäker och återförsöks inte automatiskt. Bläddra alltid via samma branchpreview-adress; andra subdomäner har andra lagringsutrymmen. Endast 15 senaste mätningar visas på skärmen; exporten innehåller samtliga. Om det inbyggda fliklåset saknas används ett IndexedDB-lås. Tidigare 6 + 45 + 1 anropsförsök är konservativt avräknade från budgeten. Varken antal API-anrop eller kreditgränsen är globalt garanterade mellan Cloudflare-instanser; starta inte från flera enheter. Kreditdebitering måste verifieras hos Geoapify. Offentliga OSM-uppgifter är inte menyverifiering.</p></div>
@@ -68,10 +68,10 @@ function usage(entries){
   uncertain:entries.filter(e=>e.state!=='done').length};
 }
 function state(message,stats){
- el('state').textContent=message+'\nTotalt reserverade anrop i detta andra prov: '+stats.calls+'/'+MAX_CALLS+
+ el('state').textContent=message+'\\nTotalt reserverade anrop i detta andra prov: '+stats.calls+'/'+MAX_CALLS+
   ' · reserverade krediter: '+stats.credits+'/'+MAX_CREDITS+
-  '\nNya sparade svar: '+stats.done+' · osäkra försök: '+stats.uncertain+
-  '\nTidigare 52 försök är avräknade; resultaten från äldre exporter analyseras separat.';
+  '\\nNya sparade svar: '+stats.done+' · osäkra försök: '+stats.uncertain+
+  '\\nTidigare 52 försök är avräknade; resultaten från äldre exporter analyseras separat.';
 }
 async function render(message){
  const records=(await all()).filter(e=>e.key!=='__storage_test__');
@@ -254,7 +254,7 @@ el('csv').onclick=async()=>{
   for(const e of entries)for(const p of e.row?.places?.length?e.row.places:[{}]){
    rows.push([jobs[e.index].area.label,jobs[e.index].strategy,e.offset,e.row.status,e.row.durationMs,e.row.count,p.id,p.name,p.address,JSON.stringify(p.osm||{})]);
   }
-  download('matrundan-geoapify-komplettering.csv',rows.map(r=>r.map(q).join(',')).join('\r\n'),'text/csv;charset=utf-8');
+  download('matrundan-geoapify-komplettering.csv',rows.map(r=>r.map(q).join(',')).join('\\r\\n'),'text/csv;charset=utf-8');
  }catch(e){el('state').textContent='Exportfel: '+e.message}
 };
 render('Tidigare resultat läses från beständig lagring. Kontrollera åtkomsten innan körning.')
