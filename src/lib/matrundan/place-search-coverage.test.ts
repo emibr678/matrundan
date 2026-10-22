@@ -82,7 +82,10 @@ describe("Issue #512 — sökkatalogens fullständiga utgångsläge", () => {
 
   test("alla sex typer ingår och ingen typ lämnas implicit", () => {
     const types = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
-    const covered = [...Object.keys(DIRECT_PLACE_TYPES), ...FALLBACK_PLACE_TYPES];
+    const covered: PlaceCategory[] = [
+      ...(Object.keys(DIRECT_PLACE_TYPES) as PlaceCategory[]),
+      ...FALLBACK_PLACE_TYPES,
+    ];
     expect(types).toHaveLength(6);
     expect([...types].sort()).toEqual([...covered].sort());
   });
