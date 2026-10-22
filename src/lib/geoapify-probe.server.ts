@@ -9,22 +9,21 @@ import { probeDocument } from "./geoapify-probe-document";
 // fingerprint is deliberately pinned in this server-only file. No email export.
 const OPERATOR_SUB_SHA256: readonly string[] = ["03cc6c266baf3cfc7f99643126866a643ff664132e6fa870e917e1f181c22aa6"];
 const EXPIRES_AT = Date.parse("2026-10-27T00:00:00Z");
-const MAX_CALLS = 150;
-const MAX_CREDIT_RESERVATION = 750;
-// The earlier completed test used 60 reserved calls, tracked separately.
-const PRIOR_RUN_RESERVED_CALLS = 60;
+// The extended study already consumed 6 + 45 + 1 attempts in failed browser sessions.
+// These are conservative user-observed reservations; do not reset on new deployment.
+const PRIOR_ATTEMPTS = 52;
+const PRIOR_RESERVED_CREDITS = 248;
+const MAX_NEW_CALLS = 98;
+const MAX_NEW_CREDIT_RESERVATION = 502;
 const LIMIT = 100;
 type Job = { id: string; area: { id: string; label: string; lat: number; lon: number; radius: number }; strategy: string; categories: readonly string[]; conditions: readonly string[]; offset?: number; limit?: number };
 type Place = { id: string; name: string; address: string; categories: string[]; lat?: number; lon?: number; osm: Record<string, string> };
 type Row = { job: Job; at: string; status: number | null; durationMs: number; count: number; capped: boolean; places: Place[]; error?: string; credits: null };
-type Run = { operator: string; busy: boolean; cursor: number; calls: number; queue: Job[]; rows: Row[]; startedAt: number };
-const runs = new Map<string, Run>();
-// Conservatively carry the one failed attempt from head 12ca7298.
+// Process-local cache only; avoids reissuing an identical request in the same
+// isolate. Durability and resume belong to the user's IndexedDB store.
+const inFlightOrComplete = new Map<string, Promise<Row>>();
 let isolateCalls = 0;
 let isolateCreditsReserved = 0;
-let smoke: { operator: string; row: Row } | undefined;
-let activeRun: string | undefined;
-let busy = false;
 
 function json(data: unknown, status = 200) {
   return Response.json(data, { status, headers: { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow", "referrer-policy": "no-referrer" } });
@@ -65,20 +64,19 @@ function placeFrom(value: unknown): Place {
   }
   return { id: safeText(p.place_id), name: safeText(p.name), address: safeText(p.formatted), categories: Array.isArray(p.categories) ? p.categories.filter((c): c is string => typeof c === "string").slice(0, 50) : [], lat: typeof p.lat === "number" ? p.lat : undefined, lon: typeof p.lon === "number" ? p.lon : undefined, osm };
 }
-async function call(job: Job, run: Run | undefined): Promise<Row> {
+async function call(job: Job): Promise<Row> {
   // Reserve before await: overlapping requests and failures cannot reuse budget.
   const requestedLimit = job.limit ?? LIMIT;
   const estimatedCreditsUpperBound = Math.ceil(requestedLimit / 20);
   if (requestedLimit < 1 || requestedLimit > LIMIT ||
-      isolateCalls >= MAX_CALLS || (run && run.calls >= MAX_CALLS) ||
-      isolateCreditsReserved + estimatedCreditsUpperBound > MAX_CREDIT_RESERVATION) {
+      isolateCalls >= MAX_NEW_CALLS ||
+      isolateCreditsReserved + estimatedCreditsUpperBound > MAX_NEW_CREDIT_RESERVATION) {
     throw new Error("BUDGET_EXHAUSTED");
   }
   const apiKey = process.env.GEOAPIFY_API_KEY?.trim();
   if (!apiKey) throw new Error("KEY_MISSING");
   isolateCalls += 1;
   isolateCreditsReserved += estimatedCreditsUpperBound;
-  if (run) run.calls += 1;
   const start = performance.now();
   const row: Row = { job, at: new Date().toISOString(), status: null, durationMs: 0, count: 0, capped: false, places: [], credits: null };
   try {
@@ -112,52 +110,47 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
     return new Response(probeDocument(nonce, RELEASE_SHA, PROBE_JOBS), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex, nofollow", "referrer-policy": "no-referrer", "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` } });
   }
   if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
-  if (request.headers.get("origin") !== new URL(request.url).origin || request.headers.get("content-type") !== "application/json") return json({ error: "ORIGIN_REJECTED" }, 403);
+  if (request.headers.get("origin") !== new URL(request.url).origin ||
+      request.headers.get("content-type") !== "application/json") return json({ error: "ORIGIN_REJECTED" }, 403);
   if (Number(request.headers.get("content-length") ?? 0) > 2000) return json({ error: "INVALID_INPUT" }, 400);
-  const input = await request.json().catch(() => null) as { action?: string; runId?: string; cursor?: number } | null;
-  if (!input || !["status", "smoke", "start", "next"].includes(input.action ?? "")) return json({ error: "INVALID_INPUT" }, 400);
-  // A manual zero-call readiness check exposes only presence, never key values.
+  const input = await request.json().catch(() => null) as {
+    action?: string; index?: number; offset?: number
+  } | null;
+  if (!input || !["status", "query"].includes(input.action ?? "")) return json({ error: "INVALID_INPUT" }, 400);
   const configured = Boolean(process.env.GEOAPIFY_API_KEY?.trim());
   const operator = await operatorFingerprint(request);
-  if (input.action === "status") return json({ configured, authenticated: !!operator, authorized: !!operator && OPERATOR_SUB_SHA256.includes(operator), operatorFingerprint: operator, release: RELEASE_SHA, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved, maxCalls: MAX_CALLS, maxReservedCredits: MAX_CREDIT_RESERVATION, previousRunReservedCalls: PRIOR_RUN_RESERVED_CALLS, expiresAt: new Date(EXPIRES_AT).toISOString(), credits: "Not verified: no account billing access" });
-  if (!configured) return json({ error: "KEY_MISSING", calls: 0 }, 503);
-  if (!operator || !OPERATOR_SUB_SHA256.includes(operator)) return json({ error: "OPERATOR_REQUIRED" }, 403);
-  if (input.action === "smoke") {
-    if (smoke || busy || activeRun) return json({ error: "SMOKE_ALREADY_ATTEMPTED", calls: isolateCalls }, 409);
-    busy = true;
-    // Failed smoke consumes the one opportunity too. No automatic retry.
-    smoke = { operator, row: { job: PROBE_JOBS[0], at: new Date().toISOString(), status: null, durationMs: 0, count: 0, capped: false, places: [], credits: null, error: "IN_PROGRESS" } };
-    try { const initialJob = PROBE_JOBS.find((job) => job.area.id === "sodermalm" && job.strategy === "restaurant") ?? PROBE_JOBS[0]; smoke.row = await call({ ...initialJob, id: "smoke/sodermalm", limit: 1 }, undefined); return json({ row: smoke.row, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved }); }
-    finally { busy = false; }
+  const authorized = !!operator && OPERATOR_SUB_SHA256.includes(operator);
+  if (input.action === "status") return json({
+    configured, authenticated: !!operator, authorized, release: RELEASE_SHA,
+    previousAttempts: PRIOR_ATTEMPTS, previousReservedCredits: PRIOR_RESERVED_CREDITS,
+    maxFurtherCalls: MAX_NEW_CALLS, maxFurtherReservedCredits: MAX_NEW_CREDIT_RESERVATION,
+    expiresAt: new Date(EXPIRES_AT).toISOString(),
+  });
+  if (!configured) return json({ error: "KEY_MISSING" }, 503);
+  if (!authorized) return json({ error: "OPERATOR_REQUIRED" }, 403);
+  // Strict allowlist: only predefined jobs in the three newly tested cities.
+  // No arbitrary categories, coordinates, offsets, or extra requests.
+  if (!Number.isInteger(input.index) || input.index! < 36 || input.index! > 89 ||
+      !Number.isInteger(input.offset) || input.offset! < 0 || input.offset! % LIMIT !== 0) {
+    return json({ error: "JOB_NOT_ALLOWED" }, 400);
   }
-  if (input.action === "start") {
-    if (busy || activeRun || !smoke || smoke.operator !== operator || smoke.row.status !== 200 || smoke.row.error) return json({ error: "SUCCESSFUL_SMOKE_REQUIRED_OR_ALREADY_STARTED" }, 409);
-    const runId = crypto.randomUUID();
-    activeRun = runId;
-    runs.set(runId, { operator, busy: false, cursor: 0, calls: 1, queue: [...PROBE_JOBS], rows: [], startedAt: Date.now() });
-    return json({ runId, cursor: 0, planned: PROBE_JOBS.length, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved });
+  const job = PROBE_JOBS[input.index!];
+  const maxPages = job.strategy === "restaurant" ? 5
+    : ["cafe", "cafe_bakery", "vegetarian", "vegan"].includes(job.strategy) ? 3 : 2;
+  if (input.offset! >= maxPages * LIMIT) return json({ error: "PAGE_NOT_ALLOWED" }, 400);
+  const id = input.index + ":" + input.offset;
+  let work = inFlightOrComplete.get(id);
+  if (!work) {
+    // Only one in-flight request per isolate. No automatic retries.
+    work = call({ ...job, offset: input.offset }).catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : "UNKNOWN";
+      return { job: { ...job, offset: input.offset }, at: new Date().toISOString(),
+        status: null, durationMs: 0, count: 0, capped: false, places: [], credits: null,
+        error: message };
+    });
+    inFlightOrComplete.set(id, work);
   }
-  const run = runs.get(input.runId ?? "");
-  if (!run || run.operator !== operator || Date.now() - run.startedAt > 3_600_000) return json({ error: "RUN_LOST_OR_EXPIRED_STOP_NO_RETRY" }, 410);
-  if (run.busy || input.cursor !== run.cursor) return json({ error: "CURSOR_OR_CONCURRENCY_REJECTED" }, 409);
-  if (run.cursor >= run.queue.length || isolateCalls >= MAX_CALLS) return json({ done: true, calls: isolateCalls, cursor: run.cursor });
-  run.busy = true;
-  const job = run.queue[run.cursor];
-  run.cursor += 1;
-  try {
-    const row = await call(job, run);
-    run.rows.push(row);
-    // Prioritize representative pagination of broad categories, but keep every
-    // geographic area's fixed comparisons ahead of continuation pages.
-    const maxPages = job.strategy === "restaurant" ? 5
-      : ["cafe", "cafe_bakery", "vegetarian", "vegan"].includes(job.strategy) ? 3
-      : 2;
-    if (row.capped && (job.offset ?? 0) < (maxPages - 1) * LIMIT &&
-        run.queue.length < MAX_CALLS - 1) {
-      run.queue.push({ ...job, offset: (job.offset ?? 0) + LIMIT });
-    }
-    const stop = !!row.error;
-    if (stop) run.queue.length = run.cursor;
-    return json({ row, calls: isolateCalls, reservedCreditsUpperBound: isolateCreditsReserved, cursor: run.cursor, planned: run.queue.length, done: stop || run.cursor >= run.queue.length || isolateCalls >= MAX_CALLS });
-  } finally { run.busy = false; }
+  const row = await work;
+  return json({ row, callsInCurrentIsolate: isolateCalls,
+    reservedCreditsInCurrentIsolate: isolateCreditsReserved });
 }
