@@ -11,9 +11,14 @@ describe("Issue #512 — provideroberoende sökbreddning", () => {
     const ids = FOOD_TAGS.map((tag) => tag.id);
     expect(Object.keys(expansions)).toHaveLength(13);
     expect(Object.keys(expansions).sort()).toEqual(
-      ids.filter((id) => !hasStructuredGeoapifyMapping(resolvePlaceSearchIntent(
-        FOOD_TAGS.find((tag) => tag.id === id)!.label,
-      ))).sort(),
+      ids
+        .filter(
+          (id) =>
+            !hasStructuredGeoapifyMapping(
+              resolvePlaceSearchIntent(FOOD_TAGS.find((tag) => tag.id === id)!.label),
+            ),
+        )
+        .sort(),
     );
     for (const tag of FOOD_TAGS) {
       const intent = resolvePlaceSearchIntent(tag.label);
@@ -22,8 +27,7 @@ describe("Issue #512 — provideroberoende sökbreddning", () => {
       expect(Boolean(expansion)).toBe(!direct);
       if (expansion?.kind === "related") {
         expect(
-          (expansion.relatedCuisineIds?.length ?? 0) +
-            (expansion.relatedPlaceTypes?.length ?? 0),
+          (expansion.relatedCuisineIds?.length ?? 0) + (expansion.relatedPlaceTypes?.length ?? 0),
         ).toBeGreaterThan(0);
       }
     }
@@ -68,7 +72,9 @@ describe("Issue #512 — provideroberoende sökbreddning", () => {
   });
 
   test("Vegetariskt/veganskt behandlas som kostinformation, inte nationellt kök", () => {
-    expect(searchExpansionForIntent(resolvePlaceSearchIntent("Vegetariskt/veganskt"))).toMatchObject({
+    expect(
+      searchExpansionForIntent(resolvePlaceSearchIntent("Vegetariskt/veganskt")),
+    ).toMatchObject({
       kind: "dietary",
       conditions: ["vegetarian", "vegan"],
     });
