@@ -77,14 +77,14 @@ describe("Issue #512 — sökkatalogens fullständiga utgångsläge", () => {
     ];
     expect(new Set(ids).size).toBe(37);
     expect(new Set(covered).size).toBe(37);
-    expect(ids.toSorted()).toEqual(covered.toSorted());
+    expect([...ids].sort()).toEqual([...covered].sort());
   });
 
   test("alla sex typer ingår och ingen typ lämnas implicit", () => {
     const types = Object.keys(CATEGORY_LABEL) as PlaceCategory[];
     const covered = [...Object.keys(DIRECT_PLACE_TYPES), ...FALLBACK_PLACE_TYPES];
     expect(types).toHaveLength(6);
-    expect(types.toSorted()).toEqual(covered.toSorted());
+    expect([...types].sort()).toEqual([...covered].sort());
   });
 
   test("24 direktmappade begrepp använder dokumenterade kategorier, inte en fri namnsökning", () => {
