@@ -61,7 +61,7 @@ const CURRENT_BROAD_LOCAL_FALLBACK = [
 
 const DIRECT_PLACE_TYPES: Partial<Record<PlaceCategory, readonly string[]>> = {
   restaurang: ["catering.restaurant"],
-  "café": ["catering.cafe"],
+  café: ["catering.cafe"],
   bageri: ["commercial.food_and_drink.bakery"],
   snabbmat: ["catering.fast_food"],
   pub: ["catering.pub"],
@@ -71,10 +71,7 @@ const FALLBACK_PLACE_TYPES: readonly PlaceCategory[] = ["matvagn"];
 describe("Issue #512 — sökkatalogens fullständiga utgångsläge", () => {
   test("alla 37 befintliga kök/inriktningar är uttryckligen inventerade", () => {
     const ids = FOOD_TAGS.map((tag) => tag.id);
-    const covered = [
-      ...Object.keys(DIRECT_FOOD_TAG_CATEGORIES),
-      ...CURRENT_BROAD_LOCAL_FALLBACK,
-    ];
+    const covered = [...Object.keys(DIRECT_FOOD_TAG_CATEGORIES), ...CURRENT_BROAD_LOCAL_FALLBACK];
     expect(new Set(ids).size).toBe(37);
     expect(new Set(covered).size).toBe(37);
     expect([...ids].sort()).toEqual([...covered].sort());
@@ -115,9 +112,7 @@ describe("Issue #512 — sökkatalogens fullständiga utgångsläge", () => {
         id,
       });
       expect(hasStructuredGeoapifyMapping(intent)).toBe(false);
-      expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(
-        GEOAPIFY_DISCOVERY_CATEGORIES,
-      );
+      expect(geoapifyCategoriesForPlaceSearchIntent(intent)).toEqual(GEOAPIFY_DISCOVERY_CATEGORIES);
     }
   });
 
