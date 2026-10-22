@@ -36,7 +36,8 @@ const EXPANSIONS: Record<string, SearchExpansionPolicy> = {
   "cuisine:vegetarian-vegan": {
     kind: "dietary",
     conditions: ["vegetarian", "vegan"],
-    limitation: "Vegetariska alternativ är inte samma sak som en vegetarisk eller vegansk restaurang.",
+    limitation:
+      "Vegetariska alternativ är inte samma sak som en vegetarisk eller vegansk restaurang.",
   },
   "specialty:bowl": {
     kind: "needs-evidence",
