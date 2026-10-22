@@ -4,9 +4,9 @@ export function probeDocument(nonce: string, release: string, jobs: readonly unk
   return `<!doctype html><html lang="sv"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Geoapify sökprov · Matrundan</title>
 <style>*{box-sizing:border-box}body{font:16px/1.5 system-ui,sans-serif;margin:0;color:#24332d;background:#f5f5ef}main{max-width:1150px;margin:auto;padding:24px}h1{font-size:28px}h2{font-size:21px}p{max-width:80ch}button,a{min-height:44px}button{font:inherit;padding:10px 16px;border:1px solid #355747;border-radius:6px;background:#355747;color:white;cursor:pointer}button:disabled{opacity:.45;cursor:default}a{color:#26573e}code{font-size:12px;overflow-wrap:anywhere}button:focus-visible,a:focus-visible,summary:focus-visible{outline:3px solid #e0a84a;outline-offset:3px}.controls{display:flex;flex-wrap:wrap;gap:10px}.panel{background:white;border:1px solid #d5dbd2;padding:18px;border-radius:8px;margin:18px 0}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid #ddd}td:nth-child(3){min-width:160px;max-width:330px}summary{cursor:pointer;min-height:44px;padding:8px 0}pre{white-space:pre-wrap;overflow-wrap:anywhere}.muted{color:#55655b}#state{white-space:pre-wrap;overflow-wrap:anywhere}@media(max-width:500px){main{padding:16px}h1{font-size:24px}.controls button{width:100%}td,th{padding:8px}}</style>
 <main><p class="muted">Tillfällig diagnostik · ska inte mergas</p><h1>Geoapify sökprov</h1><p>Kompletterande prov i Göteborg, Malmö och Uppsala. Stockholm, Enskede och Värnamo finns redan i exporterade resultat. Varje svar sparas i IndexedDB innan nästa anrop. Inga anrop sker vid sidladdning och inga osäkra försök körs om automatiskt.</p><p>Version: <code id="release"></code></p>
-<div class="panel"><h2>1. Kontrollera åtkomsten</h2><p>Logga vid behov in med det befintliga staging-agentkontot i <a href="/" target="_blank" rel="noopener">vanliga appen</a>, och återvänd hit. Endast en uttryckligen låst operatör får förbruka API-anrop.</p><div class="controls"><button id="status">Kontrollera åtkomst och lagring · 0 API-anrop</button></div></div>
+<div class="panel"><h2>1. Kontrollera åtkomsten</h2><p>Logga vid behov in med det befintliga staging-agentkontot i <a href="/" target="_blank" rel="noopener">vanliga appen</a>, och återvänd hit. Endast en uttryckligen låst operatör får förbruka API-anrop.</p><div class="controls"><button id="status">Kontrollera åtkomst och lagring · 0 API-anrop</button></div><p id="access-result" role="status" aria-live="polite" class="muted">Ingen åtkomstkontroll utförd.</p></div>
 <div class="panel"><h2>2. Kör jämförelsen</h2><p>54 grundsökningar med 2 km radie i Göteborg, Malmö och Uppsala, därefter begränsad paginering inom återstående budget. De tidigare 52 försöken räknas av: högst 98 ytterligare försök och 502 ytterligare reserverade krediter. Kör i den stabila branchpreviewn; samma webbläsarursprung behövs för sparad data.</p><div class="controls"><button id="start" disabled>Starta eller fortsätt undersökningen</button><button id="stop" disabled>Stoppa efter pågående anrop</button></div></div>
-<div class="panel"><h2>Status och export</h2><p id="state" role="status" aria-live="polite">Inga nya API-anrop gjorda. Laddar tidigare delresultat…</p><div class="controls"><button id="json">Exportera JSON</button><button id="csv">Exportera CSV</button></div><p class="muted">Svaren sparas i webbläsarens beständiga IndexedDB. En tappad respons markeras som osäker och återförsöks inte automatiskt. Bläddra alltid via samma branchpreview-adress; andra subdomäner har andra lagringsutrymmen. Endast 15 senaste mätningar visas på skärmen; exporten innehåller samtliga. Tidigare 6 + 45 + 1 anropsförsök är konservativt avräknade från budgeten. Varken antal API-anrop eller kreditgränsen är globalt garanterade mellan Cloudflare-instanser; starta inte från flera enheter. Kreditdebitering måste verifieras hos Geoapify. Offentliga OSM-uppgifter är inte menyverifiering.</p></div>
+<div class="panel"><h2>Status och export</h2><p id="state" role="status" aria-live="polite">Inga nya API-anrop gjorda. Laddar tidigare delresultat…</p><div class="controls"><button id="json">Exportera JSON</button><button id="csv">Exportera CSV</button></div><p class="muted">Svaren sparas i webbläsarens beständiga IndexedDB. En tappad respons markeras som osäker och återförsöks inte automatiskt. Bläddra alltid via samma branchpreview-adress; andra subdomäner har andra lagringsutrymmen. Endast 15 senaste mätningar visas på skärmen; exporten innehåller samtliga. Om det inbyggda fliklåset saknas används ett IndexedDB-lås. Tidigare 6 + 45 + 1 anropsförsök är konservativt avräknade från budgeten. Varken antal API-anrop eller kreditgränsen är globalt garanterade mellan Cloudflare-instanser; starta inte från flera enheter. Kreditdebitering måste verifieras hos Geoapify. Offentliga OSM-uppgifter är inte menyverifiering.</p></div>
 <h2>Uppmätta resultat</h2><div class="table-wrap"><table><thead><tr><th>Område / scenario</th><th>Kategorier / villkor</th><th>Faktiska matställen</th><th>Mätning</th></tr></thead><tbody id="rows"></tbody></table></div>
 <details><summary>Återstående testmatris</summary><pre id="plan"></pre></details><details><summary>Exportdata för granskning</summary><pre id="evidence"></pre></details></main>
 <script nonce="${nonce}">
@@ -45,7 +45,7 @@ async function all(){
  return new Promise((resolve,reject)=>{
   const tx=db.transaction('entries','readonly');
   const req=tx.objectStore('entries').getAll();
-  req.onsuccess=()=>resolve(req.result.filter(e=>e.release===release));
+  req.onsuccess=()=>resolve(req.result.filter(e=>e.release===release&&Number.isInteger(e.index)&&Number.isInteger(e.offset)));
   req.onerror=()=>reject(req.error||new Error('Kan inte läsa sparade prov'));
  });
 }
@@ -58,7 +58,7 @@ async function preflightStore(){
   tx.objectStore('entries').delete(test.key);
   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
  });
- if(!navigator.locks||!navigator.locks.request)throw new Error('Webbläsaren saknar säker fliklåsning. Kör i Chrome.');
+ // Fliklåset väljs separat; vissa mobila webbläsare saknar navigator.locks.
 }
 const localKey=(idx,offset)=>release+':'+idx+':'+offset;
 function usage(entries){
@@ -137,23 +137,68 @@ function nextTask(records){
  return null;
 }
 el('status').onclick=async()=>{
- el('status').disabled=true;
+ el('status').disabled=true;el('start').disabled=true;authorized=false;
+ const result=el('access-result');result.textContent='Kontrollerar agentkontot på servern…';
  try{
-  await preflightStore();
   const r=await api({action:'status'});
-  authorized=!!r.authorized&&!!r.configured&&r.release===release;
-  el('start').disabled=!authorized;
-  await render(authorized?'Åtkomst och beständig lagring verifierade. Starta eller fortsätt undersökningen.':
-   'Åtkomst nekad eller Geoapify-nyckel saknas. Inga externa anrop gjorda.');
- }catch(e){await render('Stopp: '+e.message).catch(()=>{el('state').textContent=e.message})}
- finally{el('status').disabled=false}
+  if(r.release!==release)throw new Error('Previewns serverversion matchar inte sidan. Ladda om.');
+  if(!r.configured)throw new Error('Geoapify-nyckeln saknas i previewmiljön.');
+  if(!r.authenticated)throw new Error('Ingen giltig agentsession på den här previewdomänen. Logga in via vanliga appen på samma adress.');
+  if(!r.authorized)throw new Error('Inloggat konto är inte tillåtet staging-agentkonto.');
+  result.textContent='Agentkontot är godkänt. Kontrollerar webbläsarens lagring…';
+  await preflightStore();
+  authorized=true;el('start').disabled=false;
+  result.textContent='Åtkomst och lagring fungerar. '+(navigator.locks?.request?'Inbyggt fliklås.':'IndexedDB-fliklås.');
+  await render('Åtkomst och lagring verifierade. Starta eller fortsätt undersökningen.');
+ }catch(e){
+  const msg=e?.message||String(e);result.textContent='Kontrollen stoppades: '+msg;
+  await render('Stopp: '+msg).catch(()=>{el('state').textContent=msg});
+ }finally{el('status').disabled=false}
 };
+
+// Atomic cross-tab lease for Android browsers without navigator.locks.
+// This never changes the authenticated server-side operator restriction.
+async function withSingleTabLock(task){
+ if(navigator.locks?.request){
+  return navigator.locks.request(lockName,{ifAvailable:true},async lock=>{
+   if(!lock)throw new Error('En annan flik kör redan provet.');
+   return task();
+  });
+ }
+ const db=await openDb(),key='__active_run__',owner=crypto.randomUUID();
+ await new Promise((resolve,reject)=>{
+  const tx=db.transaction('entries','readwrite'),store=tx.objectStore('entries');
+  const request=store.get(key);
+  request.onsuccess=()=>{
+   const other=request.result;
+   if(other&&Date.now()-other.touchedAt<120000){tx.abort();return}
+   store.put({key,owner,release:'lock',touchedAt:Date.now()});
+  };
+  tx.oncomplete=resolve;
+  tx.onabort=()=>reject(new Error('En annan flik kör provet. Använd bara en flik.'));
+  tx.onerror=()=>reject(tx.error||new Error('Felliknade fliklås'));
+ });
+ const heartbeat=setInterval(()=>{
+  const tx=db.transaction('entries','readwrite'),store=tx.objectStore('entries');
+  const req=store.get(key);
+  req.onsuccess=()=>{if(req.result?.owner===owner)store.put({...req.result,touchedAt:Date.now()})};
+ },10000);
+ try{return await task()}finally{
+  clearInterval(heartbeat);
+  await new Promise((resolve,reject)=>{
+   const tx=db.transaction('entries','readwrite'),store=tx.objectStore('entries');
+   const req=store.get(key);
+   req.onsuccess=()=>{if(req.result?.owner===owner)store.delete(key)};
+   tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);
+  });
+ }
+}
+
 el('start').onclick=async()=>{
  if(active||!authorized)return;
  active=true;stopping=false;el('start').disabled=true;el('stop').disabled=false;
  try{
-  await navigator.locks.request(lockName,{ifAvailable:true},async lock=>{
-   if(!lock)throw new Error('En annan flik kör redan samma prov.');
+  await withSingleTabLock(async()=>{
    while(!stopping){
     const current=await all();
     const stats=usage(current);
