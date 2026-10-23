@@ -106,7 +106,7 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
   }
   if (request.method === "GET") {
     const nonce = crypto.randomUUID();
-    return new Response(probeDocument(nonce, RELEASE_SHA, PROBE_JOBS), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex, nofollow", "referrer-policy": "no-referrer", "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` } });
+    return new Response(probeDocument(nonce, RELEASE_SHA, PROBE_JOBS, STUDY_ID, MAX_NEW_CALLS, MAX_NEW_CREDIT_RESERVATION), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex, nofollow", "referrer-policy": "no-referrer", "content-security-policy": `default-src 'none'; script-src 'nonce-${nonce}'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'` } });
   }
   if (request.method !== "POST") return json({ error: "METHOD_NOT_ALLOWED" }, 405);
   if (request.headers.get("origin") !== new URL(request.url).origin ||
