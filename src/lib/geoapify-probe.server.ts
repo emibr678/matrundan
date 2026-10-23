@@ -2,21 +2,20 @@
 import { createClient } from "@supabase/supabase-js";
 import { APP_ENVIRONMENT } from "./app-environment";
 import { RELEASE_SHA } from "./release-metadata";
-import { PROBE_JOBS } from "./geoapify-probe-plan";
+import { PROBE_JOBS, STUDY_ID, STUDY_CATALOGUE_SIZE, STUDY_LOCATIONS, PROBE_LIMIT, PROBE_MAX_NEW_CALLS, PROBE_MAX_NEW_RESERVED_CREDITS, type ProbeJob } from "./geoapify-probe-plan";
 import { probeDocument } from "./geoapify-probe-document";
 
 // Fail closed until the existing operator signs in and their verified subject
 // fingerprint is deliberately pinned in this server-only file. No email export.
 const OPERATOR_SUB_SHA256: readonly string[] = ["03cc6c266baf3cfc7f99643126866a643ff664132e6fa870e917e1f181c22aa6"];
-const EXPIRES_AT = Date.parse("2026-10-27T00:00:00Z");
-// The extended study already consumed 6 + 45 + 1 attempts in failed browser sessions.
-// These are conservative user-observed reservations; do not reset on new deployment.
-const PRIOR_ATTEMPTS = 52;
-const PRIOR_RESERVED_CREDITS = 248;
-const MAX_NEW_CALLS = 98;
-const MAX_NEW_CREDIT_RESERVATION = 502;
-const LIMIT = 100;
-type Job = { id: string; area: { id: string; label: string; lat: number; lon: number; radius: number }; strategy: string; categories: readonly string[]; conditions: readonly string[]; offset?: number; limit?: number };
+const EXPIRES_AT = Date.parse("2026-11-03T00:00:00Z");
+// Independent new study; earlier consumed attempts remain recorded in older exports.
+// Per-isolate server guard and per-browser durable budget are complementary,
+// not a globally transactional provider-credit limit.
+const MAX_NEW_CALLS = PROBE_MAX_NEW_CALLS;
+const MAX_NEW_CREDIT_RESERVATION = PROBE_MAX_NEW_RESERVED_CREDITS;
+const LIMIT = PROBE_LIMIT;
+type Job = ProbeJob & { offset?: number; limit?: number };
 type Place = { id: string; name: string; address: string; categories: string[]; lat?: number; lon?: number; osm: Record<string, string> };
 type Row = { job: Job; at: string; status: number | null; durationMs: number; count: number; capped: boolean; places: Place[]; error?: string; credits: null };
 // Process-local cache only; avoids reissuing an identical request in the same
@@ -122,22 +121,21 @@ export async function handleGeoapifyProbe(request: Request): Promise<Response> {
   const authorized = !!operator && OPERATOR_SUB_SHA256.includes(operator);
   if (input.action === "status") return json({
     configured, authenticated: !!operator, authorized, release: RELEASE_SHA,
-    previousAttempts: PRIOR_ATTEMPTS, previousReservedCredits: PRIOR_RESERVED_CREDITS,
+    studyId: STUDY_ID, jobCount: PROBE_JOBS.length,
+    catalogueSize: STUDY_CATALOGUE_SIZE, locations: STUDY_LOCATIONS,
     maxFurtherCalls: MAX_NEW_CALLS, maxFurtherReservedCredits: MAX_NEW_CREDIT_RESERVATION,
     expiresAt: new Date(EXPIRES_AT).toISOString(),
   });
   if (!configured) return json({ error: "KEY_MISSING" }, 503);
   if (!authorized) return json({ error: "OPERATOR_REQUIRED" }, 403);
-  // Strict allowlist: only predefined jobs in the three newly tested cities.
-  // No arbitrary categories, coordinates, offsets, or extra requests.
-  if (!Number.isInteger(input.index) || input.index! < 36 || input.index! > 89 ||
+  // Strict, fixed allowlist: clients cannot supply coordinates, provider keys,
+  // categories, unplanned pagination or arbitrary API requests.
+  if (!Number.isInteger(input.index) || input.index! < 0 || input.index! >= PROBE_JOBS.length ||
       !Number.isInteger(input.offset) || input.offset! < 0 || input.offset! % LIMIT !== 0) {
     return json({ error: "JOB_NOT_ALLOWED" }, 400);
   }
   const job = PROBE_JOBS[input.index!];
-  const maxPages = job.strategy === "restaurant" ? 5
-    : ["cafe", "cafe_bakery", "vegetarian", "vegan"].includes(job.strategy) ? 3 : 2;
-  if (input.offset! >= maxPages * LIMIT) return json({ error: "PAGE_NOT_ALLOWED" }, 400);
+  if (input.offset! >= job.maxPages * LIMIT) return json({ error: "PAGE_NOT_ALLOWED" }, 400);
   const id = input.index + ":" + input.offset;
   let work = inFlightOrComplete.get(id);
   if (!work) {
