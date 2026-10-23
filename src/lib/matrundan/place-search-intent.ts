@@ -1,10 +1,12 @@
+import { findFoodTag, findFoodTags, type FoodTagDefinition } from "./food-tags";
 import {
-  FOOD_TAGS,
-  findFoodTag,
-  findFoodTags,
-  foodTagSearchValue,
-  type FoodTagDefinition,
-} from "./food-tags";
+  SEARCH_CONCEPTS,
+  RELATED_SEARCH_ROUTES,
+  exactSearchConcept,
+  searchConceptById,
+  normalizeSearchTerm,
+  type SearchConcept,
+} from "./search-catalogue";
 import { CATEGORY_LABEL, type PlaceCategory } from "./types";
 
 export type PlaceSearchIntent =
@@ -25,14 +27,18 @@ export interface GenericPlaceSearchSuggestion {
   label: string;
   groupLabel: "Kök" | "Inriktning" | "Typ";
   searchValue: string;
+  displayLabel?: string;
+  relatedFrom?: string;
+  hint?: string;
 }
 
 export interface SearchablePlaceSuggestion {
   name: string;
   category: PlaceCategory;
   cuisines?: readonly string[];
+  searchEvidence?: { intentId: string; kind: "category" | "metadata" | "family" | "profile" };
   address?: string;
-  area?: string;
+  area?: string | null;
   city?: string;
 }
 
@@ -69,6 +75,8 @@ export function resolvePlaceSearchIntent(value: string | undefined): PlaceSearch
   const query = value?.trim() ?? "";
   if (!query) return { kind: "browse", query: "" };
 
+  const concept = exactSearchConcept(query);
+  if (concept) return intentForSearchConcept(concept, query);
   const category = categoryForExactQuery(query);
   if (category) {
     return {
@@ -80,7 +88,7 @@ export function resolvePlaceSearchIntent(value: string | undefined): PlaceSearch
   }
 
   const tag = findFoodTag(query);
-  if (tag) {
+  if (tag && ["cuisine:swedish", "cuisine:mexican-latin"].includes(tag.id)) {
     return {
       kind: "food-tag",
       query,
@@ -104,6 +112,16 @@ export function resolveDiscoverySearchIntent(
   mode: "auto" | "literal" = "auto",
   selectedFilter?: SelectedPlaceSearchFilter,
 ): PlaceSearchIntent {
+  if (selectedFilter) {
+    const concept = searchConceptById(selectedFilter.id);
+    if (
+      concept &&
+      concept.kind === selectedFilter.kind &&
+      normalizeSearchTerm(value ?? "") === normalizeSearchTerm(concept.label)
+    ) {
+      return intentForSearchConcept(concept, value!.trim());
+    }
+  }
   const resolved = resolvePlaceSearchIntent(value);
   if (selectedFilter) {
     const matches =
@@ -126,6 +144,44 @@ export function matchesPlaceSearchIntent(
   intent: PlaceSearchIntent,
 ): boolean {
   if (intent.kind === "browse") return true;
+  const id =
+    intent.kind === "food-tag"
+      ? intent.tagId
+      : intent.kind === "category"
+        ? `category:${intent.category}`
+        : "";
+  if (place.searchEvidence?.intentId === id && id) return true;
+  const concept = searchConceptById(id);
+  if (concept?.profile)
+    return (place.cuisines ?? []).some(
+      (c) => normalizeSearchTerm(c) === normalizeSearchTerm(concept.label),
+    );
+  if (concept && intent.kind === "food-tag") {
+    if (concept.id === "specialty:fika")
+      return place.category === "café" || place.category === "bageri";
+    const legacy = findFoodTag(concept.id);
+    const accepted = new Set(
+      [
+        concept.label,
+        ...(legacy &&
+        !["cuisine:swedish", "cuisine:mexican-latin", "specialty:vegetarian"].includes(legacy.id)
+          ? [legacy.label]
+          : []),
+        ...concept.tokens,
+        ...(concept.family
+          ? concept.tokens.flatMap((t) => {
+              const tag = findFoodTag(t);
+              return tag && !["cuisine:swedish", "cuisine:mexican-latin"].includes(tag.id)
+                ? [tag.label]
+                : [];
+            })
+          : []),
+      ].map(normalizeSearchTerm),
+    );
+    if ((place.cuisines ?? []).some((c) => accepted.has(normalizeSearchTerm(c)))) return true;
+    // The current known, unambiguous stored labels are also accepted. No substring or national->dish inference.
+    return false;
+  }
   if (intent.kind === "category") return place.category === intent.category;
   if (intent.kind === "food-tag") {
     return (place.cuisines ?? []).some((cuisine) =>
@@ -150,69 +206,97 @@ export function matchesPlaceSearchIntent(
   return terms.every((term) => haystack.includes(term));
 }
 
-function scoreSuggestion(searchValue: string, query: string): number | null {
-  const normalizedValue = normalize(searchValue);
-  const normalizedQuery = normalize(query);
-  if (!normalizedQuery) return null;
-  if (normalizedValue === normalizedQuery) return 0;
-  if (normalizedValue.startsWith(normalizedQuery)) return 1;
-  if (normalizedValue.split(" ").some((part) => part.startsWith(normalizedQuery))) return 2;
-  if (normalizedValue.includes(normalizedQuery)) return 3;
-  return null;
+function intentForSearchConcept(concept: SearchConcept, query: string): PlaceSearchIntent {
+  return concept.kind === "category" && concept.category
+    ? { kind: "category", query, category: concept.category, label: concept.label }
+    : { kind: "food-tag", query, tagId: concept.id, label: concept.label, group: concept.group };
 }
 
 export function genericPlaceSearchSuggestions(
   value: string,
   limit = 6,
 ): GenericPlaceSearchSuggestion[] {
-  const query = value.trim();
-  if (query.length < 2 || limit <= 0) return [];
-
-  const foodTags = FOOD_TAGS.flatMap((tag) => {
-    const searchValue = foodTagSearchValue(tag);
-    const score = scoreSuggestion(searchValue, query);
-    return score == null
-      ? []
-      : [
-          {
-            score,
-            suggestion: {
-              kind: "food-tag" as const,
-              id: tag.id,
-              label: tag.label,
-              groupLabel: tag.group === "cuisine" ? ("Kök" as const) : ("Inriktning" as const),
-              searchValue,
-            },
-          },
-        ];
+  const q = normalizeSearchTerm(value);
+  if (q.length < 2 || limit <= 0) return [];
+  const suggestion = (c: SearchConcept): GenericPlaceSearchSuggestion => ({
+    kind: c.kind,
+    id: c.id,
+    label: c.label,
+    groupLabel: c.groupLabel,
+    searchValue: [c.label, ...c.aliases].join(" "),
+    ...(c.profile
+      ? { hint: "Renodlat matställe" }
+      : c.id === "category:matvagn"
+        ? { hint: "Bara kända matvagnar i Matrundan" }
+        : {}),
   });
-
-  const categories = CATEGORY_SEARCH_DEFINITIONS.flatMap(({ category, aliases }) => {
-    const label = CATEGORY_LABEL[category];
-    const searchValue = [label, ...aliases].join(" ");
-    const score = scoreSuggestion(searchValue, query);
-    return score == null
-      ? []
-      : [
-          {
-            score,
-            suggestion: {
-              kind: "category" as const,
-              id: `category:${category}`,
-              label,
-              groupLabel: "Typ" as const,
-              searchValue,
-            },
-          },
-        ];
+  const scored = SEARCH_CONCEPTS.flatMap((c) => {
+    const words = [c.label, ...c.aliases].map(normalizeSearchTerm);
+    const score = words.includes(q)
+      ? 0
+      : words.some((w) => w.startsWith(q))
+        ? 2
+        : words.some((w) => w.split(" ").some((p) => p.startsWith(q)))
+          ? 3
+          : words.some((w) => w.includes(q))
+            ? 4
+            : null;
+    return score == null ? [] : [{ score, c, value: suggestion(c) }];
   });
-
-  return [...foodTags, ...categories]
+  const relatedRoutes = [
+    ...RELATED_SEARCH_ROUTES,
+    { terms: ["Matvagn", "Food truck", "Foodtruck"], targets: ["category:snabbmat"] },
+  ];
+  for (const route of relatedRoutes) {
+    const term = route.terms.find((t) => normalizeSearchTerm(t) === q);
+    if (!term) continue;
+    for (const id of route.targets) {
+      const c = searchConceptById(id)!;
+      if (scored.some((s) => s.c.id === id)) continue;
+      scored.push({
+        score: 1,
+        c,
+        value: {
+          ...suggestion(c),
+          displayLabel: `${term} – prova ${c.label}`,
+          relatedFrom: term,
+          hint: "Bredare sökning",
+        },
+      });
+    }
+  }
+  return scored
     .sort(
       (a, b) =>
         a.score - b.score ||
-        a.suggestion.label.localeCompare(b.suggestion.label, "sv-SE", { sensitivity: "base" }),
+        Number(a.c.surface !== "main") - Number(b.c.surface !== "main") ||
+        a.c.label.localeCompare(b.c.label, "sv-SE"),
     )
     .slice(0, limit)
-    .map(({ suggestion }) => suggestion);
+    .map((v) => v.value);
+}
+
+/** SQL RPC compares saved labels, never UI/search IDs. Ambiguous legacy labels cannot prove narrow intentions. */
+export function canonicalSearchCuisines(intent: PlaceSearchIntent): string[] {
+  if (intent.kind !== "food-tag") return [];
+  const concept = searchConceptById(intent.tagId);
+  if (!concept) return [findFoodTag(intent.tagId)?.label ?? intent.label];
+  if (concept.profile) return [concept.label];
+  const legacy = findFoodTag(concept.id);
+  return [
+    ...new Set([
+      concept.label,
+      ...concept.tokens,
+      ...(concept.family
+        ? concept.tokens.flatMap((t) => {
+            const tag = findFoodTag(t);
+            return tag ? [tag.label] : [];
+          })
+        : []),
+      ...(legacy &&
+      !["cuisine:swedish", "cuisine:mexican-latin", "specialty:vegetarian"].includes(legacy.id)
+        ? [legacy.label]
+        : []),
+    ]),
+  ].slice(0, 20);
 }

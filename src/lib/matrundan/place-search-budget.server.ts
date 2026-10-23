@@ -5,6 +5,7 @@ interface SearchBudgetState {
   creditLimit: number;
   deadline: number;
   requests: number;
+  cacheHits: number;
   reservedCredits: number;
   limited: boolean;
   active: number;
@@ -28,8 +29,13 @@ export function estimatedGeoapifyCredits(url: URL): number {
 export async function withPlaceSearchBudget<T extends object>(
   limits: { requests: number; credits: number; timeoutMs?: number },
   run: () => Promise<T>,
-): Promise<T & { budgetUsage: { requests: number; reservedCredits: number; limited: boolean } }> {
+): Promise<
+  T & {
+    budgetUsage: { requests: number; cacheHits: number; reservedCredits: number; limited: boolean };
+  }
+> {
   const state: SearchBudgetState = {
+    cacheHits: 0,
     requestLimit: Math.max(0, Math.min(25, limits.requests)),
     creditLimit: Math.max(0, Math.min(40, limits.credits)),
     deadline: Date.now() + (limits.timeoutMs ?? 10_000),
@@ -44,6 +50,7 @@ export async function withPlaceSearchBudget<T extends object>(
     ...result,
     budgetUsage: {
       requests: state.requests,
+      cacheHits: state.cacheHits,
       reservedCredits: state.reservedCredits,
       limited: state.limited,
     },
@@ -77,4 +84,15 @@ export async function budgetProviderRequest<T>(estimatedCredits: number, run: ()
     state.active -= 1;
     state.waiters.shift()?.();
   }
+}
+
+/** Remaining whole-search deadline also bounds each individual HTTP fetch. */
+export function remainingPlaceSearchTimeMs(): number {
+  const state = currentBudget.getStore();
+  return state ? Math.max(1, state.deadline - Date.now()) : 10_000;
+}
+
+export function recordPlaceSearchCacheHit() {
+  const state = currentBudget.getStore();
+  if (state) state.cacheHits++;
 }

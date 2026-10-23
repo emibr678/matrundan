@@ -127,6 +127,37 @@ kandidatradie men ska märka de träffar som ligger utanför den valda radien ty
 kandidatfunktionen är en gruppbehörighetskontrollerad read-only-RPC;
 toleranta namn får aldrig påverka identitet, källkoppling eller merge.
 
+## Sökkatalog och källstöd
+
+Sökavsikter ägs av `search-catalogue.ts`, separat från sparade `FOOD_TAGS`.
+Registret driver huvudval, kompletterande begrepp, alias och aktiva relaterade
+förslag. Inskriven text är fortsatt namnsökning tills användaren väljer ett
+begrepp. Ett relaterat förslag väljer målets ID/etikett; det klassificerar inte
+platsen. Bowl/Poké har inget automatiskt Sallad-förslag.
+
+Geoapify-adaptern kombinerar riktade kategorier/uttalade familjer med en gemensam,
+typstyrd råmetadataström. Positiva källfält granskas före normalisering; namn och
+associationer mellan nationellt kök och maträtt ger inga nya fakta. De två
+renodlade profilerna kräver explicit `vegetarian.only`/`vegan.only` eller `diet:* = only`,
+inte alternativ, historiska samlingsetiketter eller antaganden om menyinnehåll.
+Danskt tolkas inte längre som Wienerbröd vid ny källnormalisering. Sparade
+etiketter och historiska ID:n skrivs inte om.
+
+Varje område har en scope-bunden cursor för direktström och metadata, inklusive
+metadatans verksamhetstyp. Råströmmen hämtar högst en 50-sida per område och
+handling; fortsatt skanning kräver Visa fler. Primära områdesfrågor startar före
+komplettering. Budget, cache och samtidighetsgräns delas; `budgetUsage.requests`
+räknar cachemissar och `reservedCredits` är reservation, aldrig verifierad debitering.
+Ett fel flyttar inte den felande strömmens cursor. Tom första sida med fortsatt
+cursor erbjuder Sök vidare; ofullständiga urval får inte visas som uttömmande.
+
+Kanonisk sökning översätter sök-ID till lagrade etiketter i den befintliga,
+gruppkontrollerade RPC:n. Bred historisk metadata styrker inte nya smala avsikter.
+Providerträffar kan återanvända samma kanoniska plats genom befintlig säker
+källgranskning. Sökdeduplicering får använda exakt verifierad OSM-typ + OSM-id;
+namn/avstånd ger ingen automatisk sammanslagning. Råmetadata stannar på servern;
+klienten får minimalt temporärt sökbevis som aldrig sparas som ny klassificering.
+
 ## Blandade områden och deduplicering
 
 En och samma sökning får innehålla exempelvis:

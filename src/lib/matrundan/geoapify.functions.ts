@@ -38,6 +38,8 @@ import {
   budgetProviderRequest,
   estimatedGeoapifyCredits,
   withPlaceSearchBudget,
+  remainingPlaceSearchTimeMs,
+  recordPlaceSearchCacheHit,
 } from "./place-search-budget.server";
 import {
   canonicalPlaceCandidateSchema,
@@ -52,6 +54,11 @@ import {
   normalizePlaceIdentity,
 } from "./place-discovery";
 import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
+
+import { searchGeoapifyCatalogue, type SearchStreamCursor } from "./geoapify-catalogue-search";
+import { searchConceptById } from "./search-catalogue";
+import { sourceIdentityKey } from "./place-search-evidence";
+import { canonicalSearchCuisines } from "./place-search-intent";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
@@ -109,6 +116,7 @@ export interface MultiAreaSearchResponse {
   areaOffsets: Record<string, number>;
   exhaustedAreaIds: string[];
   failedAreaIds: string[];
+  streamCursors?: Record<string, SearchStreamCursor>;
 }
 
 export interface SearchAreaBoundaryResponse {
@@ -117,6 +125,8 @@ export interface SearchAreaBoundaryResponse {
 }
 
 type PlaceSearchPage = {
+  cursor?: SearchStreamCursor;
+  incomplete?: boolean;
   results: NormalizedPlaceSuggestion[];
   hasMore: boolean;
   nextOffset: number;
@@ -148,7 +158,10 @@ function cacheKeyForGeoapify(url: URL): string {
 
 async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    Math.min(REQUEST_TIMEOUT_MS, remainingPlaceSearchTimeMs()),
+  );
   try {
     const response = await fetch(url, {
       headers: { accept: "application/json" },
@@ -166,7 +179,12 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
       throw new Error(`GEOAPIFY_UNAVAILABLE: Geoapify svarade med status ${response.status}.`);
     }
     const json = (await response.json()) as unknown;
-    if (!json || typeof json !== "object" || !("features" in json)) {
+    if (
+      !json ||
+      typeof json !== "object" ||
+      !("features" in json) ||
+      !Array.isArray(json.features)
+    ) {
       throw new Error("GEOAPIFY_MALFORMED: Geoapify returnerade ett oväntat svar.");
     }
     return json as GeoapifyPayload;
@@ -181,9 +199,13 @@ async function fetchGeoapify(url: URL): Promise<GeoapifyPayload> {
 }
 
 async function callGeoapify(url: URL): Promise<GeoapifyPayload> {
-  return geoapifyResponseCache.get(cacheKeyForGeoapify(url), () =>
-    budgetProviderRequest(estimatedGeoapifyCredits(url), () => fetchGeoapify(url)),
-  );
+  let cacheMiss = false;
+  const payload = await geoapifyResponseCache.get(cacheKeyForGeoapify(url), () => {
+    cacheMiss = true;
+    return budgetProviderRequest(estimatedGeoapifyCredits(url), () => fetchGeoapify(url));
+  });
+  if (!cacheMiss) recordPlaceSearchCacheHit();
+  return payload;
 }
 
 function boundaryGeometry(feature: unknown): SearchAreaBoundaryGeometry | null {
@@ -238,6 +260,7 @@ async function searchPlacesAtArea(
     selectedFilter?: SelectedPlaceSearchFilter;
     limit?: number;
     offset?: number;
+    cursor?: SearchStreamCursor;
     /** The original #464 name recovery is used only for the primary search. */
     allowNameAnchorRecovery?: boolean;
     /** Verified Geocoding bias; the original spatial filter is unchanged. */
@@ -278,6 +301,22 @@ async function searchPlacesAtArea(
   if (offset > 0) url.searchParams.set("offset", String(offset));
   if (nameQuery) url.searchParams.set("name", nameQuery);
   url.searchParams.set("apiKey", readKey());
+
+  const conceptId =
+    intent.kind === "food-tag"
+      ? intent.tagId
+      : intent.kind === "category"
+        ? `category:${intent.category}`
+        : "";
+  if (searchConceptById(conceptId)) {
+    return searchGeoapifyCatalogue({
+      url,
+      intent,
+      limit: requestedLimit,
+      cursor: input.cursor,
+      fetch: callGeoapify,
+    });
+  }
 
   const anchor =
     nameQuery && input.allowNameAnchorRecovery !== false
@@ -445,6 +484,19 @@ const multiAreaInputSchema = z.object({
   radiusKm: radiusSchema,
   limit: z.number().int().min(1).max(50).optional(),
   offset: z.number().int().min(0).max(10_000).optional(),
+  streamCursors: z
+    .record(
+      z.object({
+        scope: z.string().max(4000),
+        direct: z.number().int().min(0).max(10_000),
+        metadata: z.number().int().min(0).max(10_000),
+        metadataType: z.number().int().min(0).max(1),
+        directDone: z.boolean(),
+        metadataDone: z.boolean(),
+      }),
+    )
+    .refine((value) => Object.keys(value).length <= 5)
+    .optional(),
   areaOffsets: z.record(z.number().int().min(0).max(10_000)).optional(),
   exhaustedAreaIds: z.array(z.string().min(1).max(120)).max(5).optional(),
   providerRequestLimit: z.number().int().min(0).max(25).optional(),
@@ -467,6 +519,7 @@ async function searchProviderAreas(
   const exhausted = new Set(data.exhaustedAreaIds ?? []);
   const centers = data.centers.filter((center) => !exhausted.has(center.id));
   const offsets = { ...(data.areaOffsets ?? {}) };
+  const streamCursors = { ...(data.streamCursors ?? {}) };
   const settled = await Promise.allSettled(
     centers.map(async (center) => ({
       center,
@@ -481,6 +534,7 @@ async function searchProviderAreas(
         radiusKm: expandedRadius ?? data.radiusKm,
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
         offset: offsets[center.id] ?? data.offset ?? 0,
+        cursor: streamCursors[center.id],
         allowNameAnchorRecovery: data.searchPhase !== "primary",
       }),
     })),
@@ -502,6 +556,11 @@ async function searchProviderAreas(
       return;
     }
 
+    if (outcome.value.page.cursor) streamCursors[center.id] = outcome.value.page.cursor;
+    if (outcome.value.page.incomplete) {
+      failedAreaLabels.push(center.label);
+      failedAreaIds.push(center.id);
+    }
     if (outcome.value.page.hasMore) hasMore = true;
     else exhausted.add(center.id);
     offsets[center.id] = outcome.value.page.nextOffset;
@@ -509,7 +568,7 @@ async function searchProviderAreas(
     const centerMode: SearchAreaMode = center.searchMode === "boundary" ? "boundary" : "point";
 
     for (const place of outcome.value.page.results) {
-      const key = `${place.provider}:${place.externalId}`;
+      const key = sourceIdentityKey(place.raw) ?? `${place.provider}:${place.externalId}`;
       const current = merged.get(key);
       const nextDistance = place.distanceKm ?? Number.POSITIVE_INFINITY;
       const currentDistance = current?.distanceKm ?? Number.POSITIVE_INFINITY;
@@ -537,7 +596,12 @@ async function searchProviderAreas(
     }
   });
 
-  if (centers.length > 0 && merged.size === 0 && failedAreaIds.length === centers.length) {
+  if (
+    firstFailure &&
+    centers.length > 0 &&
+    merged.size === 0 &&
+    failedAreaIds.length === centers.length
+  ) {
     throw firstFailure instanceof Error
       ? firstFailure
       : new Error("GEOAPIFY_UNAVAILABLE: Inga områden kunde sökas just nu.");
@@ -604,6 +668,7 @@ async function searchProviderAreas(
     hasMore: hasMore || failedAreaIds.length > 0,
     nextOffset,
     areaOffsets: offsets,
+    streamCursors,
     exhaustedAreaIds: [...exhausted],
   };
 }
@@ -611,7 +676,12 @@ async function searchProviderAreas(
 export const geoapifySearchPlacesMulti = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator((input) => multiAreaInputSchema.parse(input))
-  .handler(({ data }) => searchProviderAreas(data));
+  .handler(({ data }) =>
+    withPlaceSearchBudget(
+      { requests: data.providerRequestLimit ?? 25, credits: data.providerCreditLimit ?? 40 },
+      () => searchProviderAreas(data),
+    ),
+  );
 
 /** Public place identity only; private group state is projected for this group. */
 export const searchPlaceDiscovery = createServerFn({ method: "POST" })
@@ -681,8 +751,13 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                   _group_id: data.groupId,
                   _text: intent.kind === "text" ? intent.query : "",
                   _centers: centers,
-                  _categories: intent.kind === "category" ? [intent.category] : [],
-                  _cuisines: intent.kind === "food-tag" ? [intent.tagId] : [],
+                  _categories:
+                    intent.kind === "category"
+                      ? [intent.category]
+                      : intent.kind === "food-tag" && intent.tagId === "specialty:fika"
+                        ? ["café", "bageri"]
+                        : [],
+                  _cuisines: canonicalSearchCuisines(intent),
                   _limit: 200,
                 });
           if (found.error) return { results: [], incomplete: true };
@@ -724,6 +799,8 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
             }
           }
           const results = rows.flatMap((canonical) => {
+            if (intent.kind !== "text" && !matchesPlaceSearchIntent(canonical, intent)) return [];
+
             const matching = valid.filter(({ center, boundary }) =>
               boundary
                 ? placeWithinBoundary(canonical, boundary)
@@ -790,6 +867,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                   hasMore: false,
                   nextOffset: 0,
                   areaOffsets: {} as Record<string, number>,
+                  streamCursors: {} as Record<string, SearchStreamCursor>,
                   exhaustedAreaIds: [] as string[],
                 },
               })
@@ -806,6 +884,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
               hasMore: false,
               nextOffset: data.offset ?? 0,
               areaOffsets: data.areaOffsets ?? {},
+              streamCursors: data.streamCursors ?? {},
               exhaustedAreaIds: data.exhaustedAreaIds ?? [],
               failedAreaIds: data.centers.map((c) => c.id),
             };

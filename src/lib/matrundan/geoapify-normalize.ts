@@ -27,6 +27,9 @@ export interface NormalizedPlaceSuggestion {
   attribution: string;
   /** Begränsad, JSON-serialiserad metadata för place_sources.raw. */
   raw: string;
+  /** Ephemeral query proof, never persisted as cuisine. */
+  searchEvidence?: import("./place-search-intent").SearchablePlaceSuggestion["searchEvidence"];
+  searchIdentityKey?: string;
 }
 
 export interface NormalizedLocationSuggestion {
@@ -360,7 +363,10 @@ export function cuisinesFromGeoapify(props: GeoapifyProperties | undefined): str
     }
   }
 
-  return normalizeFoodTags(values, false).slice(0, 8);
+  return normalizeFoodTags(
+    values.filter((value) => value.trim().toLowerCase() !== "danish"),
+    false,
+  ).slice(0, 8);
 }
 
 export function areaFromGeoapify(props: GeoapifyLocationProperties): string | undefined {
@@ -392,8 +398,8 @@ function hasOpeningHours(properties: GeoapifyProperties): boolean {
 
 export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlaceSuggestion | null {
   const properties = feature.properties;
-  const externalId = properties?.place_id?.trim();
-  const name = properties?.name?.trim();
+  const externalId = typeof properties?.place_id === "string" ? properties.place_id.trim() : "";
+  const name = typeof properties?.name === "string" ? properties.name.trim() : "";
   if (!properties || !externalId || !name || isExplicitlyClosedGeoapifyPlace(properties))
     return null;
 
@@ -413,6 +419,7 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     osmId: osmType && osmId ? osmId : undefined,
     cuisine: typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
     categories,
+    diet: { vegetarian: providerRaw?.["diet:vegetarian"], vegan: providerRaw?.["diet:vegan"] },
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
     hasOpeningHours: openingHoursKnown,
