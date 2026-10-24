@@ -28,7 +28,12 @@ describe("providerbudget per sökomgång", () => {
     });
     expect(launched).toBe(5);
     expect(peak).toBeLessThanOrEqual(2);
-    expect(result.budgetUsage).toEqual({ requests: 5, reservedCredits: 5, limited: true });
+    expect(result.budgetUsage).toEqual({
+      requests: 5,
+      cacheHits: 0,
+      reservedCredits: 5,
+      limited: true,
+    });
     expect(result.settled.filter((s) => s.status === "rejected")).toHaveLength(8);
   });
 

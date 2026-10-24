@@ -17,7 +17,9 @@ export function mergePlaceSearchPages(
   const order: string[] = [];
 
   function keyOf(suggestion: PlaceSuggestion) {
-    return `${suggestion.provider ?? "unknown"}:${suggestion.externalId}`;
+    return (
+      suggestion.searchIdentityKey ?? `${suggestion.provider ?? "unknown"}:${suggestion.externalId}`
+    );
   }
 
   for (const suggestion of [...current, ...incoming]) {

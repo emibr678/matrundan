@@ -1,11 +1,4 @@
 import { describe, expect, test } from "bun:test";
-import { AsyncLocalStorage } from "node:async_hooks";
-import { readFileSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { runInNewContext } from "node:vm";
-import ts from "typescript";
-import { z } from "zod";
-import type { MultiAreaSearchResponse } from "./geoapify.functions";
 import { distanceKm } from "./manual-place-source-linking";
 import { presentPlaceSearchResults, type CanonicalPlaceCandidate } from "./place-discovery";
 import type { PlaceSuggestion } from "./places-provider";
@@ -17,6 +10,8 @@ const oxBias = `proximity:${oxLan.lng},${oxLan.lat}`;
 const area = { ...stockholm, searchMode: "point" as const };
 
 function place(id = "places-ox", name = "Ox Lan", extra: Record<string, unknown> = {}) {
+  const fixtureOsmId =
+    id === "places-ox" ? 12345 : [...id].reduce((hash, c) => hash * 31 + c.charCodeAt(0), 1) >>> 0;
   return {
     properties: {
       place_id: id,
@@ -28,7 +23,7 @@ function place(id = "places-ox", name = "Ox Lan", extra: Record<string, unknown>
       housenumber: "86",
       city: "Stockholm",
       categories: ["catering.restaurant", "catering.restaurant.chinese"],
-      datasource: { raw: { cuisine: "chinese", osm_type: "node", osm_id: 12345 } },
+      datasource: { raw: { cuisine: "chinese", osm_type: "node", osm_id: fixtureOsmId } },
       ...extra,
     },
   };
@@ -43,143 +38,12 @@ function seed() {
   });
 }
 
-type FixtureResponse = { features: unknown[]; status?: number };
-type SearchInput = {
-  text: string;
-  intentMode?: "auto" | "literal";
-  selectedFilter?: { kind: "food-tag" | "category"; id: string };
-  centers: Array<typeof stockholm & { searchMode?: "point" | "boundary"; placeId?: string }>;
-  radiusKm: 1 | 2 | 5 | 25 | null;
-  limit?: number;
-  offset?: number;
-  areaOffsets?: Record<string, number>;
-  exhaustedAreaIds?: string[];
-  searchPhase?: "primary" | "recovery" | "complete" | "hints";
-  providerRequestLimit?: number;
-  providerCreditLimit?: number;
-};
-
-/** Execute the actual server handlers with only framework/auth and HTTP stubs.
- * Each VM has its own provider caches and fixture-only environment; no global
- * mock.module or process.env mutation leaks into other tests. Auth is covered
- * by its own middleware tests, not by this provider contract suite.
- */
-type FixtureContext = {
-  supabase: {
-    rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: unknown; error: null }>;
-  };
-};
-
-function adapter(
-  response: (url: URL) => FixtureResponse | Promise<FixtureResponse>,
-  context?: FixtureContext,
-) {
-  const calls: URL[] = [];
-  const modules = new Map<string, { exports: Record<string, unknown> }>();
-  function load(file: string): Record<string, unknown> {
-    const cached = modules.get(file);
-    if (cached) return cached.exports;
-    const module = { exports: {} as Record<string, unknown> };
-    modules.set(file, module);
-    const source = ts.transpileModule(readFileSync(file, "utf8"), {
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-    }).outputText;
-    runInNewContext(
-      source,
-      {
-        module,
-        exports: module.exports,
-        URL,
-        AbortController,
-        DOMException,
-        performance,
-        setTimeout,
-        clearTimeout,
-        process: { env: { GEOAPIFY_API_KEY: "fixture-only-secret" } },
-        fetch: async (input: URL) => {
-          const url = new URL(input);
-          const safe = new URL(url);
-          safe.searchParams.delete("apiKey");
-          calls.push(safe);
-          const result = await response(url);
-          const status = result.status ?? 200;
-          return { status, ok: status === 200, json: async () => ({ features: result.features }) };
-        },
-        require: (specifier: string) => {
-          if (specifier === "node:async_hooks") return { AsyncLocalStorage };
-          if (specifier === "zod") return { z };
-          if (specifier === "@/integrations/supabase/auth-middleware")
-            return { requireSupabaseAuth: {} };
-          if (specifier === "@tanstack/react-start")
-            return {
-              createServerFn: () => {
-                let parse = (input: unknown) => input;
-                const builder = {
-                  middleware: () => builder,
-                  validator: (validate: typeof parse) => {
-                    parse = validate;
-                    return builder;
-                  },
-                  handler:
-                    (handle: (args: { data: unknown; context?: FixtureContext }) => unknown) =>
-                    (args: { data: unknown }) =>
-                      handle({ data: parse(args.data), context }),
-                };
-                return builder;
-              },
-            };
-          if (!specifier.startsWith("."))
-            throw new Error(`Unexpected test dependency: ${specifier}`);
-          return load(resolve(dirname(file), specifier + ".ts"));
-        },
-      },
-      { filename: file },
-    );
-    return module.exports;
-  }
-  const functions = load(resolve(import.meta.dir, "geoapify.functions.ts"));
-  const hintsResponse = (
-    input: Pick<SearchInput, "text" | "centers" | "radiusKm"> & { includeDistant?: boolean },
-  ) =>
-    (
-      functions.searchPlaceNameHints as (args: {
-        data: typeof input & { groupId: string };
-      }) => Promise<import("./geoapify.functions").PlaceNameHintsResponse>
-    )({
-      data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
-    });
-  return {
-    calls,
-    hintsResponse,
-    hints: async (input: Parameters<typeof hintsResponse>[0]) => (await hintsResponse(input)).hints,
-    resolveHint: (input: { placeId: string; name: string; lat: number; lng: number }) =>
-      (
-        functions.resolvePlaceNameHint as (args: {
-          data: typeof input & { groupId: string };
-        }) => Promise<PlaceSuggestion>
-      )({
-        data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" },
-      }),
-    multi: (input: SearchInput) =>
-      (
-        functions.geoapifySearchPlacesMulti as (args: {
-          data: SearchInput;
-        }) => Promise<MultiAreaSearchResponse>
-      )({ data: input }),
-    discovery: (input: SearchInput) =>
-      (
-        functions.searchPlaceDiscovery as (args: {
-          data: SearchInput & { groupId: string };
-        }) => Promise<
-          Omit<MultiAreaSearchResponse, "results"> & {
-            results: PlaceSuggestion[];
-            canConfirm: boolean;
-            budgetUsage: { requests: number; reservedCredits: number; limited: boolean };
-          }
-        >
-      )({ data: { ...input, groupId: "38910000-0000-4000-8000-000000000001" } }),
-  };
-}
+import {
+  adapter,
+  type SearchInput,
+  type FixtureResponse,
+  type FixtureContext,
+} from "./testing/geoapify-adapter-fixture";
 
 const basicInput: SearchInput = { text: "Ox lan", centers: [area], radiusKm: 5 };
 
@@ -1561,8 +1425,9 @@ describe("explicit valt kök kontra fri text genom Places-servern (#465)", () =>
       searchPhase: "primary",
     });
     const places = a.calls.filter((url) => url.pathname === "/v2/places");
-    expect(places).toHaveLength(1);
-    expect(places[0].searchParams.has("name")).toBe(false);
+    expect(places).toHaveLength(2);
+    expect(places.every((url) => !url.searchParams.has("name"))).toBe(true);
+    expect(places[1].searchParams.get("categories")).toBe("catering.fast_food");
   });
 
   test("fel filteridentitet avvisas innan något provideranrop sker", async () => {

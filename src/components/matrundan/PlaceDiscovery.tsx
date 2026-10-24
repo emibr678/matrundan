@@ -88,7 +88,14 @@ type ResultStatus = "available" | "linkable" | "existing";
 const RESULT_PAGE_SIZE = 20;
 /** Defensivt tak på provideranrop per användarhandling. */
 const MAX_PROVIDER_PAGES_PER_ACTION = 5;
-type AreaProgress = { offsets: Record<string, number>; exhaustedIds: string[] };
+type AreaProgress = {
+  offsets: Record<string, number>;
+  exhaustedIds: string[];
+  streamCursors?: Record<
+    string,
+    import("@/lib/matrundan/geoapify-catalogue-search").SearchStreamCursor
+  >;
+};
 type SearchBudget = { requests: number; credits: number };
 const AUTO_SEARCH_BUDGET: SearchBudget = { requests: 25, credits: 40 };
 const EXPLICIT_MORE_BUDGET: SearchBudget = { requests: 5, credits: 20 };
@@ -584,6 +591,7 @@ export function PlaceDiscovery({
       let progress: AreaProgress = {
         offsets: { ...startProgress.offsets },
         exhaustedIds: [...startProgress.exhaustedIds],
+        streamCursors: startProgress.streamCursors,
       };
       let moreAvailable = false;
       let remaining: SearchBudget = { ...startBudget };
@@ -612,6 +620,7 @@ export function PlaceDiscovery({
               limit: RESULT_PAGE_SIZE,
               searchPhase: isRecoveryPass ? "recovery" : textSearch ? "primary" : "complete",
               offset: isRecoveryPass ? startOffset : offset,
+              streamCursors: isRecoveryPass ? startProgress.streamCursors : progress.streamCursors,
               areaOffsets: isRecoveryPass ? startProgress.offsets : progress.offsets,
               exhaustedAreaIds: isRecoveryPass ? startProgress.exhaustedIds : progress.exhaustedIds,
               providerRequestLimit: remaining.requests,
@@ -627,7 +636,7 @@ export function PlaceDiscovery({
         canonicalIncomplete ||= response.canonicalIncomplete;
         collected = mergePlaceSearchPages(
           collected,
-          rankNewPlaceSearchPage(response.results, effectiveQuery),
+          rankNewPlaceSearchPage(response.results, selectedFilter ? "" : effectiveQuery),
         );
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);
@@ -637,7 +646,11 @@ export function PlaceDiscovery({
         if (!isRecoveryPass) {
           moreAvailable = response.hasMore;
           offset = response.nextOffset;
-          progress = { offsets: response.areaOffsets, exhaustedIds: response.exhaustedAreaIds };
+          progress = {
+            offsets: response.areaOffsets,
+            exhaustedIds: response.exhaustedAreaIds,
+            streamCursors: response.streamCursors,
+          };
         }
         recoveryPending = !isRecoveryPass && response.pendingRecovery;
         // Stop if providers were limited or an area failed; never spin through its cursor.
@@ -645,6 +658,9 @@ export function PlaceDiscovery({
         // Display verified primary hits first; recovery uses the same remaining budget.
         if (recoveryPending) continue;
         if (!moreAvailable) break;
+        // A structured search advances each stream once per explicit action. Do not
+        // silently scan hundreds of broad candidates to fill a sparse dish query.
+        if (selectedFilter) break;
         if (countActionableSuggestions(collected, isActionableRef.current) >= targetActionable)
           break;
       }
@@ -946,6 +962,7 @@ export function PlaceDiscovery({
       return;
     }
     if (
+      selectedFilter ||
       !isLive ||
       !groupId ||
       hiddenLoading ||
@@ -1038,6 +1055,7 @@ export function PlaceDiscovery({
     resultView,
     results,
     retry,
+    selectedFilter,
   ]);
 
   const allSourceMatches = React.useMemo<SourceMatchResult[]>(() => {
@@ -1168,6 +1186,24 @@ export function PlaceDiscovery({
   ).length;
   const mappableResultCount = mapResults.length - unmappedCount;
   const actionableResultCount = sourceMatches.length + availableResults.length;
+  const paginationButton = canShowMore ? (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      className="min-h-11 w-full"
+      disabled={loadingMore || interactionsDisabled}
+      onClick={() => void showMoreResults()}
+    >
+      {loadingMore ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+        </>
+      ) : (
+        "Visa fler"
+      )}
+    </Button>
+  ) : null;
   const resultSections = (
     <SearchResultSections
       available={availableResults}
@@ -1175,26 +1211,7 @@ export function PlaceDiscovery({
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
-      pagination={
-        canShowMore ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-11 w-full"
-            disabled={loadingMore || interactionsDisabled}
-            onClick={() => void showMoreResults()}
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-              </>
-            ) : (
-              "Visa fler"
-            )}
-          </Button>
-        ) : null
-      }
+      pagination={paginationButton}
       selectedId={selectedId}
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
@@ -1461,6 +1478,32 @@ export function PlaceDiscovery({
         </div>
       ) : null}
 
+      {selectedFilter?.id === "category:matvagn" ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          Här visas bara kända matvagnar i Matrundan.{" "}
+          <button
+            type="button"
+            className="underline underline-offset-2"
+            onClick={() =>
+              setSelectedFilter({
+                kind: "category",
+                id: "category:snabbmat",
+                label: "Snabbmat",
+                groupLabel: "Typ",
+                searchValue: "Snabbmat",
+              })
+            }
+          >
+            Sök bredare med Snabbmat
+          </button>
+        </p>
+      ) : null}
+      {selectedFilter?.hint === "Renodlat matställe" ? (
+        <p className="text-sm text-muted-foreground">
+          Avser renodlade matställen enligt platskällan. Menyalternativ räcker inte.
+        </p>
+      ) : null}
+
       {showingMobileSuggestions && query.trim().length < 2 ? (
         <p className="text-sm text-muted-foreground lg:hidden">
           Sök efter ett matställe eller välj ett kök.
@@ -1533,13 +1576,32 @@ export function PlaceDiscovery({
             {visibleResults.length === 0 ? (
               <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
                 <div>
-                  <p className="text-sm font-medium">Inga matställen hittades</p>
+                  <p className="text-sm font-medium">
+                    {failedAreas.length > 0
+                      ? "Sökningen kunde inte slutföras"
+                      : hasMore
+                        ? "Inga träffar i det hämtade urvalet"
+                        : "Inga matställen hittades"}
+                  </p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                    {hasPointAreas
-                      ? "Prova större avstånd runt punktvalen eller andra sökområden. Om stället saknas kan du lägga till det."
-                      : "Prova andra sökområden. Om stället saknas kan du lägga till det."}
+                    {hasMore
+                      ? "Sökningen är inte uttömd. Sök vidare för att hämta fler ställen i samma område."
+                      : hasPointAreas
+                        ? "Prova större avstånd runt punktvalen eller andra sökområden. Om stället saknas kan du lägga till det."
+                        : "Prova andra sökområden. Om stället saknas kan du lägga till det."}
                   </p>
                 </div>
+                {hasMore ? (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="min-h-11"
+                    disabled={loadingMore || mapFilling}
+                    onClick={() => void showMoreResults()}
+                  >
+                    {loadingMore ? "Söker…" : "Sök vidare i området"}
+                  </Button>
+                ) : null}
                 <MissingPlaceButton disabled={interactionsDisabled} onActivate={onMissingPlace} />
               </div>
             ) : (
@@ -1568,7 +1630,16 @@ export function PlaceDiscovery({
                           </Button>
                         ) : null}
                       </div>
-                      <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+                      <div className="mt-3">
+                        {resultView === "lista" ? (
+                          resultSections
+                        ) : (
+                          <div className="space-y-3">
+                            {map}
+                            {paginationButton}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
                       <h3 className="text-sm font-medium">Ställen att lägga till</h3>
@@ -1788,8 +1859,8 @@ function PlaceSearchCombobox({
   const genericOptions: PlaceSearchOption[] = genericSuggestions.slice(0, 2).map((suggestion) => ({
     kind: "generic",
     key: suggestion.id,
-    label: suggestion.label,
-    meta: `${suggestion.groupLabel} · Visa matställen`,
+    label: suggestion.displayLabel ?? suggestion.label,
+    meta: suggestion.hint ?? `${suggestion.groupLabel} · Visa matställen`,
     suggestion,
   }));
   // Keep mobile suggestions concise; all results remain available in browse mode.
