@@ -636,7 +636,7 @@ export function PlaceDiscovery({
         canonicalIncomplete ||= response.canonicalIncomplete;
         collected = mergePlaceSearchPages(
           collected,
-          rankNewPlaceSearchPage(response.results, effectiveQuery),
+          rankNewPlaceSearchPage(response.results, selectedFilter ? "" : effectiveQuery),
         );
         // Make fully verified results usable while later pages are still loading.
         onProgress?.(collected);

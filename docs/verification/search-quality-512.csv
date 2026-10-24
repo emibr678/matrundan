@@ -1,7 +1,7 @@
 id,label,surface,area,source_supported_named_ids,main_first,candidate_first,candidate_after_more,first_missed,all_missed,unproved_first,rejected_unnamed,pages_to_end
-category:restaurang,Restaurang,main,sodermalm-2km,613,20,20,597,593,16,0,3,30
-category:restaurang,Restaurang,main,goteborg-2km,718,20,20,593,698,125,0,8,30
-category:restaurang,Restaurang,main,malmo-2km,614,20,20,599,594,15,0,1,30
+category:restaurang,Restaurang,main,sodermalm-2km,613,20,20,613,593,0,0,3,31
+category:restaurang,Restaurang,main,goteborg-2km,718,20,20,718,698,0,0,8,37
+category:restaurang,Restaurang,main,malmo-2km,614,20,20,614,594,0,0,1,31
 category:restaurang,Restaurang,main,uppsala-2km,215,20,20,215,195,0,0,0,11
 category:restaurang,Restaurang,main,varnamo-2km,37,20,20,37,17,0,0,0,2
 category:restaurang,Restaurang,main,enskede-2km,107,20,20,107,87,0,0,4,6

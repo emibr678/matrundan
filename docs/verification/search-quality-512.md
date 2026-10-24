@@ -14,11 +14,11 @@ Källstöd räknas med deklarerade kategorier, explicita cuisine-token och endas
 
 ## Fullständig täckningsmatris
 
-38 huvudval + 42 kompletterande direktval + känd Matvagn. ”Första” avser ett serversteg per område: upp till 20 direktträffar och högst en 50-sida metadata. UI visar 20 handlingsbara rader och buffrar resten. ”Forts.” avser uttryckliga fortsättningssteg tills den observerade poolen tar slut (högst 30 steg i detta prov). Ingen automatisk bakgrundsskanning görs för strukturerade val.
+38 huvudval + 42 kompletterande direktval + känd Matvagn. ”Första” avser ett serversteg per område: upp till 20 direktträffar och högst en 50-sida metadata. UI visar 20 handlingsbara rader och buffrar resten. ”Forts.” avser uttryckliga fortsättningssteg tills den observerade poolen tar slut (högst 100 steg i detta prov). Ingen automatisk bakgrundsskanning görs för strukturerade val.
 
 | Begrepp | Yta | Strategiklass | Källstödda namngivna ID:n | Main första | Kandidat första | Kandidat forts. | Kvar missade |
 | --- | --- | --- | ---: | ---: | ---: | ---: | ---: |
-| Restaurang | Huvudval | Direkt typ | 2304 | 120 | 120 | 2148 | 156 |
+| Restaurang | Huvudval | Direkt typ | 2304 | 120 | 120 | 2304 | 0 |
 | Café | Huvudval | Direkt typ | 655 | 113 | 113 | 655 | 0 |
 | Bageri | Huvudval | Direkt typ | 121 | 85 | 85 | 121 | 0 |
 | Snabbmat | Huvudval | Direkt typ | 635 | 99 | 99 | 635 | 0 |
@@ -104,26 +104,26 @@ Alla sex områdens delresultat finns i [CSV-matrisen](search-quality-512.csv). N
 
 ## Prestanda och kostnad mot main
 
-30 oberoende mätningar per cell, nearest-rank p50/p95 och högsta observerade värde. VM/module-initiering ligger utanför tidtagningen; verklig serverhandler, normalisering, cache och JSON-serialisering ligger inom. **HTTP/RPC har noll simulerad nätverkslatens. Dessa millisekunder mäter lokal processkostnad, inte Cloudflare-/Geoapify-svarstid.** Kall cache använder ny instans; varm cache förhämtar samma request; Visa fler förbrukar första sidans riktiga cursor. Hela femområdesunionen ingår.
+30 oberoende mätningar per cell, nearest-rank p50/p95 och högsta observerade värde. VM/module-initiering ligger utanför tidtagningen; verklig serverhandler, normalisering, cache och JSON-serialisering ligger inom. **HTTP/RPC har noll simulerad nätverkslatens. Dessa millisekunder mäter lokal processkostnad, inte Cloudflare-/Geoapify-svarstid.** Kall cache använder ny instans; varm cache förhämtar samma request; Visa fler förbrukar första sidans riktiga cursor. Göteborg används för ett område så båda versionerna har en faktisk nästa sida. Femområdesprovet använder Göteborg, Södermalm, Malmö, Uppsala och Enskede. Hela unionen ingår.
 
 | Version | Områden | Cache | Handling | p50 ms | p95 ms | Max ms | Missanrop p50/max | Reservkrediter p50/max |
 | --- | ---: | --- | --- | ---: | ---: | ---: | --- | --- |
-| main | 1 | cold | search | 3.65 | 5.17 | 6.05 | 1/1 | 1/1 |
-| main | 1 | cold | more | 0.46 | 0.63 | 0.66 | 0/0 | 0/0 |
-| main | 1 | warm | search | 1.67 | 2.30 | 3.36 | 0/0 | 0/0 |
-| main | 1 | warm | more | 0.22 | 0.35 | 0.38 | 0/0 | 0/0 |
-| main | 5 | cold | search | 12.01 | 33.61 | 35.26 | 5/5 | 5/5 |
-| main | 5 | cold | more | 4.68 | 13.71 | 24.42 | 3/3 | 3/3 |
-| main | 5 | warm | search | 5.19 | 7.23 | 10.54 | 0/0 | 0/0 |
-| main | 5 | warm | more | 2.79 | 3.35 | 3.43 | 0/0 | 0/0 |
-| candidate | 1 | cold | search | 6.63 | 8.39 | 13.13 | 2/2 | 5/5 |
-| candidate | 1 | cold | more | 2.36 | 3.29 | 5.99 | 1/1 | 4/4 |
-| candidate | 1 | warm | search | 2.35 | 3.60 | 4.36 | 0/0 | 0/0 |
-| candidate | 1 | warm | more | 1.11 | 1.40 | 1.44 | 0/0 | 0/0 |
-| candidate | 5 | cold | search | 16.49 | 20.79 | 34.61 | 10/10 | 25/25 |
-| candidate | 5 | cold | more | 9.94 | 12.09 | 13.87 | 8/8 | 23/23 |
-| candidate | 5 | warm | search | 8.00 | 9.71 | 9.72 | 0/0 | 0/0 |
-| candidate | 5 | warm | more | 5.62 | 6.89 | 7.16 | 0/0 | 0/0 |
+| main | 1 | cold | search | 3.87 | 4.77 | 4.97 | 1/1 | 1/1 |
+| main | 1 | cold | more | 2.17 | 3.10 | 3.34 | 1/1 | 1/1 |
+| main | 1 | warm | search | 1.71 | 2.37 | 2.44 | 0/0 | 0/0 |
+| main | 1 | warm | more | 1.38 | 3.13 | 3.52 | 0/0 | 0/0 |
+| main | 5 | cold | search | 10.48 | 17.98 | 18.40 | 5/5 | 5/5 |
+| main | 5 | cold | more | 4.54 | 5.70 | 6.06 | 3/3 | 3/3 |
+| main | 5 | warm | search | 5.40 | 7.10 | 9.73 | 0/0 | 0/0 |
+| main | 5 | warm | more | 2.93 | 4.24 | 9.87 | 0/0 | 0/0 |
+| candidate | 1 | cold | search | 6.76 | 19.88 | 30.13 | 2/2 | 5/5 |
+| candidate | 1 | cold | more | 3.66 | 5.01 | 11.47 | 2/2 | 5/5 |
+| candidate | 1 | warm | search | 3.27 | 3.83 | 3.87 | 0/0 | 0/0 |
+| candidate | 1 | warm | more | 2.31 | 3.44 | 3.94 | 0/0 | 0/0 |
+| candidate | 5 | cold | search | 18.14 | 29.06 | 29.17 | 10/10 | 25/25 |
+| candidate | 5 | cold | more | 9.40 | 18.31 | 19.48 | 8/8 | 23/23 |
+| candidate | 5 | warm | search | 8.80 | 9.75 | 13.07 | 0/0 | 0/0 |
+| candidate | 5 | warm | more | 5.01 | 6.95 | 7.82 | 0/0 | 0/0 |
 
 Kandidaten gör mer arbete än main och har högre lokal CPU-kostnad samt fler kalla provideranrop. För riktad sökning med metadata är den första kallomgångens övre Places-reservation 2 anrop/5 krediter per område, 10/25 över fem områden. Metadata-only kräver normalt 1/4; direkt typ eller `.only`-profil 1/1. Namnsökning använder befintlig separat budgeterad väg. Varm cache gav 0 missanrop och 0 reservkrediter. Cacheträffar räknas separat i kandidatens `budgetUsage.cacheHits`.
 

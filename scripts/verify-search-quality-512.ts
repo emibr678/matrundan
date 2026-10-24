@@ -127,7 +127,7 @@ for (const c of SEARCH_CONCEPTS) {
     const all = new Set(first.results.map((p) => p.externalId));
     let page = first;
     let pages = 1;
-    while (page.hasMore && pages < 30) {
+    while (page.hasMore && pages < 100) {
       page = await candidate.discovery({
         ...input,
         offset: page.nextOffset,
@@ -166,6 +166,13 @@ for (const c of SEARCH_CONCEPTS) {
   }
   quality.push({ id: c.id, label: c.label, surface: c.surface, strategies: recipe, perArea });
 }
+const benchmarkAreas = [
+  "goteborg-2km",
+  "sodermalm-2km",
+  "malmo-2km",
+  "uppsala-2km",
+  "enskede-2km",
+].map((id) => areas.find((a) => a.id === id)!);
 const perf = [];
 function percentiles(values: number[]) {
   const v = [...values].sort((a, b) => a - b);
@@ -193,7 +200,7 @@ for (const [version, dir] of [
           const input: SearchInput = {
             text: "Sushi",
             selectedFilter: { kind: "food-tag", id: "specialty:sushi" },
-            centers: areas
+            centers: benchmarkAreas
               .slice(0, count)
               .map((area) => ({ id: area.id, label: area.label, lat: area.lat, lng: area.lon })),
             radiusKm: 2,
@@ -239,6 +246,7 @@ writeFileSync(
       sourceSha256: createHash("sha256").update(bytes).digest("hex"),
       baseline: "ead5a34a717004a22c60c4ab9dd57a81d201d34f",
       areas: areas.map((a) => a.id),
+      benchmarkAreas: benchmarkAreas.map((a) => a.id),
       quality,
       perf,
     },
