@@ -46,7 +46,7 @@ function Probe() {
   async function run() {
     if (running || rows.length) return;
     setRunning(true);
-    let spent = 0;
+    let spent = 44; // 4 verified credits plus 40 conservative credits for the rejected invalid-ID pilot.
     try {
       for (const sample of [0, 1])
         for (const areas of [1, 5] as const)
@@ -54,6 +54,7 @@ function Probe() {
             for (const target of (sample ? ["candidate", "main"] : ["main", "candidate"]) as Array<
               "main" | "candidate"
             >) {
+              if (sample === 0 && areas === 1 && strategy === "restaurant") continue; // Already captured: eight valid observations.
               let progress: ProbeProgress | undefined;
               let more = false;
               for (const action of ["first", "more"] as const) {
@@ -150,7 +151,7 @@ function Probe() {
       <p role="status">{status}</p>
       <p>
         Observationer: {rows.length} · Reserverade krediter:{" "}
-        {rows.reduce((a, r) => a + r.reservedCredits, 0)}
+        {44 + rows.reduce((a, r) => a + r.reservedCredits, 0)}
       </p>
       <pre aria-label="Mätresultat">{JSON.stringify(rows, null, 2)}</pre>
     </main>

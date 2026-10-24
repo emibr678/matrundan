@@ -132,7 +132,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
           intentMode: "auto",
           selectedFilter:
             data.strategy === "sushi"
-              ? { kind: "food-tag", id: "cuisine:sushi" }
+              ? { kind: "food-tag", id: "specialty:sushi" }
               : { kind: "category", id: "category:restaurang" },
           searchPhase: "primary",
           offset: progress?.nextOffset ?? 0,
