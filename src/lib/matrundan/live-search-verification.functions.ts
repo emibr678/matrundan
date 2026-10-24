@@ -139,7 +139,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
       httpMs = performance.now() - timer;
       if (!response.ok || !response.headers.get("x-tss-serialized"))
         throw new Error("Fel RPC-svar");
-      const reply = fromCrossJSON(wire) as { result?: DiscoveryPage; error?: unknown };
+      const reply = fromCrossJSON(wire, {}) as { result?: DiscoveryPage; error?: unknown };
       if (reply.error || !reply.result) throw new Error("Sökfunktionen returnerade fel");
       const page = reply.result;
       return {
