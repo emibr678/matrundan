@@ -1,6 +1,6 @@
 /** Temporary read-only harness. Never merge this diagnostics branch. */
 import { createServerFn } from "@tanstack/react-start";
-import { createClientRpc as createMeasurementRpc } from "@tanstack/react-start/client-rpc";
+import { toJSONAsync, fromCrossJSON } from "seroval";
 import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
@@ -20,7 +20,6 @@ const TARGETS = {
 } as const;
 // TanStack's stable ID for the existing, unchanged authenticated discovery RPC.
 const DISCOVERY_ID = "46ee11758cde399e4866f83129f058bf90986535cf802cd2297ddeeaa8bc5d2c";
-const remoteDiscovery = createMeasurementRpc(DISCOVERY_ID);
 const progressSchema = z.object({
   nextOffset: z.number().int().min(0).max(10000),
   areaOffsets: z.record(z.number().int().min(0).max(10000)),
@@ -99,8 +98,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
     let httpMs = 0;
     const started = performance.now();
     try {
-      const reply = (await remoteDiscovery({
-        method: "POST",
+      const payload = {
         data: {
           groupId: data.groupId,
           centers,
@@ -120,23 +118,28 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
           providerRequestLimit: 25,
           providerCreditLimit: credits,
         },
-        // Only the existing session's authorization header is forwarded server-side.
-        // Never return, log, persist, or send it to any third-party endpoint.
-        headers: { authorization: request.headers.get("authorization")! },
-        fetch: async (url: string, init: RequestInit) => {
-          const path = new URL(url, target.origin).pathname;
-          if (!path.endsWith("/" + DISCOVERY_ID)) throw new Error("Fel RPC");
-          const timer = performance.now();
-          const response = await fetch(target.origin + path, {
-            ...init,
-            signal: AbortSignal.timeout(15000),
-            redirect: "error",
-          });
-          const body = await response.arrayBuffer();
-          httpMs = performance.now() - timer;
-          return new Response(body, { status: response.status, headers: response.headers });
+      };
+      const body = JSON.stringify(await toJSONAsync(payload));
+      const timer = performance.now();
+      // Only the existing session's authorization header is forwarded server-side.
+      // No redirects and no destinations controlled by callers.
+      const response = await fetch(target.origin + "/_serverFn/" + DISCOVERY_ID, {
+        method: "POST",
+        redirect: "error",
+        signal: AbortSignal.timeout(15000),
+        headers: {
+          authorization: request.headers.get("authorization")!,
+          "content-type": "application/json",
+          accept: "application/json",
+          "x-tsr-serverFn": "true",
         },
-      })) as { result?: DiscoveryPage; error?: unknown };
+        body,
+      });
+      const wire = await response.json();
+      httpMs = performance.now() - timer;
+      if (!response.ok || !response.headers.get("x-tss-serialized"))
+        throw new Error("Fel RPC-svar");
+      const reply = fromCrossJSON(wire) as { result?: DiscoveryPage; error?: unknown };
       if (reply.error || !reply.result) throw new Error("Sökfunktionen returnerade fel");
       const page = reply.result;
       return {
