@@ -48,22 +48,18 @@ function Probe() {
     setRunning(true);
     let spent = 0;
     try {
-      for (const sample of [0, 1])
-        for (const areas of [1, 5] as const)
-          for (const strategy of ["restaurant", "sushi"] as const)
-            for (const target of (sample ? ["candidate", "main"] : ["main", "candidate"]) as Array<
-              "main" | "candidate"
-            >) {
-              if (strategy === "restaurant" && (areas !== 1 || sample !== 0)) continue;
-              if (strategy === "sushi" && areas === 5 && sample !== 0) continue;
+      for (const sample of [0])
+        for (const areas of [5] as const)
+          for (const strategy of ["restaurant"] as const)
+            for (const target of ["candidate"] as const) {
               let progress: ProbeProgress | undefined;
               let more = false;
               for (const action of ["first", "more"] as const) {
                 if (action === "more" && !more) continue;
                 const inputProgress = progress;
                 for (const requestedCache of ["cold", "warm"]) {
-                  if (spent >= 90) {
-                    setStatus("Stopp: 90 krediter reserverade");
+                  if (spent >= 10) {
+                    setStatus("Stopp: 10 krediter reserverade");
                     return;
                   }
                   setStatus(
@@ -79,7 +75,7 @@ function Probe() {
                       sample,
                       action,
                       progress: inputProgress,
-                      remainingCredits: 90 - spent,
+                      remainingCredits: 10 - spent,
                     },
                   });
                   const browserMs = performance.now() - start;
@@ -146,7 +142,7 @@ function Probe() {
         provider, transport och serialisering. Providerlatens isoleras inte. Inga råsvar,
         identiteter eller sessionsuppgifter sparas.
       </p>
-      <p>Högst 90 reserverade krediter för hela omgången. Ingen faktisk debitering rapporteras.</p>
+      <p>Högst 10 reserverade krediter för hela omgången. Ingen faktisk debitering rapporteras.</p>
       <button disabled={running || rows.length > 0} onClick={run}>
         Kör begränsat liveprov
       </button>
