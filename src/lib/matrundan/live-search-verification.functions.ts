@@ -77,13 +77,18 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
     try {
       health = await fetch(target.origin + "/api/health", {
         signal: AbortSignal.timeout(5000),
-        redirect: "error",
+        redirect: "manual",
       });
     } catch (error) {
       throw new Error(
         error instanceof Error && error.name === "TimeoutError"
           ? "PROBE_HEALTH_TIMEOUT"
-          : "PROBE_HEALTH_FETCH_FAILED",
+          : "PROBE_HEALTH_FETCH_" +
+              (error instanceof Error ? error.message : "FAILED")
+                .replace(/https?:\/\/\S+/g, "PUBLIC_ENDPOINT")
+                .replace(/[^a-zA-Z0-9]+/g, "_")
+                .toUpperCase()
+                .slice(0, 180),
       );
     }
     const healthText = await health.text();
@@ -144,7 +149,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
       // No redirects and no destinations controlled by callers.
       const response = await fetch(target.origin + "/_serverFn/" + DISCOVERY_ID, {
         method: "POST",
-        redirect: "error",
+        redirect: "manual",
         signal: AbortSignal.timeout(15000),
         headers: {
           authorization: request.headers.get("authorization")!,
