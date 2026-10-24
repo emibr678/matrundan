@@ -148,16 +148,19 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
         signal: AbortSignal.timeout(15000),
         headers: {
           authorization: request.headers.get("authorization")!,
+          // Synthetic first-party HTTP client; the target's CSRF, JWT and group checks still run.
+          origin: target.origin,
           "content-type": "application/json",
           accept: "application/json",
           "x-tsr-serverFn": "true",
         },
         body,
       });
-      const wire = await response.json();
+      const responseText = await response.text();
       httpMs = performance.now() - timer;
       if (!response.ok || !response.headers.get("x-tss-serialized"))
-        throw new Error("Fel RPC-svar");
+        throw new Error(`PROBE_RPC_HTTP_${response.status}`);
+      const wire = JSON.parse(responseText);
       const reply = fromCrossJSON(wire, {}) as { result?: DiscoveryPage; error?: unknown };
       if (reply.error || !reply.result) throw new Error("Sökfunktionen returnerade fel");
       const page = reply.result;
@@ -179,7 +182,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
         },
         error: null,
       };
-    } catch {
+    } catch (error) {
       // If no reliable budget receipt arrives, conservatively book the whole allowed reservation.
       return {
         sha: target.sha,
@@ -192,7 +195,10 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
         budget: { requests: null, cacheHits: undefined, reservedCredits: credits, limited: false },
         hasMore: false,
         progress: undefined,
-        error: "Målanropet misslyckades; kostnaden är osäker",
+        error:
+          error instanceof Error && /^PROBE_RPC_HTTP_\d+$/.test(error.message)
+            ? error.message
+            : "Målanropet misslyckades; kostnaden är osäker",
       };
     }
   });
