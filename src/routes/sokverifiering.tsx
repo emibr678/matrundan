@@ -122,8 +122,14 @@ function Probe() {
               }
             }
       setStatus("Klart");
-    } catch {
-      setStatus("Stopp: mätverktygets anrop misslyckades");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      const safe = /^PROBE_[A-Z0-9_]+$/.test(message)
+        ? message
+        : message.startsWith("Unauthorized:")
+          ? "PROBE_AUTH_REJECTED"
+          : "PROBE_RPC_FAILED";
+      setStatus("Stopp: " + safe);
     } finally {
       setRunning(false);
     }

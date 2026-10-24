@@ -69,16 +69,35 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const request = getRequest();
     if (APP_ENVIRONMENT !== "staging" || environmentForRequestUrl(request.url) !== "staging")
-      throw new Error("Endast staging");
+      throw new Error("PROBE_ENVIRONMENT_REJECTED");
     const target = TARGETS[data.target];
     // Fail closed if main or the immutable candidate no longer has the declared SHA.
     const healthStart = performance.now();
-    const health = await fetch(target.origin + "/api/health", {
-      signal: AbortSignal.timeout(5000),
-      redirect: "error",
-    });
-    const identity = (await health.json()) as { release?: string };
-    if (!health.ok || identity.release !== target.sha) throw new Error("Fel release i målmiljön");
+    let health: Response;
+    try {
+      health = await fetch(target.origin + "/api/health", {
+        signal: AbortSignal.timeout(5000),
+        redirect: "error",
+      });
+    } catch (error) {
+      throw new Error(
+        error instanceof Error && error.name === "TimeoutError"
+          ? "PROBE_HEALTH_TIMEOUT"
+          : "PROBE_HEALTH_FETCH_FAILED",
+      );
+    }
+    const healthText = await health.text();
+    if (!health.ok) {
+      const code = healthText.includes("1042") ? "_CLOUDFLARE_1042" : "";
+      throw new Error(`PROBE_HEALTH_HTTP_${health.status}${code}`);
+    }
+    let identity: { release?: string };
+    try {
+      identity = JSON.parse(healthText);
+    } catch {
+      throw new Error("PROBE_HEALTH_INVALID_JSON");
+    }
+    if (identity.release !== target.sha) throw new Error("PROBE_RELEASE_MISMATCH");
     const healthMs = performance.now() - healthStart;
     if (data.action === "more" && !data.progress) throw new Error("Fortsättning saknas");
     // Tiny fixed public-coordinate variations distinguish intended cold app-cache keys.
