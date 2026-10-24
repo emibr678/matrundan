@@ -2,6 +2,12 @@
 
 Denna branch ska inte mergas. Produktkandidatens head förblir 6899af48.
 
+Endast diagnostikversionen använder `global_fetch_strictly_public`: anrop till
+samma workers.dev-zon ska gå genom den publika frontdörren, inklusive normala
+Cloudflare-kontroller. Den driftsatta main-versionen och PR-kandidaten ändras
+inte. Detta följer Cloudflares dokumenterade routingflagga; den ger inga nya
+autentiserings- eller databasbehörigheter.
+
 `/sokverifiering` använder ordinarie stagingautentisering och en vald testgrupp.
 Alla anrop är read-only, avgränsade till ordinarie discovery-RPC på staging main
 och immutable preview e1b4fd09. Målens health måste matcha låsta SHA:n.
