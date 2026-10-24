@@ -41,6 +41,111 @@ const input: SearchInput = {
 };
 const context = { supabase: { rpc: async () => ({ data: [], error: null }) } };
 
+test("ett område överlappar strömmarna men väljer alltid direktströmmens identitet först", async () => {
+  const direct = feature("direct", "sushi", ["catering.restaurant.sushi"], {
+    osm_type: "way",
+    osm_id: 91,
+  });
+  const metadata = [
+    feature("duplicate-provider-id", "sushi", ["catering.fast_food"], {
+      osm_type: "way",
+      osm_id: 91,
+    }),
+    feature("metadata-only", "sushi", ["catering.fast_food"], { osm_type: "node", osm_id: 92 }),
+  ];
+  let releaseDirect!: (payload: { features: ReturnType<typeof feature>[] }) => void;
+  const calls: string[] = [];
+  const pending = searchGeoapifyCatalogue({
+    url,
+    intent: intent("Sushi"),
+    limit: 20,
+    parallelStreams: true,
+    fetch: async (request) => {
+      const category = request.searchParams.get("categories")!;
+      calls.push(category);
+      return category === "catering.fast_food"
+        ? { features: metadata }
+        : new Promise((resolve) => {
+            releaseDirect = resolve;
+          });
+    },
+  });
+  expect(calls).toEqual(["catering.restaurant.sushi", "catering.fast_food"]);
+  await Promise.resolve(); // Metadata arrives before the direct response.
+  releaseDirect({ features: [direct] });
+  const parallel = await pending;
+  const sequential = await searchGeoapifyCatalogue({
+    url,
+    intent: intent("Sushi"),
+    limit: 20,
+    fetch: async (request) => ({
+      features:
+        request.searchParams.get("categories") === "catering.fast_food" ? metadata : [direct],
+    }),
+  });
+  expect(parallel).toEqual(sequential);
+  expect(parallel.results.map((p) => p.externalId)).toEqual(["direct", "metadata-only"]);
+});
+
+test.each(["direct", "metadata"] as const)(
+  "parallellt %s-fel behåller den felande cursorn och den andra strömmens träff",
+  async (failed) => {
+    const page = await searchGeoapifyCatalogue({
+      url,
+      intent: intent("Sushi"),
+      limit: 20,
+      parallelStreams: true,
+      fetch: async (request) => {
+        const stream =
+          request.searchParams.get("categories") === "catering.fast_food" ? "metadata" : "direct";
+        if (stream === failed) throw new Error("fixture failure");
+        return {
+          features: [
+            feature(
+              stream,
+              "sushi",
+              stream === "direct" ? ["catering.restaurant.sushi"] : ["catering.fast_food"],
+            ),
+          ],
+        };
+      },
+    });
+    expect(page.incomplete).toBe(true);
+    expect(page.cursor[failed]).toBe(0);
+    expect(page.results.map((p) => p.externalId)).toEqual([
+      failed === "direct" ? "metadata" : "direct",
+    ]);
+  },
+);
+
+test("adaptern använder två samtidiga anrop för ett område och behåller områdesprioritet och tak för fem", async () => {
+  for (const count of [1, 5]) {
+    let active = 0;
+    let maximum = 0;
+    const a = adapter(async () => {
+      active++;
+      maximum = Math.max(maximum, active);
+      await new Promise((resolve) => setTimeout(resolve, 1));
+      active--;
+      return { features: [feature("source", "sushi")] };
+    }, context);
+    const page = await a.discovery({
+      ...input,
+      centers: Array.from({ length: count }, (_, i) => ({
+        ...area,
+        id: `a${i}`,
+        lat: area.lat + i * 0.01,
+      })),
+    });
+    expect(maximum).toBe(2);
+    expect(page.budgetUsage.requests).toBe(2 * count);
+    expect(page.budgetUsage.reservedCredits).toBe(5 * count);
+    expect(a.calls.slice(0, count).map((call) => call.searchParams.get("categories"))).toEqual(
+      Array(count).fill("catering.restaurant.sushi"),
+    );
+  }
+});
+
 describe("gemensam källmatchning, ingen meny- eller namnklassificering", () => {
   test.each([
     ["Sushi", "sushi"],

@@ -104,6 +104,51 @@ Alla sex områdens delresultat finns i [CSV-matrisen](search-quality-512.csv). N
 
 ## Prestanda och kostnad mot main
 
+Den nätverksfria tabellen nedan avser kandidat `6899af48`, före optimeringen av
+ett aktivt område. Den fullständiga liveomgången mot samma head gav 64 giltiga
+observationer: två per version, strategi, områdesantal, cacheläge och handling.
+Strategierna var Restaurang samt Sushi med metadatakomplettering; ett respektive
+fem punktområden, 5 km, första sida och en faktisk RPC-fortsättning med serverns
+cursor. Buffrade UI-rader räknades alltså inte som nya provideranrop.
+
+Den separata diagnostikversionen anropade oförändrad main `ead5a34` och immutable
+kandidatpreview genom ordinarie CSRF-, JWT- och gruppkontroller. HTTP-tiden omfattar
+target-transport, autentisering, databas, provider och svarskropp. Providerlatensen
+isolerades inte. Browserns mättid inkluderar även reläets extra autentisering,
+health-kontroll och transport; den mäter inte ordinarie appens rena rendering.
+Målens health verifierades mot låsta SHA:n. Varma svar hade noll missanrop och
+noll reservkrediter; avsedd kall cache hade verifierade missanrop. Geoapifys egen
+interna cache kunde inte styras. Två observationer per cell ger inget tillförlitligt
+p95, så samtliga observationer/max används i livekvittot i PR #515.
+
+| Kall strategi    | Områden | Handling  | Main HTTP max, s | 6899af48 HTTP max, s |
+| ---------------- | ------: | --------- | ---------------: | -------------------: |
+| Restaurang       |       1 | Första    |            1,295 |                0,904 |
+| Restaurang       |       1 | Visa fler |            0,958 |                1,012 |
+| Restaurang       |       5 | Första    |            2,251 |                2,213 |
+| Restaurang       |       5 | Visa fler |            2,358 |                2,136 |
+| Sushi + metadata |       1 | Första    |            1,580 |                2,718 |
+| Sushi + metadata |       1 | Visa fler |            1,697 |                2,866 |
+| Sushi + metadata |       5 | Första    |            3,956 |                6,221 |
+| Sushi + metadata |       5 | Visa fler |            3,812 |                5,632 |
+
+Inga av de 64 giltiga sökanropen gav fel, timeout, budgetstopp eller ofullständiga
+områden. Högsta varma HTTP-tid var 0,578 s; högsta instrumenterade browsermättid
+var 6,706 s kall och 1,141 s varm. Totalt 116 verifierade Geoapify-cachemissar och
+188 reserverade krediter. Mätarens takräknare bokade dessutom 40 försiktighetskrediter
+för ett avvisat prov med fel Sushi-ID, som inte ingår i latensjämförelsen; totalt
+228 av omgångens tak 240. Felet avvisades av den befintliga filterkontrollen före
+providerhämtning. Detta var ett mätkodsfel, inte ett produktfel eller en verifierad
+Geoapify-debitering.
+
+Den observerade extra väntan på ungefär en sekund för Sushi i ett område
+motiverade parallella direkt-/metadatasidor när bara ett område är aktivt.
+Gemensam samtidighet två, mängd anrop, kreditreservation, cursor och deterministisk
+prioritet för direktströmmens identitet behålls. Femområdesvägen behåller sin
+befintliga schemaläggning. Riktad liveefterkontroll, slutlig exact-head-CI och
+autentiserad UX-evidens ägs av [PR-kvittot](https://github.com/emibr678/matrundan/pull/515).
+
+
 30 oberoende mätningar per cell, nearest-rank p50/p95 och högsta observerade värde. VM/module-initiering ligger utanför tidtagningen; verklig serverhandler, normalisering, cache och JSON-serialisering ligger inom. **HTTP/RPC har noll simulerad nätverkslatens. Dessa millisekunder mäter lokal processkostnad, inte Cloudflare-/Geoapify-svarstid.** Kall cache använder ny instans; varm cache förhämtar samma request; Visa fler förbrukar första sidans riktiga cursor. Göteborg används för ett område så båda versionerna har en faktisk nästa sida. Femområdesprovet använder Göteborg, Södermalm, Malmö, Uppsala och Enskede. Hela unionen ingår.
 
 | Version | Områden | Cache | Handling | p50 ms | p95 ms | Max ms | Missanrop p50/max | Reservkrediter p50/max |

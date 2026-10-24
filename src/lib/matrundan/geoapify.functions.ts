@@ -261,6 +261,7 @@ async function searchPlacesAtArea(
     limit?: number;
     offset?: number;
     cursor?: SearchStreamCursor;
+    parallelCatalogueStreams?: boolean;
     /** The original #464 name recovery is used only for the primary search. */
     allowNameAnchorRecovery?: boolean;
     /** Verified Geocoding bias; the original spatial filter is unchanged. */
@@ -314,6 +315,7 @@ async function searchPlacesAtArea(
       intent,
       limit: requestedLimit,
       cursor: input.cursor,
+      parallelStreams: input.parallelCatalogueStreams,
       fetch: callGeoapify,
     });
   }
@@ -536,6 +538,7 @@ async function searchProviderAreas(
         limit: data.limit ?? DISCOVERY_PAGE_SIZE,
         offset: offsets[center.id] ?? data.offset ?? 0,
         cursor: streamCursors[center.id],
+        parallelCatalogueStreams: centers.length === 1,
         allowNameAnchorRecovery: data.searchPhase !== "primary",
       }),
     })),

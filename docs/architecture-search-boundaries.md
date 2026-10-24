@@ -145,8 +145,11 @@ etiketter och historiska ID:n skrivs inte om.
 
 Varje område har en scope-bunden cursor för direktström och metadata, inklusive
 metadatans verksamhetstyp. Råströmmen hämtar högst en 50-sida per område och
-handling; fortsatt skanning kräver Visa fler. Primära områdesfrågor startar före
-komplettering. Budget, cache och samtidighetsgräns delas; `budgetUsage.requests`
+handling; fortsatt skanning kräver Visa fler. Vid ett aktivt område hämtas direkt-
+och metadatasidan parallellt inom samma samtidighetsgräns på två. Vid flera
+områden startar primära områdesfrågor före komplettering. Resultaten sammanförs
+alltid med direktströmmen först, oberoende av svarens ankomstordning.
+Budget, cache och samtidighetsgräns delas; `budgetUsage.requests`
 räknar cachemissar och `reservedCredits` är reservation, aldrig verifierad debitering.
 Ett fel flyttar inte den felande strömmens cursor. Tom första sida med fortsatt
 cursor erbjuder Sök vidare; ofullständiga urval får inte visas som uttömmande.

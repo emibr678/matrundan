@@ -21,6 +21,8 @@ export async function searchGeoapifyCatalogue(input: {
   intent: PlaceSearchIntent;
   limit: number;
   cursor?: SearchStreamCursor;
+  /** Use the spare budget slot only when there is one active search area. */
+  parallelStreams?: boolean;
   fetch: (url: URL) => Promise<Payload>;
 }) {
   const recipe = geoapifySearchRecipe(input.intent);
@@ -47,13 +49,18 @@ export async function searchGeoapifyCatalogue(input: {
           directDone: !recipe.direct.length,
           metadataDone: !recipe.supplement.length,
         };
-  const results = new Map<string, NormalizedPlaceSuggestion>();
+  const streams = ["direct", "metadata"] as const;
+  const streamResults = {
+    direct: new Map<string, NormalizedPlaceSuggestion>(),
+    metadata: new Map<string, NormalizedPlaceSuggestion>(),
+  };
+  const errors: { direct?: unknown; metadata?: unknown } = {};
   let incomplete = false;
-  let firstError: unknown;
   let successful = 0;
-  for (const stream of ["direct", "metadata"] as const) {
+  const runStream = async (stream: (typeof streams)[number]) => {
     const done = stream === "direct" ? "directDone" : "metadataDone";
-    if (cursor[done]) continue;
+    if (cursor[done]) return;
+    const results = streamResults[stream];
     const categories = stream === "direct" ? recipe.direct : recipe.supplement[cursor.metadataType];
     const limit = stream === "direct" ? input.limit : 50;
     const url = new URL(input.url);
@@ -99,9 +106,17 @@ export async function searchGeoapifyCatalogue(input: {
       } else cursor[done] = endOfStream;
     } catch (error) {
       incomplete = true;
-      firstError ??= error;
+      errors[stream] = error;
     }
-  }
+  };
+  if (input.parallelStreams) await Promise.all(streams.map(runStream));
+  else for (const stream of streams) await runStream(stream);
+  // Arrival order must never choose a different identity or source representative.
+  const results = new Map<string, NormalizedPlaceSuggestion>();
+  for (const stream of streams)
+    for (const [key, place] of streamResults[stream])
+      if (!results.has(key)) results.set(key, place);
+  const firstError = errors.direct ?? errors.metadata;
   if (firstError && successful === 0) throw firstError;
   return {
     results: [...results.values()],
