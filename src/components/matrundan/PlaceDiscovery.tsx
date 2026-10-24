@@ -1578,7 +1578,11 @@ export function PlaceDiscovery({
               <div className="space-y-3 rounded-xl border border-dashed border-border/70 bg-card/60 p-5 text-center">
                 <div>
                   <p className="text-sm font-medium">
-                    {hasMore ? "Inga träffar i det hämtade urvalet" : "Inga matställen hittades"}
+                    {failedAreas.length > 0
+                      ? "Sökningen kunde inte slutföras"
+                      : hasMore
+                        ? "Inga träffar i det hämtade urvalet"
+                        : "Inga matställen hittades"}
                   </p>
                   <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
                     {hasMore

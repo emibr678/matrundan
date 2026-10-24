@@ -264,3 +264,63 @@ describe("fasta observationer ur den sparade liveexporten 23 oktober", () => {
     }
   });
 });
+
+test.each([400, 401, 429, 500])(
+  "HTTP %i är ofullständighet, inte en bekräftad nollträff",
+  async (status) => {
+    const a = adapter(() => ({ features: [], status }), context);
+    const page = await a.discovery(input);
+    expect(page.failedAreaIds).toEqual(["a"]);
+    expect(page.budgetUsage.requests).toBe(2);
+    expect(page.budgetUsage.reservedCredits).toBe(5);
+    expect(page.areaOffsets.a).toBeUndefined();
+  },
+);
+test("abort och gruppvägran ger inga falska tomma framgångar eller obehöriga anrop", async () => {
+  const a = adapter(() => {
+    throw new DOMException("timeout", "AbortError");
+  }, context);
+  const page = await a.discovery(input);
+  expect(page.failedAreaIds).toEqual(["a"]);
+  expect(page.results).toHaveLength(0);
+  const denied = adapter(() => ({ features: [] }), {
+    supabase: {
+      rpc: async () => {
+        throw new Error("membership denied");
+      },
+    },
+  });
+  await expect(denied.discovery(input)).rejects.toThrow("membership denied");
+  expect(denied.calls).toHaveLength(0);
+});
+test("punkt och boundary behåller separata cursors, medlemskap och avstånd", async () => {
+  const a = adapter(
+    () => ({
+      features: [
+        feature("same", "sushi", ["catering.restaurant.sushi"], { osm_type: "way", osm_id: 987 }),
+      ],
+    }),
+    context,
+  );
+  const page = await a.discovery({
+    ...input,
+    centers: [
+      area,
+      {
+        ...area,
+        id: "boundary",
+        label: "Kommun",
+        searchMode: "boundary",
+        placeId: "verified-boundary",
+      },
+    ],
+  });
+  expect(page.results).toHaveLength(1);
+  expect(page.results[0].matchingAreaIds).toEqual(["a", "boundary"]);
+  expect(page.streamCursors?.a.scope).not.toBe(page.streamCursors?.boundary.scope);
+  expect(
+    a.calls
+      .filter((u) => u.pathname === "/v2/places")
+      .some((u) => u.searchParams.get("filter") === "place:verified-boundary"),
+  ).toBe(true);
+});

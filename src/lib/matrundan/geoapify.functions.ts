@@ -332,6 +332,7 @@ async function searchPlacesAtArea(
     const place = normalizePlaceFeature(feature as Parameters<typeof normalizePlaceFeature>[0]);
     if (!place || seen.has(place.externalId)) continue;
     seen.add(place.externalId);
+    place.searchIdentityKey = sourceIdentityKey(place.raw);
 
     if (!providerAlreadyAppliedIntent && !matchesPlaceSearchIntent(place, intent)) {
       continue;
@@ -490,7 +491,7 @@ const multiAreaInputSchema = z.object({
         scope: z.string().max(4000),
         direct: z.number().int().min(0).max(10_000),
         metadata: z.number().int().min(0).max(10_000),
-        metadataType: z.number().int().min(0).max(1),
+        metadataType: z.number().int().min(0).max(2),
         directDone: z.boolean(),
         metadataDone: z.boolean(),
       }),

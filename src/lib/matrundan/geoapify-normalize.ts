@@ -283,7 +283,9 @@ export function isExplicitlyClosedGeoapifyPlace(
 ): boolean {
   if (!properties) return false;
   const raw = properties.datasource?.raw;
-  const categories = properties.categories ?? [];
+  const categories = Array.isArray(properties.categories)
+    ? properties.categories.filter((c) => typeof c === "string")
+    : [];
 
   if (
     categories.some((category) =>
@@ -419,7 +421,13 @@ export function normalizePlaceFeature(feature: GeoapifyFeature): NormalizedPlace
     osmId: osmType && osmId ? osmId : undefined,
     cuisine: typeof providerRaw?.cuisine === "string" ? providerRaw.cuisine : undefined,
     categories,
-    diet: { vegetarian: providerRaw?.["diet:vegetarian"], vegan: providerRaw?.["diet:vegan"] },
+    diet: {
+      vegetarian:
+        typeof providerRaw?.["diet:vegetarian"] === "string"
+          ? providerRaw["diet:vegetarian"]
+          : undefined,
+      vegan: providerRaw?.["diet:vegan"],
+    },
     website: typeof website === "string" ? website : undefined,
     phone: typeof phone === "string" ? phone : undefined,
     hasOpeningHours: openingHoursKnown,

@@ -89,6 +89,8 @@ function fixtureProvider(url: URL) {
     limit = Number(url.searchParams.get("limit") ?? 20);
   return { features: features.slice(offset, offset + limit) };
 }
+const oldTags = (await import(resolve(mainPath, "src/lib/matrundan/food-tags.ts")))
+  .FOOD_TAGS as Array<{ id: string; label: string }>;
 const baseline = adapter(fixtureProvider, context, resolve(mainPath, "src/lib/matrundan"));
 const candidate = adapter(fixtureProvider, context);
 const quality = [];
@@ -106,13 +108,18 @@ for (const c of SEARCH_CONCEPTS) {
     };
     const expected = new Set(
       (pools.get(area.id) ?? [])
-        .filter((f) => sourceSearchEvidence(f, intent))
+        .filter((f) => f.properties.name.trim() && sourceSearchEvidence(f, intent))
         .map((f) => f.properties.place_id),
     );
     let base: string[] = [];
     let supported = true;
     try {
-      base = (await baseline.discovery(input)).results.map((p) => p.externalId);
+      base = (
+        await baseline.discovery({
+          ...input,
+          text: oldTags.find((tag) => tag.id === c.id)?.label ?? c.category ?? c.label,
+        })
+      ).results.map((p) => p.externalId);
     } catch {
       supported = false;
     }
@@ -134,6 +141,9 @@ for (const c of SEARCH_CONCEPTS) {
     perArea.push({
       area: area.id,
       observedSupported: expected.size,
+      rejectedUnnamed: (pools.get(area.id) ?? []).filter(
+        (f) => !f.properties.name.trim() && sourceSearchEvidence(f, intent),
+      ).length,
       mainSupported: supported,
       mainFirst: base.length,
       candidateFirst: first.results.length,
@@ -141,6 +151,14 @@ for (const c of SEARCH_CONCEPTS) {
       firstMissed: [...expected].filter((id) => !first.results.some((p) => p.externalId === id))
         .length,
       allMissed: [...expected].filter((id) => !all.has(id)).length,
+      missedExamples: (pools.get(area.id) ?? [])
+        .filter((f) => expected.has(f.properties.place_id) && !all.has(f.properties.place_id))
+        .slice(0, 5)
+        .map((f) => ({
+          name: f.properties.name,
+          categories: f.properties.categories,
+          raw: f.properties.datasource.raw,
+        })),
       firstUnproved: first.results.filter((p) => !expected.has(p.externalId)).length,
       pages,
       firstReserved: first.budgetUsage.reservedCredits,
@@ -170,7 +188,7 @@ for (const [version, dir] of [
           requests: number[] = [],
           credits: number[] = [],
           cacheHits: number[] = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < Number(process.env.SEARCH_REPLAY_SAMPLES ?? 30); i++) {
           const a = adapter(fixtureProvider, context, dir);
           const input: SearchInput = {
             text: "Sushi",

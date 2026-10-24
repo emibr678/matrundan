@@ -207,7 +207,7 @@ export function geoapifySearchRecipe(intent: PlaceSearchIntent) {
     return {
       id,
       direct: [] as readonly string[],
-      supplement: [] as readonly string[],
+      supplement: [] as readonly (readonly string[])[],
       conditions: [] as string[],
     };
   const profile = concept?.profile;
@@ -226,15 +226,27 @@ export function geoapifySearchRecipe(intent: PlaceSearchIntent) {
           "search:bubble-tea",
           "search:glassbar",
         ].includes(id)
-        ? ["catering.fast_food", "catering.restaurant"]
-        : ["catering.cafe", "catering.ice_cream"]
+        ? [
+            ["catering.fast_food"],
+            ["catering.restaurant"],
+            GEOAPIFY_DISCOVERY_CATEGORIES.filter(
+              (c) => c !== "catering.fast_food" && c !== "catering.restaurant",
+            ),
+          ]
+        : [
+            GEOAPIFY_DISCOVERY_CATEGORIES.filter(
+              (c) => c !== "catering.fast_food" && c !== "catering.restaurant",
+            ),
+            ["catering.restaurant"],
+            ["catering.fast_food"],
+          ]
       : [];
   // The observed Pasta gap is in restaurant metadata; Falafel and misplaced
   // Sushi/Thai prioritise fast_food. This is one source-order setting, not a dish detector.
-  if (id === "specialty:pasta") supplement.reverse();
+  if (id === "specialty:pasta") [supplement[0], supplement[1]] = [supplement[1], supplement[0]];
   return {
     id,
-    direct: profile ? ["catering.restaurant", "catering.fast_food", "catering.cafe"] : direct,
+    direct: profile ? GEOAPIFY_DISCOVERY_CATEGORIES : direct,
     supplement,
     conditions: profile ? [`${profile}.only`] : [],
   };

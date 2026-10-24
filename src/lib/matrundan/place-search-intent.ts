@@ -286,7 +286,6 @@ export function canonicalSearchCuisines(intent: PlaceSearchIntent): string[] {
   return [
     ...new Set([
       concept.label,
-      ...concept.tokens,
       ...(concept.family
         ? concept.tokens.flatMap((t) => {
             const tag = findFoodTag(t);
@@ -297,6 +296,7 @@ export function canonicalSearchCuisines(intent: PlaceSearchIntent): string[] {
       !["cuisine:swedish", "cuisine:mexican-latin", "specialty:vegetarian"].includes(legacy.id)
         ? [legacy.label]
         : []),
+      ...concept.tokens,
     ]),
   ].slice(0, 20);
 }

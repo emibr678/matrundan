@@ -54,8 +54,7 @@ export async function searchGeoapifyCatalogue(input: {
   for (const stream of ["direct", "metadata"] as const) {
     const done = stream === "direct" ? "directDone" : "metadataDone";
     if (cursor[done]) continue;
-    const categories =
-      stream === "direct" ? recipe.direct : [recipe.supplement[cursor.metadataType]];
+    const categories = stream === "direct" ? recipe.direct : recipe.supplement[cursor.metadataType];
     const limit = stream === "direct" ? input.limit : 50;
     const url = new URL(input.url);
     url.searchParams.set("categories", categories.join(","));
@@ -73,7 +72,14 @@ export async function searchGeoapifyCatalogue(input: {
         if (!feature || typeof feature !== "object") continue;
         const evidence = sourceSearchEvidence(feature as Feature, input.intent);
         if (!evidence) continue;
-        const place = normalizePlaceFeature(feature as Feature);
+        let place: NormalizedPlaceSuggestion | null;
+        try {
+          place = normalizePlaceFeature(feature as Feature);
+        } catch {
+          incomplete = true;
+          continue;
+        } // Isolate a malformed row, retain valid neighbours.
+
         if (!place) continue;
         place.searchEvidence = evidence;
         place.searchIdentityKey = sourceIdentityKey(place.raw);
