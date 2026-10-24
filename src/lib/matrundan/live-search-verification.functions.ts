@@ -14,8 +14,8 @@ const TARGETS = {
     sha: "ead5a34a717004a22c60c4ab9dd57a81d201d34f",
   },
   candidate: {
-    origin: "https://e1b4fd09-staging.matrundan.workers.dev",
-    sha: "6899af48af17e2c5f9fca97f56e68f816bfd6a4e",
+    origin: "https://d904033c-staging.matrundan.workers.dev",
+    sha: "593d5efed49384f723896693a1ec29fa8d247c94",
   },
 } as const;
 // TanStack's stable ID for the existing, unchanged authenticated discovery RPC.
@@ -61,7 +61,7 @@ export const measureLiveSearch = createServerFn({ method: "POST" })
         areas: z.union([z.literal(1), z.literal(5)]),
         sample: z.number().int().min(0).max(1),
         action: z.enum(["first", "more"]),
-        remainingCredits: z.number().int().min(0).max(240),
+        remainingCredits: z.number().int().min(0).max(90),
         progress: progressSchema.optional(),
       })
       .parse(value),

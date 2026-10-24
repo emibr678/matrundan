@@ -46,7 +46,7 @@ function Probe() {
   async function run() {
     if (running || rows.length) return;
     setRunning(true);
-    let spent = 44; // 4 verified credits plus 40 conservative credits for the rejected invalid-ID pilot.
+    let spent = 0;
     try {
       for (const sample of [0, 1])
         for (const areas of [1, 5] as const)
@@ -54,15 +54,16 @@ function Probe() {
             for (const target of (sample ? ["candidate", "main"] : ["main", "candidate"]) as Array<
               "main" | "candidate"
             >) {
-              if (sample === 0 && areas === 1 && strategy === "restaurant") continue; // Already captured: eight valid observations.
+              if (strategy === "restaurant" && (areas !== 1 || sample !== 0)) continue;
+              if (strategy === "sushi" && areas === 5 && sample !== 0) continue;
               let progress: ProbeProgress | undefined;
               let more = false;
               for (const action of ["first", "more"] as const) {
                 if (action === "more" && !more) continue;
                 const inputProgress = progress;
                 for (const requestedCache of ["cold", "warm"]) {
-                  if (spent >= 240) {
-                    setStatus("Stopp: 240 krediter reserverade");
+                  if (spent >= 90) {
+                    setStatus("Stopp: 90 krediter reserverade");
                     return;
                   }
                   setStatus(
@@ -78,7 +79,7 @@ function Probe() {
                       sample,
                       action,
                       progress: inputProgress,
-                      remainingCredits: 240 - spent,
+                      remainingCredits: 90 - spent,
                     },
                   });
                   const browserMs = performance.now() - start;
@@ -139,19 +140,20 @@ function Probe() {
     <main style={{ padding: 16 }}>
       <h1>Avgränsad liveverifiering av PR #515</h1>
       <p>
-        Endast läsning. Oförändrad main och exakt kandidat. Två försök per cell. Kall betyder avsedd
+        Endast läsning. Oförändrad main och exakt kandidat. Riktad efterkontroll: två varv för Sushi
+        i ett område; ett varv för Sushi i fem områden och direkt typ. Kall betyder avsedd
         appcachemiss; kvittot avgör faktisk cache. Server-HTTP inkluderar autentisering, databas,
         provider, transport och serialisering. Providerlatens isoleras inte. Inga råsvar,
         identiteter eller sessionsuppgifter sparas.
       </p>
-      <p>Högst 240 reserverade krediter för hela omgången. Ingen faktisk debitering rapporteras.</p>
+      <p>Högst 90 reserverade krediter för hela omgången. Ingen faktisk debitering rapporteras.</p>
       <button disabled={running || rows.length > 0} onClick={run}>
         Kör begränsat liveprov
       </button>
       <p role="status">{status}</p>
       <p>
         Observationer: {rows.length} · Reserverade krediter:{" "}
-        {44 + rows.reduce((a, r) => a + r.reservedCredits, 0)}
+        {rows.reduce((a, r) => a + r.reservedCredits, 0)}
       </p>
       <pre aria-label="Mätresultat">{JSON.stringify(rows, null, 2)}</pre>
     </main>

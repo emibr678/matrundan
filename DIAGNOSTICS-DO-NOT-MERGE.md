@@ -1,30 +1,31 @@
 # Tillfälligt mätverktyg för PR #515
 
-Denna branch ska inte mergas. Produktkandidatens head förblir 6899af48.
+Denna branch ska inte mergas. Den mäter oförändrad main ead5a34 och exakt
+produktkandidat 593d5efe genom ordinarie stagingautentisering och gruppkontroller.
+Inga privata grupp-ID:n, sessioner eller råsvar returneras eller lagras i kvittot.
+Endast två fasta egna stagingorigins kan anropas. Målens health måste matcha låsta SHA:n.
+HTTP-klienten använder explicit mål-Origin för befintlig CSRF-validering och giltig
+användarsession för ordinarie JWT- och gruppkontroller. Inga kontroller stängs av.
+Redirects följs inte; Workers stödda manual-läge kontrolleras med HTTP-status.
 
-Endast diagnostikversionen använder `global_fetch_strictly_public`: anrop till
-samma workers.dev-zon ska gå genom den publika frontdörren, inklusive normala
-Cloudflare-kontroller. Den driftsatta main-versionen och PR-kandidaten ändras
-inte. Detta följer Cloudflares dokumenterade routingflagga; den ger inga nya
-autentiserings- eller databasbehörigheter.
+Endast diagnostikversionen använder global_fetch_strictly_public så att same-zone-
+anrop går genom den publika frontdörren. Main och produktkandidaten ändras inte.
 
-`/sokverifiering` använder ordinarie stagingautentisering och en vald testgrupp.
-Alla anrop är read-only, avgränsade till ordinarie discovery-RPC på staging main
-och immutable preview e1b4fd09. Målens health måste matcha låsta SHA:n.
-Samma befintliga användarsession vidarebefordras server-side inom Matrundans
-stagingmiljöer. Inga hemligheter, grupp-ID:n eller råsvar rapporteras.
+Första matrisen finns i docs/verification/search-live-515-before.json: 64 giltiga
+observationer med två prov per cell på tidigare produkt-head 6899af48. Mätkodens
+avvisade försök finns separat och räknas inte som söklatens eller produktfel.
+188 verifierade providerreservkrediter + 40 försiktighetskrediter utan kvitto
+rymdes inom första omgångens 240-tak.
 
-Två varv, ett/fem punktområden, Restaurang/Sushi, första/Visa fler, avsedd kall
-och upprepad varm appcache. Högst 240 reserverade krediter, därefter stopp.
-Varje discovery-request har dessutom befintligt 25/40-tak. Vid saknat kvitto
-reserverar mätaren konservativt hela tillåtna kredittaket och stoppar provet.
+Den nu aktiva efterkontrollen har ett separat tak på 90 reservkrediter. Den kör
+main och ny kandidat: Sushi med ett område två varv; Sushi med fem områden och
+direkt Restaurang med ett område ett varv. Varje varv mäter första och riktig
+cursor-fortsättning, kall och upprepad varm appcache. Alla är punktområden, 5 km.
+Inga gruppinställningar eller platser skrivs av mätverktyget.
 
-HTTP-latensen mellan mätaren och målets riktiga RPC inkluderar nätverk,
-autentisering, databas, provider, serialisering. Det är verklig live-HTTP,
-men inte isolerad Geoapify-tid. Browserns mättid inkluderar även reläets
-autentisering, SHA-kontroll och extra transport; den är inte ordinarie appens
-rena UI-latens. Verktygsanropens latens mäts inte som produktlatens.
-
-Två observationer ger endast ett kontrollerat pilotprov, inget stabilt p95.
-Cacheträffar redovisas bara där servern faktiskt rapporterar dem; noll
-missanrop och noll reservation styrker varm appcache även i main.
+HTTP-latens inkluderar måltransport, auth, databas, provider och svarskropp;
+isolerad providerlatens finns inte. Browsermättid inkluderar reläets extra auth,
+health-kontroll och transport, inte ordinarie appens rena rendering. Verktygets
+kontroll-API-latens används aldrig som produktlatens. Noll missanrop och noll
+reservation styrker varm appcache; main rapporterar inget separat cacheträffantal.
+Urvalet ger inga tillförlitliga p95 per cell. Faktisk leverantörsdebitering är inte verifierad.
