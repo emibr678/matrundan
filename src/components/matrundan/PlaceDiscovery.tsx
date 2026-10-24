@@ -1186,6 +1186,24 @@ export function PlaceDiscovery({
   ).length;
   const mappableResultCount = mapResults.length - unmappedCount;
   const actionableResultCount = sourceMatches.length + availableResults.length;
+  const paginationButton = canShowMore ? (
+    <Button
+      type="button"
+      variant="secondary"
+      size="sm"
+      className="min-h-11 w-full"
+      disabled={loadingMore || interactionsDisabled}
+      onClick={() => void showMoreResults()}
+    >
+      {loadingMore ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
+        </>
+      ) : (
+        "Visa fler"
+      )}
+    </Button>
+  ) : null;
   const resultSections = (
     <SearchResultSections
       available={availableResults}
@@ -1193,26 +1211,7 @@ export function PlaceDiscovery({
       existing={existingResults}
       existingOpen={existingOpen}
       onExistingOpenChange={setExistingOpen}
-      pagination={
-        canShowMore ? (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="min-h-11 w-full"
-            disabled={loadingMore || interactionsDisabled}
-            onClick={() => void showMoreResults()}
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Laddar fler…
-              </>
-            ) : (
-              "Visa fler"
-            )}
-          </Button>
-        ) : null
-      }
+      pagination={paginationButton}
       selectedId={selectedId}
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
@@ -1631,7 +1630,16 @@ export function PlaceDiscovery({
                           </Button>
                         ) : null}
                       </div>
-                      <div className="mt-3">{resultView === "lista" ? resultSections : map}</div>
+                      <div className="mt-3">
+                        {resultView === "lista" ? (
+                          resultSections
+                        ) : (
+                          <div className="space-y-3">
+                            {map}
+                            {paginationButton}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
                       <h3 className="text-sm font-medium">Ställen att lägga till</h3>

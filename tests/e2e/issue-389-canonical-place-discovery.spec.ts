@@ -1000,7 +1000,7 @@ test("20+ visas först när en ytterligare handlingsbar träff finns i bufferten
   await noOverflow(page);
 });
 
-test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza (#465)", async ({
+test("valt kök fylls på genom Visa fler och borttaget filter får egen kartström (#512)", async ({
   page,
 }) => {
   const mocked = await setup(page, { mapPaging: true });
@@ -1014,11 +1014,21 @@ test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza 
   await search.getByRole("button", { name: "Karta", exact: true }).click();
   const pizzaRefilled = () =>
     mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0);
+  // A selected concept never scans another metadata page merely because the map opens.
+  const more = search.getByRole("button", { name: "Visa fler", exact: true });
+  await expect(more).toBeVisible();
+  await page.waitForTimeout(600);
+  expect(pizzaRefilled()).toBe(false);
+  await more.click();
   await expect.poll(pizzaRefilled).toBe(true);
 
+  const beforeClear = mocked.getMapSearchCalls().length;
   await search.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
   const allRefilled = () =>
-    mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0);
+    mocked
+      .getMapSearchCalls()
+      .slice(beforeClear)
+      .some((call) => call.filter === "all" && call.offset > 0);
   await expect.poll(allRefilled).toBe(true);
   await noOverflow(page);
 });
