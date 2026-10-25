@@ -174,6 +174,28 @@ function pointInBoundary(point: [number, number], boundary: SearchAreaBoundaryGe
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
   {
+    externalId: "demo-varmdo-pasta",
+    provider: "demo",
+    name: "Skärgårdens Pastakök",
+    category: "restaurang",
+    address: "Exempelbryggan 4",
+    city: "Gustavsberg",
+    cuisines: ["italienskt", "pasta"],
+    lat: 59.326,
+    lng: 18.392,
+  },
+  {
+    externalId: "demo-varmdo-trattoria",
+    provider: "demo",
+    name: "Vikens Trattoria",
+    category: "restaurang",
+    address: "Smakgränden 6",
+    city: "Gustavsberg",
+    cuisines: ["italienskt"],
+    lat: 59.327,
+    lng: 18.394,
+  },
+  {
     externalId: "demo-kebab",
     provider: "demo",
     name: "Kompassens Kebab",

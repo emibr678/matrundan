@@ -1,5 +1,26 @@
 import { test, expect } from "@playwright/test";
 
+test("exempelgruppens förvalda områden visar Pasta utan sökomväg (#512)", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/exempel");
+  await page.getByRole("link", { name: "Matställen", exact: true }).click();
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await dialog.getByRole("combobox", { name: "Sök matställen", exact: true }).fill("Pasta");
+  await dialog.getByRole("option").filter({ hasText: "Pasta" }).click();
+  await expect(
+    dialog.getByRole("button", { name: "Visa information om Skärgårdens Pastakök", exact: true }),
+  ).toBeVisible();
+  const likely = dialog.getByRole("button", {
+    name: "Visa information om Vikens Trattoria",
+    exact: true,
+  });
+  await expect(likely).toBeVisible();
+  await expect(likely).toContainText("Italienskt");
+  await expect(likely).not.toContainText("Pasta");
+  expect(await dialog.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
 for (const width of [360, 1280]) {
   test(`sökkatalog, relaterat val och tillägg i demo vid ${width}px (#512)`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
