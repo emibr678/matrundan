@@ -923,6 +923,7 @@ export function PlaceDiscovery({
       setHasMore(filled.hasMore);
       setNextOffset(filled.nextOffset);
       setAreaProgress(filled.areaProgress);
+      setFailedAreas(filled.failedAreaLabels);
       setDisplayLimit(targetActionable);
     } catch (caught) {
       if (requestId !== requestRef.current) return;

@@ -10,6 +10,8 @@ export interface SearchStreamCursor {
   metadataType: number;
   directDone: boolean;
   metadataDone: boolean;
+  /** Resume the deferred stream first; old cursors start with direct as before. */
+  nextStream?: "direct" | "metadata";
 }
 type Payload = { features?: unknown[] };
 type Feature = Parameters<typeof normalizePlaceFeature>[0];
@@ -50,11 +52,13 @@ export async function searchGeoapifyCatalogue(input: {
           metadataDone: !recipe.supplement.length,
         };
   const streams = ["direct", "metadata"] as const;
+  const scheduledStreams = cursor.nextStream === "metadata" ? [...streams].reverse() : streams;
   const streamResults = {
     direct: new Map<string, NormalizedPlaceSuggestion>(),
     metadata: new Map<string, NormalizedPlaceSuggestion>(),
   };
   const errors: { direct?: unknown; metadata?: unknown } = {};
+  const completed = new Set<(typeof streams)[number]>();
   let incomplete = false;
   let successful = 0;
   const runStream = async (stream: (typeof streams)[number]) => {
@@ -75,6 +79,7 @@ export async function searchGeoapifyCatalogue(input: {
       if (!Array.isArray(payload.features))
         throw new Error("GEOAPIFY_MALFORMED: Platslistan saknas.");
       successful++;
+      completed.add(stream);
       for (const feature of payload.features) {
         if (!feature || typeof feature !== "object") continue;
         const evidence = sourceSearchEvidence(feature as Feature, input.intent);
@@ -105,12 +110,22 @@ export async function searchGeoapifyCatalogue(input: {
         cursor.metadata = 0;
       } else cursor[done] = endOfStream;
     } catch (error) {
+      // An intentional per-action budget stop defers this cursor, it is not a
+      // failed area/provider. The shared budget receipt already reports limited.
+      const message =
+        error && typeof error === "object" && "message" in error ? error.message : null;
+      if (typeof message === "string" && message.startsWith("GEOAPIFY_SEARCH_BUDGET:")) return;
       incomplete = true;
       errors[stream] = error;
     }
   };
-  if (input.parallelStreams) await Promise.all(streams.map(runStream));
-  else for (const stream of streams) await runStream(stream);
+  if (input.parallelStreams) await Promise.all(scheduledStreams.map(runStream));
+  else for (const stream of scheduledStreams) await runStream(stream);
+  // Advance priority only on success, in scheduling order rather than arrival
+  // order. A cold 5-request action can then alternate across five areas without
+  // starving metadata behind an arbitrarily long direct stream.
+  for (const stream of scheduledStreams)
+    if (completed.has(stream)) cursor.nextStream = stream === "direct" ? "metadata" : "direct";
   // Arrival order must never choose a different identity or source representative.
   const results = new Map<string, NormalizedPlaceSuggestion>();
   for (const stream of streams)

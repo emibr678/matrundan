@@ -496,6 +496,7 @@ const multiAreaInputSchema = z.object({
         metadataType: z.number().int().min(0).max(2),
         directDone: z.boolean(),
         metadataDone: z.boolean(),
+        nextStream: z.enum(["direct", "metadata"]).optional(),
       }),
     )
     .refine((value) => Object.keys(value).length <= 5)

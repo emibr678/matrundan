@@ -41,6 +41,158 @@ const input: SearchInput = {
 };
 const context = { supabase: { rpc: async () => ({ data: [], error: null }) } };
 
+test("fem kalla områden ger båda strömmarna tur inom två Visa fler-klick med verklig 5/20-budget", async () => {
+  const five = {
+    ...input,
+    centers: Array.from({ length: 5 }, (_, i) => ({
+      ...area,
+      id: `a${i}`,
+      lat: area.lat + i * 0.01,
+    })),
+  };
+  const fixture = (u: URL) => ({
+    features: Array.from({ length: Number(u.searchParams.get("limit")) }, (_, i) =>
+      feature(
+        `${u.searchParams.get("filter")}-${u.searchParams.get("categories")}-${u.searchParams.get("offset") ?? 0}-${i}`,
+        "sushi",
+        [u.searchParams.get("categories")!],
+      ),
+    ),
+  });
+  let page = await adapter(fixture, context).discovery(five);
+  const firstMetadata = Object.values(page.streamCursors!).map((c) => c.metadata);
+  // New isolated adapters model cache eviction between clicks. Correctness must
+  // not rely on a warm serverless instance keeping earlier requests free.
+  for (let click = 0; click < 2; click++) {
+    page = await adapter(fixture, context).discovery({
+      ...five,
+      streamCursors: page.streamCursors,
+      areaOffsets: page.areaOffsets,
+      exhaustedAreaIds: page.exhaustedAreaIds,
+      providerRequestLimit: 5,
+      providerCreditLimit: 20,
+    });
+    expect(page.budgetUsage.requests).toBeLessThanOrEqual(5);
+    expect(page.budgetUsage.reservedCredits).toBeLessThanOrEqual(20);
+    expect(page.failedAreaIds).toEqual([]);
+  }
+  expect(Object.values(page.streamCursors!).every((c, i) => c.metadata > firstMetadata[i])).toBe(
+    true,
+  );
+  expect(Object.values(page.streamCursors!).every((c) => c.direct >= 40)).toBe(true);
+});
+
+test("kalla 5/20-klick når sista direkta och råa sidan utan upprepat arbete", async () => {
+  const five = {
+    ...input,
+    centers: Array.from({ length: 5 }, (_, i) => ({
+      ...area,
+      id: `a${i}`,
+      lat: area.lat + i * 0.01,
+    })),
+  };
+  const urls = new Set<string>();
+  const fixture = (u: URL) => {
+    expect(urls.has(u.toString())).toBe(false);
+    urls.add(u.toString());
+    const category = u.searchParams.get("categories")!;
+    const direct = category.endsWith(".sushi");
+    const total = direct ? 61 : category === "catering.fast_food" ? 101 : 0;
+    const offset = Number(u.searchParams.get("offset") ?? 0);
+    return {
+      features: Array.from(
+        { length: Math.max(0, Math.min(Number(u.searchParams.get("limit")), total - offset)) },
+        (_, i) =>
+          feature(
+            `${u.searchParams.get("filter")}-${direct ? "direct" : "raw"}-${offset + i}`,
+            "sushi",
+            [direct ? "catering.restaurant.sushi" : "catering.fast_food"],
+          ),
+      ),
+    };
+  };
+  let page = await adapter(fixture, context).discovery(five);
+  const ids = new Set(page.results.map((p) => p.externalId));
+  let clicks = 0;
+  while (page.hasMore && clicks++ < 12) {
+    page = await adapter(fixture, context).discovery({
+      ...five,
+      streamCursors: page.streamCursors,
+      areaOffsets: page.areaOffsets,
+      exhaustedAreaIds: page.exhaustedAreaIds,
+      providerRequestLimit: 5,
+      providerCreditLimit: 20,
+    });
+    expect(page.budgetUsage.requests).toBeLessThanOrEqual(5);
+    expect(page.budgetUsage.reservedCredits).toBeLessThanOrEqual(20);
+    expect(page.failedAreaIds).toEqual([]);
+    for (const p of page.results) ids.add(p.externalId);
+  }
+  expect(page.hasMore).toBe(false);
+  expect(ids.size).toBe(5 * (61 + 101));
+  expect(page.exhaustedAreaIds).toHaveLength(5);
+});
+
+test("verkligt providerfel behåller råcursor och återförsök tappar inte direktsidor", async () => {
+  const a = adapter(
+    (u) => ({
+      features: Array.from({ length: Number(u.searchParams.get("limit")) }, (_, i) =>
+        feature(`first-${i}`, "sushi"),
+      ),
+    }),
+    context,
+  );
+  const first = await a.discovery(input);
+  const failed = await adapter(
+    (u) =>
+      u.searchParams.get("categories") === "catering.fast_food"
+        ? { features: [], status: 429 }
+        : { features: [feature("direct-final", "sushi")] },
+    context,
+  ).discovery({
+    ...input,
+    streamCursors: first.streamCursors,
+    providerRequestLimit: 5,
+    providerCreditLimit: 20,
+  });
+  expect(failed.failedAreaIds).toEqual([area.id]);
+  expect(failed.streamCursors![area.id].metadata).toBe(50);
+  expect(failed.streamCursors![area.id].directDone).toBe(true);
+  const retried = adapter((u) => {
+    expect(u.searchParams.get("offset")).toBe("50");
+    return { features: [feature("raw-recovered", "sushi")] };
+  }, context);
+  const recovered = await retried.discovery({
+    ...input,
+    streamCursors: failed.streamCursors,
+    providerRequestLimit: 5,
+    providerCreditLimit: 20,
+  });
+  expect(recovered.failedAreaIds).toEqual([]);
+  expect(recovered.results.some((p) => p.externalId === "raw-recovered")).toBe(true);
+  expect(retried.calls).toHaveLength(1);
+});
+
+test("ett område med en enda kall anropsplats kan fortsätta metadata utan felmarkering", async () => {
+  let page = await adapter(() => ({ features: [] }), context).discovery({
+    ...input,
+    providerRequestLimit: 1,
+    providerCreditLimit: 4,
+  });
+  expect(page.hasMore).toBe(true);
+  expect(page.failedAreaIds).toEqual([]);
+  expect(page.streamCursors![area.id].directDone).toBe(true);
+  const cursor = page.streamCursors;
+  page = await adapter(() => ({ features: [feature("last-raw", "sushi")] }), context).discovery({
+    ...input,
+    streamCursors: cursor,
+    providerRequestLimit: 1,
+    providerCreditLimit: 4,
+  });
+  expect(page.results.some((p) => p.externalId === "last-raw")).toBe(true);
+  expect(page.failedAreaIds).toEqual([]);
+});
+
 test("ett område överlappar strömmarna men väljer alltid direktströmmens identitet först", async () => {
   const direct = feature("direct", "sushi", ["catering.restaurant.sushi"], {
     osm_type: "way",
