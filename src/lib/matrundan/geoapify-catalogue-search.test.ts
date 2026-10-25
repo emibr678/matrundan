@@ -316,7 +316,7 @@ describe("gemensam källmatchning, ingen meny- eller namnklassificering", () => 
     ["Sallad", "salad"],
     ["Libanesiskt", "lebanese"],
   ])("%s kan återfå explicit %s före normalisering", async (word, raw) => {
-    const results = (await run(word, [feature("positive", raw), feature("irrelevant", "italian")]))
+    const results = (await run(word, [feature("positive", raw), feature("irrelevant", "unknown")]))
       .results;
     expect(results.map((p) => p.externalId)).toEqual(["positive"]);
     expect(results[0].searchEvidence?.intentId).toBe(
@@ -327,8 +327,10 @@ describe("gemensam källmatchning, ingen meny- eller namnklassificering", () => 
   test("nationellt kök, namn och svag association skapar inte maträttsbevis", async () => {
     const named = feature("named", "italian");
     named.properties.name = "Pasta och falafel";
-    for (const word of ["Pasta", "Falafel", "Sallad"])
+    for (const word of ["Falafel", "Sallad"])
       expect((await run(word, [named])).results).toHaveLength(0);
+    expect(sourceSearchEvidence(named, intent("Pasta"))).toBeUndefined();
+    expect((await run("Pasta", [named])).results[0].searchEvidence?.kind).toBe("association");
     expect(sourceSearchEvidence(feature("indian", "indian"), intent("Asiatiskt"))).toBeUndefined();
     expect(sourceSearchEvidence(feature("pizza", "pizza"), intent("Italienskt"))).toBeUndefined();
   });

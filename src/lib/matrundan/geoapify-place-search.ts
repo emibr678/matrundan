@@ -1,4 +1,4 @@
-import { searchConceptById } from "./search-catalogue";
+import { relatedSearchConcepts, searchConceptById } from "./search-catalogue";
 import type { PlaceSearchIntent } from "./place-search-intent";
 import type { PlaceCategory } from "./types";
 
@@ -207,6 +207,7 @@ export function geoapifySearchRecipe(intent: PlaceSearchIntent) {
     return {
       id,
       direct: [] as readonly string[],
+      related: [] as readonly string[],
       supplement: [] as readonly (readonly string[])[],
       conditions: [] as string[],
     };
@@ -247,6 +248,11 @@ export function geoapifySearchRecipe(intent: PlaceSearchIntent) {
   return {
     id,
     direct: profile ? GEOAPIFY_DISCOVERY_CATEGORIES : direct,
+    related: [
+      ...new Set(
+        relatedSearchConcepts(id).flatMap((target) => SEARCH_PROVIDER_CATEGORIES[target.id] ?? []),
+      ),
+    ].sort(),
     supplement,
     conditions: profile ? [`${profile}.only`] : [],
   };

@@ -1,4 +1,5 @@
 import type { PlaceSuggestion } from "./places-provider";
+import { searchRelevanceRank } from "./place-search-intent";
 
 /**
  * Ren sammanslagning av två sidor sökträffar från platsleverantören.
@@ -55,6 +56,10 @@ export function mergePlaceSearchPages(
 
     merged.set(key, {
       ...base,
+      searchEvidence:
+        searchRelevanceRank(suggestion) < searchRelevanceRank(existing)
+          ? suggestion.searchEvidence
+          : (existing.searchEvidence ?? suggestion.searchEvidence),
       ...(suggestion.identity ? { identity: suggestion.identity } : {}),
       ...(suggestion.canonical ? { canonical: suggestion.canonical } : {}),
       nearestAreaLabel: base.nearestAreaLabel ?? existing.nearestAreaLabel,
@@ -100,6 +105,8 @@ export function rankNewPlaceSearchPage(
   return [...suggestions].sort((a, b) => {
     const area = areaRank(a) - areaRank(b);
     if (area !== 0) return area;
+    const relevance = searchRelevanceRank(a) - searchRelevanceRank(b);
+    if (relevance !== 0) return relevance;
     const match = matchQuality(a) - matchQuality(b);
     if (match !== 0) return match;
     // Compare measured point distances, but not invented boundary distances.

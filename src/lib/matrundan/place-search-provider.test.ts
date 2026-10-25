@@ -46,7 +46,7 @@ describe("providerstyrd matställessökning", () => {
     expect(results.map((result) => result.name)).toContain("Rislyktans Izakaya");
   });
 
-  test("demo matchar Pasta utan att blanda in alla italienska ställen", async () => {
+  test("demo visar exakta Pasta-träffar före italienska kandidater utan att ge dem Pasta-attribut", async () => {
     const results = await getPlacesProvider().search({
       query: "Pasta",
       center: { lat: 57.6975, lng: 11.9598 },
@@ -55,6 +55,9 @@ describe("providerstyrd matställessökning", () => {
     });
 
     expect(results.map((result) => result.name)).toContain("Päronträdets Trattoria");
-    expect(results.map((result) => result.name)).not.toContain("Pizzagläntan");
+    const italian = results.find((result) => result.name === "Pizzagläntan")!;
+    expect(italian.searchEvidence?.kind).toBe("association");
+    expect(italian.cuisines).not.toContain("Pasta");
+    expect(results[0].name).toBe("Päronträdets Trattoria");
   });
 });

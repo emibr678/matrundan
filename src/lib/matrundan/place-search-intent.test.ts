@@ -63,7 +63,7 @@ describe("matställessökningens intent", () => {
     ).toBe(true);
   });
 
-  test("Pasta matchar pasta men inte enbart italienskt", () => {
+  test("Pasta matchar pasta och sannolika italienska ställen utan att ändra deras attribut", () => {
     const intent = resolvePlaceSearchIntent("Pasta");
     expect(
       matchesPlaceSearchIntent(
@@ -81,7 +81,7 @@ describe("matställessökningens intent", () => {
         },
         intent,
       ),
-    ).toBe(false);
+    ).toBe(true);
   });
 
   test("fri text kan fortfarande matcha namn och geografisk kontext", () => {

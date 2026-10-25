@@ -141,6 +141,7 @@ export function adapter(
           Omit<MultiAreaSearchResponse, "results"> & {
             results: PlaceSuggestion[];
             canConfirm: boolean;
+            canonicalIncomplete: boolean;
             budgetUsage: { requests: number; reservedCredits: number; limited: boolean };
           }
         >

@@ -1,4 +1,5 @@
-import { searchConceptById, normalizeSearchTerm } from "./search-catalogue";
+import { searchConceptById, normalizeSearchTerm, relatedSearchConcepts } from "./search-catalogue";
+import { resolveDiscoverySearchIntent } from "./place-search-intent";
 import { geoapifySearchRecipe } from "./geoapify-place-search";
 import type { PlaceSearchIntent, SearchablePlaceSuggestion } from "./place-search-intent";
 
@@ -49,6 +50,22 @@ export function sourceSearchEvidence(
   return values.some((value) => tokens.has(value))
     ? { intentId: concept.id, kind: concept.family ? "family" : "metadata" }
     : undefined;
+}
+
+/** Query relevance is not dish proof. Never feed this evidence into saved attributes. */
+export function relevantSourceSearchEvidence(feature: SourceFeature, intent: PlaceSearchIntent) {
+  const exact = sourceSearchEvidence(feature, intent);
+  if (exact) return exact;
+  const id = intent.kind === "food-tag" ? intent.tagId : "";
+  for (const concept of relatedSearchConcepts(id)) {
+    const related = resolveDiscoverySearchIntent(concept.label, "auto", {
+      kind: concept.kind,
+      id: concept.id,
+    });
+    if (sourceSearchEvidence(feature, related))
+      return { intentId: id, kind: "association" as const, relatedId: concept.id };
+  }
+  return undefined;
 }
 
 /** Strict OSM identity, independent of mutable provider place IDs. No spatial/name heuristics. */

@@ -13,6 +13,8 @@ import {
 } from "./place-discovery";
 import {
   matchesPlaceSearchIntent,
+  savedPlaceSearchEvidence,
+  searchRelevanceRank,
   resolveDiscoverySearchIntent,
   type SelectedPlaceSearchFilter,
 } from "./place-search-intent";
@@ -493,9 +495,7 @@ const demoProvider: PlacesProvider = {
         : []),
     ].map((suggestion): PlaceSuggestion => ({
       ...suggestion,
-      ...(intent.kind === "food-tag" && matchesPlaceSearchIntent(suggestion, intent)
-        ? { searchEvidence: { intentId: intent.tagId, kind: "metadata" } }
-        : {}),
+      searchEvidence: savedPlaceSearchEvidence(suggestion, intent),
       cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
     }));
     let items = suppliedCenter
@@ -550,7 +550,9 @@ const demoProvider: PlacesProvider = {
 
     filtered.sort(
       (a, b) =>
-        (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
+        searchRelevanceRank(a) - searchRelevanceRank(b) ||
+        (a.distanceKm ?? 999) - (b.distanceKm ?? 999) ||
+        a.name.localeCompare(b.name, "sv-SE"),
     );
 
     // Boundaryns centrumavstånd används bara för deterministisk intern sortering.

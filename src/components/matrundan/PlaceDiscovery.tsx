@@ -801,7 +801,10 @@ export function PlaceDiscovery({
           if (successful.length === 0 && nextFailedAreas.length > 0) {
             throw new Error("Kunde inte söka i de valda områdena.");
           }
-          nextResults = mergeAreaSearchResults(successful, 50);
+          nextResults = rankNewPlaceSearchPage(
+            mergeAreaSearchResults(successful, 50),
+            selectedFilter ? "" : effectiveQuery,
+          );
         }
         if (requestId !== requestRef.current) return;
         setResults(nextResults);
@@ -925,6 +928,16 @@ export function PlaceDiscovery({
       setAreaProgress(filled.areaProgress);
       setFailedAreas(filled.failedAreaLabels);
       setDisplayLimit(targetActionable);
+      if (
+        !filled.failedAreaLabels.length &&
+        countActionableSuggestions(filled.results, isActionableRef.current) <= shownActionableCount
+      ) {
+        toast.info("Inga nya träffar i den här omgången.", {
+          description: filled.hasMore
+            ? "Sökningen är inte färdig. Du kan fortsätta med Visa fler."
+            : "Nu har vi sökt klart i de valda områdena.",
+        });
+      }
     } catch (caught) {
       if (requestId !== requestRef.current) return;
       console.warn("[Matrundan] kunde inte hämta fler sökträffar:", caught);

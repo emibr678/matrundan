@@ -77,9 +77,10 @@ describe("Issue #512 — hela den beslutade sökkatalogen", () => {
       expect(canonicalSearchCuisines(intent)).not.toContain(old);
     }
     const pasta = resolveDiscoverySearchIntent("Pasta");
-    expect(matchesPlaceSearchIntent(place(["Italienskt"]), pasta)).toBe(false);
+    expect(matchesPlaceSearchIntent(place(["Italienskt"]), pasta)).toBe(true);
     expect(matchesPlaceSearchIntent(place(["Pasta"]), pasta)).toBe(true);
     expect(canonicalSearchCuisines(pasta)).toContain("Pasta");
+    expect(canonicalSearchCuisines(pasta)).not.toContain("Italienskt"); // Separate protected retrieval.
     expect(canonicalSearchCuisines(pasta)).not.toContain("specialty:pasta");
   });
   test("inga kostalternativ eller pensionerade etiketter blir nya dolda exakta filter", () => {

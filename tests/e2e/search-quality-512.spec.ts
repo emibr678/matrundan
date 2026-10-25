@@ -7,6 +7,23 @@ for (const width of [360, 1280]) {
     await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
     const dialog = page.getByRole("dialog", { name: "Lägg till matställe" });
     const query = dialog.getByRole("combobox", { name: "Sök matställen", exact: true });
+    await query.fill("Pasta");
+    await expect(dialog.getByRole("option").filter({ hasText: "prova Italienskt" })).toHaveCount(0);
+    await dialog.getByRole("option").filter({ hasText: "Pasta" }).click();
+    await expect(
+      dialog.getByRole("button", {
+        name: "Visa information om Päronträdets Trattoria",
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      dialog.getByRole("button", { name: "Visa information om Pizzagläntan", exact: true }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: `visual-review/relevance-pasta-512-${width}.png`,
+      fullPage: true,
+    });
+    await dialog.getByRole("button", { name: "Ta bort filtret Pasta", exact: true }).click();
     for (const [word, target] of [
       ["Kyckling", "Kyckling"],
       ["glassbar", "Glass"],

@@ -306,6 +306,14 @@ begränsningar och inget område är primärt framför de andra. Alla sparade om
 Externa källor som Geoapify och OpenStreetMap hjälper platsidentifiering och
 datakvalitet, men deras tekniska modell ska inte bli användarens produktmodell.
 
+En maträttssökning kombinerar uttryckliga träffar med ett fåtal starka, riktade
+samband, exempelvis Pasta och italienska restauranger, i en gemensam lista.
+Uttryckliga träffar prioriteras före sannolika kandidater, därefter geografisk
+närhet. Användaren ska inte behöva välja en separat breddningsstrategi.
+Sannolik sökrelevans är aldrig en verifierad uppgift om menyn och får inte
+automatiskt bli sparad klassificering. Svaga associationer och renodlade
+vegetariska/veganska profiler breddas inte genom antaganden.
+
 ## Produktguidning
 
 Matrundan använder sparsam produktguidning för att förklara sådant som förändrar

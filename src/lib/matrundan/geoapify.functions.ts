@@ -58,7 +58,12 @@ import type { SearchAreaBoundaryGeometry, SearchAreaMode } from "./types";
 import { searchGeoapifyCatalogue, type SearchStreamCursor } from "./geoapify-catalogue-search";
 import { searchConceptById } from "./search-catalogue";
 import { sourceIdentityKey } from "./place-search-evidence";
-import { canonicalSearchCuisines } from "./place-search-intent";
+import {
+  canonicalSearchCuisines,
+  canonicalRelatedSearchFilters,
+  savedPlaceSearchEvidence,
+  searchRelevanceRank,
+} from "./place-search-intent";
 
 const REQUEST_TIMEOUT_MS = 10_000;
 const WIDE_AREA_RADIUS_KM = 50;
@@ -490,13 +495,16 @@ const multiAreaInputSchema = z.object({
   streamCursors: z
     .record(
       z.object({
+        version: z.literal(2).optional(),
         scope: z.string().max(4000),
         direct: z.number().int().min(0).max(10_000),
+        related: z.number().int().min(0).max(10_000).optional(),
         metadata: z.number().int().min(0).max(10_000),
         metadataType: z.number().int().min(0).max(2),
         directDone: z.boolean(),
+        relatedDone: z.boolean().optional(),
         metadataDone: z.boolean(),
-        nextStream: z.enum(["direct", "metadata"]).optional(),
+        nextStream: z.enum(["direct", "related", "metadata"]).optional(),
       }),
     )
     .refine((value) => Object.keys(value).length <= 5)
@@ -520,7 +528,12 @@ async function searchProviderAreas(
     data.centers.every((center) => center.searchMode !== "boundary")
       ? expandedNameRadiusKm(data.radiusKm)
       : null;
-  const exhausted = new Set(data.exhaustedAreaIds ?? []);
+  // A pre-relevance cursor cannot mark the new association stream exhausted.
+  const exhausted = new Set(
+    (data.exhaustedAreaIds ?? []).filter(
+      (id) => !data.streamCursors?.[id] || data.streamCursors[id].version === 2,
+    ),
+  );
   const centers = data.centers.filter((center) => !exhausted.has(center.id));
   const offsets = { ...(data.areaOffsets ?? {}) };
   const streamCursors = { ...(data.streamCursors ?? {}) };
@@ -585,10 +598,15 @@ async function searchProviderAreas(
         !current ||
         (centerMode === "point" && current.nearestAreaSearchMode !== "point") ||
         (centerMode === current.nearestAreaSearchMode && nextDistance < currentDistance);
+      const searchEvidence =
+        current && searchRelevanceRank(current) < searchRelevanceRank(place)
+          ? current.searchEvidence
+          : place.searchEvidence;
 
       if (preferNext) {
         merged.set(key, {
           ...place,
+          searchEvidence,
           nearestAreaLabel: center.label,
           nearestAreaId: center.id,
           matchingAreaLabels,
@@ -596,7 +614,7 @@ async function searchProviderAreas(
           nearestAreaSearchMode: centerMode,
         });
       } else {
-        merged.set(key, { ...current, matchingAreaLabels, matchingAreaIds });
+        merged.set(key, { ...current, searchEvidence, matchingAreaLabels, matchingAreaIds });
       }
     }
   });
@@ -615,7 +633,11 @@ async function searchProviderAreas(
   const rankedResults = [...merged.values()].sort((a, b) => {
     const da = a.distanceKm ?? Number.POSITIVE_INFINITY;
     const db = b.distanceKm ?? Number.POSITIVE_INFINITY;
-    return da - db || a.name.localeCompare(b.name, "sv-SE");
+    return (
+      searchRelevanceRank(a) - searchRelevanceRank(b) ||
+      da - db ||
+      a.name.localeCompare(b.name, "sv-SE")
+    );
   });
   const results: MultiAreaPlaceSuggestion[] = rankedResults.flatMap(
     ({ nearestAreaSearchMode, ...result }) => {
@@ -767,7 +789,37 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 });
           if (found.error) return { results: [], incomplete: true };
           const rows = z.array(canonicalPlaceCandidateSchema).parse(found.data);
-          const primaryTruncated = rows.length === 200;
+          let primaryTruncated = rows.length === 200;
+          const relatedFilters = canonicalRelatedSearchFilters(intent);
+          if (
+            data.searchPhase !== "recovery" &&
+            (relatedFilters.cuisines.length || relatedFilters.categories.length)
+          ) {
+            const related = await Promise.resolve(
+              context.supabase.rpc("search_canonical_places_v1", {
+                _group_id: data.groupId,
+                _text: "",
+                _centers: centers,
+                _categories: relatedFilters.categories,
+                _cuisines: relatedFilters.cuisines,
+                _limit: 200,
+              }),
+            ).catch(() => ({
+              data: [],
+              error: new Error("Relaterade ställen kunde inte hämtas."),
+            }));
+            if (related.error) primaryTruncated = true;
+            else {
+              const candidates = z.array(canonicalPlaceCandidateSchema).parse(related.data);
+              primaryTruncated ||= candidates.length === 200;
+              const seen = new Set(rows.map((row) => row.placeId));
+              for (const row of candidates)
+                if (!seen.has(row.placeId)) {
+                  rows.push(row);
+                  seen.add(row.placeId);
+                }
+            }
+          }
           let fuzzyIncomplete = false;
           const fuzzyIds = new Set<string>();
           const fuzzyRadius =
@@ -836,6 +888,7 @@ export const searchPlaceDiscovery = createServerFn({ method: "POST" })
                 name: canonical.name,
                 category: canonical.category,
                 cuisines: canonical.cuisines,
+                searchEvidence: savedPlaceSearchEvidence(canonical, intent),
                 address: canonical.address,
                 city: canonical.city,
                 area: canonical.area ?? undefined,

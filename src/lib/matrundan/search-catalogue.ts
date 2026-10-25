@@ -963,11 +963,25 @@ export const RELATED_SEARCH_ROUTES: readonly { terms: string[]; targets: string[
     terms: ["Pubmat"],
     targets: ["category:pub"],
   },
-  {
-    terms: ["Pasta"],
-    targets: ["cuisine:italian"],
-  },
 ];
+
+/** Directional search relevance only. These relations never classify saved places.
+ * Keep the set small: no transitive cuisine/dish graph or weak menu guesses. */
+export const STRONG_SEARCH_RELATIONS: Readonly<Record<string, readonly string[]>> = {
+  "specialty:pasta": ["cuisine:italian"],
+  "specialty:falafel": ["search:libanesiskt"],
+  "search:kebab": ["search:turkiskt"],
+  "specialty:grill": ["search:steakhouse"],
+  "search:tacos": ["search:mexican", "search:texmex"],
+  "specialty:seafood": ["search:fish-and-chips"],
+  "cuisine:japanese": ["specialty:sushi", "specialty:ramen"],
+  "search:nudlar": ["specialty:ramen"],
+  "specialty:coffee": ["category:café"],
+};
+
+export function relatedSearchConcepts(id: string): SearchConcept[] {
+  return (STRONG_SEARCH_RELATIONS[id] ?? []).map((target) => searchConceptById(target)!);
+}
 
 const byId = new Map(SEARCH_CONCEPTS.map((c) => [c.id, c]));
 export const MAIN_SEARCH_CONCEPTS = SEARCH_CONCEPTS.filter((c) => c.surface === "main");

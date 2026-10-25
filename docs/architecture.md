@@ -778,6 +778,15 @@ klientbundle eller klientlagring.
 Provideranrop kan kortlivat cacheas server-side för att minska onödiga anrop,
 men cache-nycklar ska inte innehålla gruppmedlemskap eller privat gruppdata.
 
+Sökrelevans hålls separat från leverantörens platsfakta. Ett litet deklarativt
+register av riktade associationer får komplettera exakta sökträffar, men aldrig
+skriva cuisines eller historisk klassificering. Exakta kandidater hämtas skyddat
+från ett begränsat samlat OR-anrop för relaterade kandidater. Direkt, relaterat
+och råmetadata har oberoende versionsbundna cursors och rättvis fortsättning
+inom samma anrops-/kreditbudget. Uppskjuten metadata är inte uttömd.
+För sökningar där råmetadata är enda exakta hämtvägen bevaras första råsidan;
+annars kan ett tillräckligt första urval skjuta råmetadata till Visa fler.
+
 Providerresultat normaliseras till produktdomänen. Rå payload används som
 server-side bevis eller underlag när det behövs, men ska inte spridas genom
 klienten.

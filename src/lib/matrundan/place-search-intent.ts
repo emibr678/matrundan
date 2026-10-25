@@ -5,6 +5,7 @@ import {
   exactSearchConcept,
   searchConceptById,
   normalizeSearchTerm,
+  relatedSearchConcepts,
   type SearchConcept,
 } from "./search-catalogue";
 import { CATEGORY_LABEL, type PlaceCategory } from "./types";
@@ -36,7 +37,11 @@ export interface SearchablePlaceSuggestion {
   name: string;
   category: PlaceCategory;
   cuisines?: readonly string[];
-  searchEvidence?: { intentId: string; kind: "category" | "metadata" | "family" | "profile" };
+  searchEvidence?: {
+    intentId: string;
+    kind: "category" | "metadata" | "family" | "profile" | "association";
+    relatedId?: string;
+  };
   address?: string;
   area?: string | null;
   city?: string;
@@ -143,6 +148,39 @@ export function matchesPlaceSearchIntent(
   place: SearchablePlaceSuggestion,
   intent: PlaceSearchIntent,
 ): boolean {
+  return (
+    matchesExactPlaceSearchIntent(place, intent) || Boolean(savedPlaceSearchEvidence(place, intent))
+  );
+}
+
+/** Saved labels can support a search association, but are never rewritten. */
+export function savedPlaceSearchEvidence(
+  place: SearchablePlaceSuggestion,
+  intent: PlaceSearchIntent,
+): SearchablePlaceSuggestion["searchEvidence"] {
+  const id =
+    intent.kind === "food-tag"
+      ? intent.tagId
+      : intent.kind === "category"
+        ? `category:${intent.category}`
+        : "";
+  if (!id) return undefined;
+  if (place.searchEvidence?.intentId === id) return place.searchEvidence;
+  if (matchesExactPlaceSearchIntent(place, intent)) return { intentId: id, kind: "metadata" };
+  const related = relatedSearchConcepts(id).find((concept) =>
+    matchesExactPlaceSearchIntent(place, intentForSearchConcept(concept, concept.label)),
+  );
+  return related ? { intentId: id, kind: "association", relatedId: related.id } : undefined;
+}
+
+export function searchRelevanceRank(place: Pick<SearchablePlaceSuggestion, "searchEvidence">) {
+  return place.searchEvidence?.kind === "association" ? 1 : 0;
+}
+
+function matchesExactPlaceSearchIntent(
+  place: SearchablePlaceSuggestion,
+  intent: PlaceSearchIntent,
+): boolean {
   if (intent.kind === "browse") return true;
   const id =
     intent.kind === "food-tag"
@@ -179,7 +217,7 @@ export function matchesPlaceSearchIntent(
       ].map(normalizeSearchTerm),
     );
     if ((place.cuisines ?? []).some((c) => accepted.has(normalizeSearchTerm(c)))) return true;
-    // The current known, unambiguous stored labels are also accepted. No substring or national->dish inference.
+    // This layer matches facts only. Associations are applied by the separate search policy.
     return false;
   }
   if (intent.kind === "category") return place.category === intent.category;
@@ -299,4 +337,19 @@ export function canonicalSearchCuisines(intent: PlaceSearchIntent): string[] {
       ...concept.tokens,
     ]),
   ].slice(0, 20);
+}
+
+/** Separate retrieval protects exact canonical candidates from a broad union's limit. */
+export function canonicalRelatedSearchFilters(intent: PlaceSearchIntent) {
+  const concepts = relatedSearchConcepts(intent.kind === "food-tag" ? intent.tagId : "");
+  return {
+    categories: concepts.flatMap((concept) => (concept.category ? [concept.category] : [])),
+    cuisines: [
+      ...new Set(
+        concepts.flatMap((concept) =>
+          canonicalSearchCuisines(intentForSearchConcept(concept, concept.label)),
+        ),
+      ),
+    ].slice(0, 20),
+  };
 }
