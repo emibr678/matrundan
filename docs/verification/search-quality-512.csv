@@ -1,0 +1,487 @@
+id,label,surface,area,source_supported_named_ids,main_first,candidate_first,candidate_after_more,first_missed,all_missed,unproved_first,rejected_unnamed,pages_to_end
+category:restaurang,Restaurang,main,sodermalm-2km,613,20,20,613,593,0,0,3,31
+category:restaurang,Restaurang,main,goteborg-2km,718,20,20,718,698,0,0,8,37
+category:restaurang,Restaurang,main,malmo-2km,614,20,20,614,594,0,0,1,31
+category:restaurang,Restaurang,main,uppsala-2km,215,20,20,215,195,0,0,0,11
+category:restaurang,Restaurang,main,varnamo-2km,37,20,20,37,17,0,0,0,2
+category:restaurang,Restaurang,main,enskede-2km,107,20,20,107,87,0,0,4,6
+category:café,Café,main,sodermalm-2km,207,20,20,207,187,0,0,2,11
+category:café,Café,main,goteborg-2km,205,20,20,205,185,0,0,1,11
+category:café,Café,main,malmo-2km,151,20,20,151,131,0,0,2,8
+category:café,Café,main,uppsala-2km,53,19,19,53,34,0,0,3,3
+category:café,Café,main,varnamo-2km,14,14,14,14,0,0,0,0,1
+category:café,Café,main,enskede-2km,25,20,20,25,5,0,0,0,2
+category:bageri,Bageri,main,sodermalm-2km,34,20,20,34,14,0,0,0,2
+category:bageri,Bageri,main,goteborg-2km,28,20,20,28,8,0,0,0,2
+category:bageri,Bageri,main,malmo-2km,34,20,20,34,14,0,0,0,2
+category:bageri,Bageri,main,uppsala-2km,15,15,15,15,0,0,0,0,1
+category:bageri,Bageri,main,varnamo-2km,2,2,2,2,0,0,0,0,1
+category:bageri,Bageri,main,enskede-2km,8,8,8,8,0,0,0,0,1
+category:snabbmat,Snabbmat,main,sodermalm-2km,187,20,20,187,167,0,0,7,10
+category:snabbmat,Snabbmat,main,goteborg-2km,130,20,20,130,110,0,0,0,7
+category:snabbmat,Snabbmat,main,malmo-2km,197,20,20,197,177,0,0,1,10
+category:snabbmat,Snabbmat,main,uppsala-2km,56,20,20,56,36,0,0,0,3
+category:snabbmat,Snabbmat,main,varnamo-2km,0,0,0,0,0,0,0,0,1
+category:snabbmat,Snabbmat,main,enskede-2km,65,19,19,65,46,0,0,2,4
+category:pub,Pub och bar,main,sodermalm-2km,95,20,20,95,75,0,0,0,5
+category:pub,Pub och bar,main,goteborg-2km,88,20,20,88,68,0,0,1,5
+category:pub,Pub och bar,main,malmo-2km,50,20,20,50,30,0,0,0,3
+category:pub,Pub och bar,main,uppsala-2km,28,11,20,28,8,0,0,0,2
+category:pub,Pub och bar,main,varnamo-2km,1,0,1,1,0,0,0,0,1
+category:pub,Pub och bar,main,enskede-2km,10,6,10,10,0,0,0,0,1
+search:swedish,Svenskt,main,sodermalm-2km,12,unsupported,10,12,2,0,0,0,24
+search:swedish,Svenskt,main,goteborg-2km,10,unsupported,6,10,4,0,0,0,25
+search:swedish,Svenskt,main,malmo-2km,14,unsupported,8,14,6,0,0,0,22
+search:swedish,Svenskt,main,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:swedish,Svenskt,main,varnamo-2km,1,unsupported,0,1,1,0,0,0,3
+search:swedish,Svenskt,main,enskede-2km,1,unsupported,0,1,1,0,0,0,6
+cuisine:italian,Italienskt,main,sodermalm-2km,77,20,20,77,57,0,0,0,24
+cuisine:italian,Italienskt,main,goteborg-2km,52,20,20,52,32,0,0,0,25
+cuisine:italian,Italienskt,main,malmo-2km,47,20,20,47,27,0,0,0,22
+cuisine:italian,Italienskt,main,uppsala-2km,20,20,20,20,0,0,0,0,10
+cuisine:italian,Italienskt,main,varnamo-2km,2,2,2,2,0,0,0,0,3
+cuisine:italian,Italienskt,main,enskede-2km,9,8,9,9,0,0,0,0,6
+cuisine:japanese,Japanskt,main,sodermalm-2km,29,20,20,29,9,0,0,0,24
+cuisine:japanese,Japanskt,main,goteborg-2km,28,20,22,28,6,0,0,0,25
+cuisine:japanese,Japanskt,main,malmo-2km,17,12,12,17,5,0,0,0,22
+cuisine:japanese,Japanskt,main,uppsala-2km,13,12,12,13,1,0,0,0,10
+cuisine:japanese,Japanskt,main,varnamo-2km,1,0,0,1,1,0,0,0,3
+cuisine:japanese,Japanskt,main,enskede-2km,5,4,4,5,1,0,0,0,6
+cuisine:korean,Koreanskt,main,sodermalm-2km,8,6,6,8,2,0,0,0,24
+cuisine:korean,Koreanskt,main,goteborg-2km,3,2,2,3,1,0,0,0,25
+cuisine:korean,Koreanskt,main,malmo-2km,9,8,8,9,1,0,0,0,22
+cuisine:korean,Koreanskt,main,uppsala-2km,0,0,0,0,0,0,0,0,10
+cuisine:korean,Koreanskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:korean,Koreanskt,main,enskede-2km,0,0,0,0,0,0,0,0,6
+cuisine:chinese,Kinesiskt,main,sodermalm-2km,19,16,16,19,3,0,0,0,24
+cuisine:chinese,Kinesiskt,main,goteborg-2km,16,16,16,16,0,0,0,0,25
+cuisine:chinese,Kinesiskt,main,malmo-2km,22,16,16,22,6,0,0,0,22
+cuisine:chinese,Kinesiskt,main,uppsala-2km,6,6,6,6,0,0,0,0,10
+cuisine:chinese,Kinesiskt,main,varnamo-2km,1,0,0,1,1,0,0,0,3
+cuisine:chinese,Kinesiskt,main,enskede-2km,4,4,4,4,0,0,0,0,6
+cuisine:thai,Thailändskt,main,sodermalm-2km,26,10,12,26,14,0,0,0,24
+cuisine:thai,Thailändskt,main,goteborg-2km,28,20,22,28,6,0,0,0,25
+cuisine:thai,Thailändskt,main,malmo-2km,32,20,20,32,12,0,0,0,22
+cuisine:thai,Thailändskt,main,uppsala-2km,10,8,9,10,1,0,0,0,10
+cuisine:thai,Thailändskt,main,varnamo-2km,1,0,0,1,1,0,0,0,3
+cuisine:thai,Thailändskt,main,enskede-2km,11,4,11,11,0,0,0,0,6
+cuisine:vietnamese,Vietnamesiskt,main,sodermalm-2km,8,6,6,8,2,0,0,0,24
+cuisine:vietnamese,Vietnamesiskt,main,goteborg-2km,11,10,10,11,1,0,0,2,25
+cuisine:vietnamese,Vietnamesiskt,main,malmo-2km,21,20,20,21,1,0,0,0,22
+cuisine:vietnamese,Vietnamesiskt,main,uppsala-2km,2,2,2,2,0,0,0,0,10
+cuisine:vietnamese,Vietnamesiskt,main,varnamo-2km,1,0,0,1,1,0,0,0,3
+cuisine:vietnamese,Vietnamesiskt,main,enskede-2km,2,2,2,2,0,0,0,0,6
+cuisine:indian,Indiskt,main,sodermalm-2km,37,20,20,37,17,0,0,0,24
+cuisine:indian,Indiskt,main,goteborg-2km,41,20,20,41,21,0,0,0,25
+cuisine:indian,Indiskt,main,malmo-2km,33,20,20,33,13,0,0,0,22
+cuisine:indian,Indiskt,main,uppsala-2km,14,14,14,14,0,0,0,0,10
+cuisine:indian,Indiskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:indian,Indiskt,main,enskede-2km,8,8,8,8,0,0,0,0,6
+cuisine:middle-eastern,Mellanöstern,main,sodermalm-2km,20,0,16,20,4,0,0,0,24
+cuisine:middle-eastern,Mellanöstern,main,goteborg-2km,15,0,14,15,1,0,0,0,25
+cuisine:middle-eastern,Mellanöstern,main,malmo-2km,50,2,23,50,27,0,0,0,22
+cuisine:middle-eastern,Mellanöstern,main,uppsala-2km,5,0,4,5,1,0,0,0,10
+cuisine:middle-eastern,Mellanöstern,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:middle-eastern,Mellanöstern,main,enskede-2km,1,0,0,1,1,0,0,0,6
+search:libanesiskt,Libanesiskt,main,sodermalm-2km,13,unsupported,12,13,1,0,0,0,24
+search:libanesiskt,Libanesiskt,main,goteborg-2km,2,unsupported,2,2,0,0,0,0,25
+search:libanesiskt,Libanesiskt,main,malmo-2km,11,unsupported,8,11,3,0,0,0,22
+search:libanesiskt,Libanesiskt,main,uppsala-2km,2,unsupported,2,2,0,0,0,0,10
+search:libanesiskt,Libanesiskt,main,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:libanesiskt,Libanesiskt,main,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:mexican,Mexikanskt,main,sodermalm-2km,6,unsupported,3,6,3,0,0,0,24
+search:mexican,Mexikanskt,main,goteborg-2km,15,unsupported,13,15,2,0,0,0,25
+search:mexican,Mexikanskt,main,malmo-2km,19,unsupported,16,19,3,0,0,0,22
+search:mexican,Mexikanskt,main,uppsala-2km,3,unsupported,3,3,0,0,0,0,10
+search:mexican,Mexikanskt,main,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:mexican,Mexikanskt,main,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+cuisine:mediterranean,Medelhavsmat,main,sodermalm-2km,3,0,0,3,3,0,0,0,24
+cuisine:mediterranean,Medelhavsmat,main,goteborg-2km,5,4,4,5,1,0,0,0,25
+cuisine:mediterranean,Medelhavsmat,main,malmo-2km,5,2,2,5,3,0,0,0,22
+cuisine:mediterranean,Medelhavsmat,main,uppsala-2km,0,0,0,0,0,0,0,0,10
+cuisine:mediterranean,Medelhavsmat,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:mediterranean,Medelhavsmat,main,enskede-2km,0,0,0,0,0,0,0,0,6
+cuisine:greek,Grekiskt,main,sodermalm-2km,20,16,18,20,2,0,0,0,24
+cuisine:greek,Grekiskt,main,goteborg-2km,14,12,12,14,2,0,0,0,25
+cuisine:greek,Grekiskt,main,malmo-2km,7,4,5,7,2,0,0,0,22
+cuisine:greek,Grekiskt,main,uppsala-2km,6,6,6,6,0,0,0,0,10
+cuisine:greek,Grekiskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:greek,Grekiskt,main,enskede-2km,1,0,1,1,0,0,0,0,6
+cuisine:french,Franskt,main,sodermalm-2km,10,10,10,10,0,0,0,0,24
+cuisine:french,Franskt,main,goteborg-2km,7,4,4,7,3,0,0,0,25
+cuisine:french,Franskt,main,malmo-2km,9,8,8,9,1,0,0,0,22
+cuisine:french,Franskt,main,uppsala-2km,0,0,0,0,0,0,0,0,10
+cuisine:french,Franskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:french,Franskt,main,enskede-2km,0,0,0,0,0,0,0,0,6
+cuisine:spanish,Spanskt,main,sodermalm-2km,2,2,2,2,0,0,0,0,24
+cuisine:spanish,Spanskt,main,goteborg-2km,8,8,8,8,0,0,0,0,25
+cuisine:spanish,Spanskt,main,malmo-2km,5,2,2,5,3,0,0,0,22
+cuisine:spanish,Spanskt,main,uppsala-2km,0,0,0,0,0,0,0,0,10
+cuisine:spanish,Spanskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:spanish,Spanskt,main,enskede-2km,0,0,0,0,0,0,0,0,6
+cuisine:american,Amerikanskt,main,sodermalm-2km,2,0,0,2,2,0,0,0,24
+cuisine:american,Amerikanskt,main,goteborg-2km,12,10,10,12,2,0,0,0,25
+cuisine:american,Amerikanskt,main,malmo-2km,5,4,4,5,1,0,0,0,22
+cuisine:american,Amerikanskt,main,uppsala-2km,3,2,2,3,1,0,0,0,10
+cuisine:american,Amerikanskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:american,Amerikanskt,main,enskede-2km,0,0,0,0,0,0,0,0,6
+cuisine:persian,Persiskt,main,sodermalm-2km,2,2,2,2,0,0,0,0,24
+cuisine:persian,Persiskt,main,goteborg-2km,7,6,6,7,1,0,0,0,25
+cuisine:persian,Persiskt,main,malmo-2km,10,8,8,10,2,0,0,0,22
+cuisine:persian,Persiskt,main,uppsala-2km,2,2,2,2,0,0,0,0,10
+cuisine:persian,Persiskt,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:persian,Persiskt,main,enskede-2km,0,0,0,0,0,0,0,0,6
+search:asiatiskt,Asiatiskt,main,sodermalm-2km,116,unsupported,22,116,94,0,0,0,24
+search:asiatiskt,Asiatiskt,main,goteborg-2km,123,unsupported,24,123,99,0,0,2,25
+search:asiatiskt,Asiatiskt,main,malmo-2km,127,unsupported,20,127,107,0,0,0,22
+search:asiatiskt,Asiatiskt,main,uppsala-2km,39,unsupported,21,39,18,0,0,0,10
+search:asiatiskt,Asiatiskt,main,varnamo-2km,2,unsupported,0,2,2,0,0,0,3
+search:asiatiskt,Asiatiskt,main,enskede-2km,24,unsupported,23,24,1,0,0,0,6
+specialty:pizza,Pizza,main,sodermalm-2km,92,20,20,92,72,0,0,0,24
+specialty:pizza,Pizza,main,goteborg-2km,86,20,30,86,56,0,0,0,25
+specialty:pizza,Pizza,main,malmo-2km,110,20,20,110,90,0,0,0,22
+specialty:pizza,Pizza,main,uppsala-2km,28,20,22,28,6,0,0,0,10
+specialty:pizza,Pizza,main,varnamo-2km,17,16,16,17,1,0,0,0,3
+specialty:pizza,Pizza,main,enskede-2km,36,18,19,36,17,0,0,2,6
+specialty:burger,Burgare,main,sodermalm-2km,66,20,24,66,42,0,0,0,24
+specialty:burger,Burgare,main,goteborg-2km,77,20,21,77,56,0,0,0,25
+specialty:burger,Burgare,main,malmo-2km,80,20,20,80,60,0,0,0,22
+specialty:burger,Burgare,main,uppsala-2km,26,20,22,26,4,0,0,0,10
+specialty:burger,Burgare,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:burger,Burgare,main,enskede-2km,14,10,10,14,4,0,0,0,6
+specialty:sushi,Sushi,main,sodermalm-2km,38,14,18,38,20,0,0,0,24
+specialty:sushi,Sushi,main,goteborg-2km,59,20,23,59,36,0,0,0,25
+specialty:sushi,Sushi,main,malmo-2km,48,20,20,48,28,0,0,0,22
+specialty:sushi,Sushi,main,uppsala-2km,24,20,23,24,1,0,0,0,10
+specialty:sushi,Sushi,main,varnamo-2km,2,2,2,2,0,0,0,0,3
+specialty:sushi,Sushi,main,enskede-2km,20,14,18,20,2,0,0,2,6
+specialty:ramen,Ramen,main,sodermalm-2km,10,10,10,10,0,0,0,0,24
+specialty:ramen,Ramen,main,goteborg-2km,4,4,4,4,0,0,0,0,25
+specialty:ramen,Ramen,main,malmo-2km,7,6,6,7,1,0,0,0,22
+specialty:ramen,Ramen,main,uppsala-2km,3,2,2,3,1,0,0,0,10
+specialty:ramen,Ramen,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:ramen,Ramen,main,enskede-2km,2,2,2,2,0,0,0,0,6
+specialty:pasta,Pasta,main,sodermalm-2km,5,0,0,5,5,0,0,0,24
+specialty:pasta,Pasta,main,goteborg-2km,4,0,0,4,4,0,0,0,25
+specialty:pasta,Pasta,main,malmo-2km,5,0,0,5,5,0,0,0,22
+specialty:pasta,Pasta,main,uppsala-2km,3,1,1,3,2,0,0,0,10
+specialty:pasta,Pasta,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:pasta,Pasta,main,enskede-2km,1,0,1,1,0,0,0,0,6
+search:kebab,Kebab,main,sodermalm-2km,18,unsupported,14,18,4,0,0,0,24
+search:kebab,Kebab,main,goteborg-2km,17,unsupported,17,17,0,0,0,0,25
+search:kebab,Kebab,main,malmo-2km,70,unsupported,23,70,47,0,0,0,22
+search:kebab,Kebab,main,uppsala-2km,10,unsupported,10,10,0,0,0,0,10
+search:kebab,Kebab,main,varnamo-2km,2,unsupported,2,2,0,0,0,0,3
+search:kebab,Kebab,main,enskede-2km,4,unsupported,4,4,0,0,0,0,6
+specialty:falafel,Falafel,main,sodermalm-2km,4,0,0,4,4,0,0,0,24
+specialty:falafel,Falafel,main,goteborg-2km,2,1,1,2,1,0,0,0,25
+specialty:falafel,Falafel,main,malmo-2km,29,0,7,29,22,0,0,0,22
+specialty:falafel,Falafel,main,uppsala-2km,2,0,2,2,0,0,0,0,10
+specialty:falafel,Falafel,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:falafel,Falafel,main,enskede-2km,0,0,0,0,0,0,0,0,6
+search:sallad,Sallad,main,sodermalm-2km,9,unsupported,1,9,8,0,0,0,24
+search:sallad,Sallad,main,goteborg-2km,16,unsupported,2,16,14,0,0,0,25
+search:sallad,Sallad,main,malmo-2km,13,unsupported,6,13,7,0,0,0,22
+search:sallad,Sallad,main,uppsala-2km,4,unsupported,2,4,2,0,0,0,10
+search:sallad,Sallad,main,varnamo-2km,2,unsupported,0,2,2,0,0,0,3
+search:sallad,Sallad,main,enskede-2km,2,unsupported,0,2,2,0,0,0,6
+search:smorgasar,Smörgåsar,main,sodermalm-2km,12,unsupported,8,12,4,0,0,0,24
+search:smorgasar,Smörgåsar,main,goteborg-2km,28,unsupported,16,28,12,0,0,0,25
+search:smorgasar,Smörgåsar,main,malmo-2km,25,unsupported,8,25,17,0,0,0,22
+search:smorgasar,Smörgåsar,main,uppsala-2km,9,unsupported,4,9,5,0,0,0,10
+search:smorgasar,Smörgåsar,main,varnamo-2km,1,unsupported,0,1,1,0,0,0,3
+search:smorgasar,Smörgåsar,main,enskede-2km,7,unsupported,4,7,3,0,0,0,6
+specialty:grill,Grillat/BBQ,main,sodermalm-2km,16,2,6,16,10,0,0,0,24
+specialty:grill,Grillat/BBQ,main,goteborg-2km,4,2,3,4,1,0,0,0,25
+specialty:grill,Grillat/BBQ,main,malmo-2km,6,0,0,6,6,0,0,0,22
+specialty:grill,Grillat/BBQ,main,uppsala-2km,0,0,0,0,0,0,0,0,10
+specialty:grill,Grillat/BBQ,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:grill,Grillat/BBQ,main,enskede-2km,0,0,0,0,0,0,0,0,6
+specialty:seafood,Fisk och skaldjur,main,sodermalm-2km,12,6,8,12,4,0,0,0,24
+specialty:seafood,Fisk och skaldjur,main,goteborg-2km,16,4,8,16,8,0,0,2,25
+specialty:seafood,Fisk och skaldjur,main,malmo-2km,5,2,2,5,3,0,0,0,22
+specialty:seafood,Fisk och skaldjur,main,uppsala-2km,5,2,4,5,1,0,0,0,10
+specialty:seafood,Fisk och skaldjur,main,varnamo-2km,0,0,0,0,0,0,0,0,3
+specialty:seafood,Fisk och skaldjur,main,enskede-2km,1,0,0,1,1,0,0,0,6
+specialty:tapas,Tapas,main,sodermalm-2km,11,10,10,11,1,0,0,0,24
+specialty:tapas,Tapas,main,goteborg-2km,8,8,8,8,0,0,0,0,25
+specialty:tapas,Tapas,main,malmo-2km,7,4,4,7,3,0,0,0,22
+specialty:tapas,Tapas,main,uppsala-2km,4,4,4,4,0,0,0,0,10
+specialty:tapas,Tapas,main,varnamo-2km,4,4,4,4,0,0,0,0,3
+specialty:tapas,Tapas,main,enskede-2km,0,0,0,0,0,0,0,0,6
+specialty:fika,Fika,main,sodermalm-2km,231,0,20,231,211,0,0,2,12
+specialty:fika,Fika,main,goteborg-2km,224,0,20,224,204,0,0,1,12
+specialty:fika,Fika,main,malmo-2km,180,0,20,180,160,0,0,2,10
+specialty:fika,Fika,main,uppsala-2km,66,0,20,66,46,0,0,3,4
+specialty:fika,Fika,main,varnamo-2km,16,0,16,16,0,0,0,0,1
+specialty:fika,Fika,main,enskede-2km,31,0,20,31,11,0,0,0,2
+search:vegetarian-only,Helt vegetariskt,main,sodermalm-2km,6,unsupported,6,6,0,0,0,0,1
+search:vegetarian-only,Helt vegetariskt,main,goteborg-2km,12,unsupported,12,12,0,0,0,0,1
+search:vegetarian-only,Helt vegetariskt,main,malmo-2km,5,unsupported,5,5,0,0,0,0,1
+search:vegetarian-only,Helt vegetariskt,main,uppsala-2km,3,unsupported,3,3,0,0,0,0,1
+search:vegetarian-only,Helt vegetariskt,main,varnamo-2km,0,unsupported,0,0,0,0,0,0,1
+search:vegetarian-only,Helt vegetariskt,main,enskede-2km,0,unsupported,0,0,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,sodermalm-2km,9,unsupported,9,9,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,goteborg-2km,5,unsupported,5,5,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,malmo-2km,11,unsupported,11,11,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,uppsala-2km,2,unsupported,2,2,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,varnamo-2km,0,unsupported,0,0,0,0,0,0,1
+search:vegan-only,Helt veganskt,main,enskede-2km,0,unsupported,0,0,0,0,0,0,1
+search:turkiskt,Turkiskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:turkiskt,Turkiskt,extra,goteborg-2km,4,unsupported,4,4,0,0,0,0,25
+search:turkiskt,Turkiskt,extra,malmo-2km,8,unsupported,2,8,6,0,0,0,22
+search:turkiskt,Turkiskt,extra,uppsala-2km,1,unsupported,0,1,1,0,0,0,10
+search:turkiskt,Turkiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:turkiskt,Turkiskt,extra,enskede-2km,1,unsupported,0,1,1,0,0,0,6
+search:etiopiskt,Etiopiskt,extra,sodermalm-2km,1,unsupported,1,1,0,0,0,0,24
+search:etiopiskt,Etiopiskt,extra,goteborg-2km,2,unsupported,2,2,0,0,0,0,25
+search:etiopiskt,Etiopiskt,extra,malmo-2km,2,unsupported,2,2,0,0,0,0,22
+search:etiopiskt,Etiopiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:etiopiskt,Etiopiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:etiopiskt,Etiopiskt,extra,enskede-2km,1,unsupported,1,1,0,0,0,0,6
+search:afrikanskt,Afrikanskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:afrikanskt,Afrikanskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:afrikanskt,Afrikanskt,extra,malmo-2km,2,unsupported,0,2,2,0,0,0,22
+search:afrikanskt,Afrikanskt,extra,uppsala-2km,1,unsupported,1,1,0,0,0,0,10
+search:afrikanskt,Afrikanskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:afrikanskt,Afrikanskt,extra,enskede-2km,2,unsupported,1,2,1,0,0,0,6
+search:tyskt,Tyskt,extra,sodermalm-2km,1,unsupported,1,1,0,0,0,0,24
+search:tyskt,Tyskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:tyskt,Tyskt,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:tyskt,Tyskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:tyskt,Tyskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:tyskt,Tyskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:danskt,Danskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:danskt,Danskt,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:danskt,Danskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:danskt,Danskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:danskt,Danskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:danskt,Danskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:portugisiskt,Portugisiskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:portugisiskt,Portugisiskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:portugisiskt,Portugisiskt,extra,malmo-2km,2,unsupported,1,2,1,0,0,0,22
+search:portugisiskt,Portugisiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:portugisiskt,Portugisiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:portugisiskt,Portugisiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:brasilianskt,Brasilianskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:brasilianskt,Brasilianskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:brasilianskt,Brasilianskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:brasilianskt,Brasilianskt,extra,uppsala-2km,1,unsupported,1,1,0,0,0,0,10
+search:brasilianskt,Brasilianskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:brasilianskt,Brasilianskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:peruanskt,Peruanskt,extra,sodermalm-2km,2,unsupported,1,2,1,0,0,0,24
+search:peruanskt,Peruanskt,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:peruanskt,Peruanskt,extra,malmo-2km,1,unsupported,1,1,0,0,0,0,22
+search:peruanskt,Peruanskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:peruanskt,Peruanskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:peruanskt,Peruanskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:argentinskt,Argentinskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:argentinskt,Argentinskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:argentinskt,Argentinskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:argentinskt,Argentinskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:argentinskt,Argentinskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:argentinskt,Argentinskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:karibiskt,Karibiskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:karibiskt,Karibiskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:karibiskt,Karibiskt,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:karibiskt,Karibiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:karibiskt,Karibiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:karibiskt,Karibiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:pakistanskt,Pakistanskt,extra,sodermalm-2km,1,unsupported,1,1,0,0,0,0,24
+search:pakistanskt,Pakistanskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:pakistanskt,Pakistanskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:pakistanskt,Pakistanskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:pakistanskt,Pakistanskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:pakistanskt,Pakistanskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:afghanskt,Afghanskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:afghanskt,Afghanskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:afghanskt,Afghanskt,extra,malmo-2km,3,unsupported,0,3,3,0,0,0,22
+search:afghanskt,Afghanskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:afghanskt,Afghanskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:afghanskt,Afghanskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:indonesiskt,Indonesiskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:indonesiskt,Indonesiskt,extra,goteborg-2km,2,unsupported,2,2,0,0,0,0,25
+search:indonesiskt,Indonesiskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:indonesiskt,Indonesiskt,extra,uppsala-2km,1,unsupported,0,1,1,0,0,0,10
+search:indonesiskt,Indonesiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:indonesiskt,Indonesiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:malaysiskt,Malaysiskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:malaysiskt,Malaysiskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:malaysiskt,Malaysiskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:malaysiskt,Malaysiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:malaysiskt,Malaysiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:malaysiskt,Malaysiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:filippinskt,Filippinskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:filippinskt,Filippinskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:filippinskt,Filippinskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:filippinskt,Filippinskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:filippinskt,Filippinskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:filippinskt,Filippinskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:osterrikiskt,Österrikiskt,extra,sodermalm-2km,1,unsupported,1,1,0,0,0,0,24
+search:osterrikiskt,Österrikiskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:osterrikiskt,Österrikiskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:osterrikiskt,Österrikiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:osterrikiskt,Österrikiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:osterrikiskt,Österrikiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:ryskt,Ryskt,extra,sodermalm-2km,2,unsupported,0,2,2,0,0,0,24
+search:ryskt,Ryskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:ryskt,Ryskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:ryskt,Ryskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:ryskt,Ryskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:ryskt,Ryskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:latinamerikanskt,Latinamerikanskt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:latinamerikanskt,Latinamerikanskt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:latinamerikanskt,Latinamerikanskt,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:latinamerikanskt,Latinamerikanskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:latinamerikanskt,Latinamerikanskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:latinamerikanskt,Latinamerikanskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:europeiskt,Europeiskt,extra,sodermalm-2km,2,unsupported,1,2,1,0,0,0,24
+search:europeiskt,Europeiskt,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:europeiskt,Europeiskt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:europeiskt,Europeiskt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:europeiskt,Europeiskt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:europeiskt,Europeiskt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+cuisine:international,Internationellt,extra,sodermalm-2km,5,2,2,5,3,0,0,0,24
+cuisine:international,Internationellt,extra,goteborg-2km,11,8,8,11,3,0,0,0,25
+cuisine:international,Internationellt,extra,malmo-2km,27,18,19,27,8,0,0,0,22
+cuisine:international,Internationellt,extra,uppsala-2km,2,2,2,2,0,0,0,0,10
+cuisine:international,Internationellt,extra,varnamo-2km,0,0,0,0,0,0,0,0,3
+cuisine:international,Internationellt,extra,enskede-2km,0,0,0,0,0,0,0,0,6
+search:steakhouse,Steakhouse,extra,sodermalm-2km,3,unsupported,3,3,0,0,0,0,24
+search:steakhouse,Steakhouse,extra,goteborg-2km,3,unsupported,3,3,0,0,0,0,25
+search:steakhouse,Steakhouse,extra,malmo-2km,6,unsupported,5,6,1,0,0,0,22
+search:steakhouse,Steakhouse,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:steakhouse,Steakhouse,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:steakhouse,Steakhouse,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:mathall-food-court,Mathall/food court,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:mathall-food-court,Mathall/food court,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:mathall-food-court,Mathall/food court,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:mathall-food-court,Mathall/food court,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:mathall-food-court,Mathall/food court,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:mathall-food-court,Mathall/food court,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:deli,Deli,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:deli,Deli,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:deli,Deli,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:deli,Deli,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:deli,Deli,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:deli,Deli,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:wings,Wings,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:wings,Wings,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:wings,Wings,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:wings,Wings,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:wings,Wings,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:wings,Wings,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:nudlar,Nudlar,extra,sodermalm-2km,1,unsupported,1,1,0,0,0,0,24
+search:nudlar,Nudlar,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:nudlar,Nudlar,extra,malmo-2km,3,unsupported,1,3,2,0,0,0,22
+search:nudlar,Nudlar,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:nudlar,Nudlar,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:nudlar,Nudlar,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:dumplings,Dumplings,extra,sodermalm-2km,4,unsupported,2,4,2,0,0,0,24
+search:dumplings,Dumplings,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:dumplings,Dumplings,extra,malmo-2km,3,unsupported,2,3,1,0,0,0,22
+search:dumplings,Dumplings,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:dumplings,Dumplings,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:dumplings,Dumplings,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:tacos,Tacos,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:tacos,Tacos,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:tacos,Tacos,extra,malmo-2km,1,unsupported,1,1,0,0,0,0,22
+search:tacos,Tacos,extra,uppsala-2km,1,unsupported,0,1,1,0,0,0,10
+search:tacos,Tacos,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:tacos,Tacos,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:texmex,Texmex,extra,sodermalm-2km,3,unsupported,1,3,2,0,0,0,24
+search:texmex,Texmex,extra,goteborg-2km,2,unsupported,0,2,2,0,0,0,25
+search:texmex,Texmex,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:texmex,Texmex,extra,uppsala-2km,2,unsupported,2,2,0,0,0,0,10
+search:texmex,Texmex,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:texmex,Texmex,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:soppa,Soppa,extra,sodermalm-2km,1,unsupported,0,1,1,0,0,0,24
+search:soppa,Soppa,extra,goteborg-2km,1,unsupported,0,1,1,0,0,0,25
+search:soppa,Soppa,extra,malmo-2km,4,unsupported,1,4,3,0,0,0,22
+search:soppa,Soppa,extra,uppsala-2km,2,unsupported,1,2,1,0,0,0,10
+search:soppa,Soppa,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:soppa,Soppa,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:fish-and-chips,Fish and chips,extra,sodermalm-2km,1,unsupported,0,1,1,0,0,0,24
+search:fish-and-chips,Fish and chips,extra,goteborg-2km,6,unsupported,2,6,4,0,0,0,25
+search:fish-and-chips,Fish and chips,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:fish-and-chips,Fish and chips,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:fish-and-chips,Fish and chips,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:fish-and-chips,Fish and chips,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:korv,Korv,extra,sodermalm-2km,1,unsupported,0,1,1,0,0,0,24
+search:korv,Korv,extra,goteborg-2km,3,unsupported,1,3,2,0,0,0,25
+search:korv,Korv,extra,malmo-2km,6,unsupported,3,6,3,0,0,0,22
+search:korv,Korv,extra,uppsala-2km,1,unsupported,1,1,0,0,0,0,10
+search:korv,Korv,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:korv,Korv,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+specialty:coffee,Kaffe,extra,sodermalm-2km,61,20,20,61,41,0,0,0,24
+specialty:coffee,Kaffe,extra,goteborg-2km,78,20,20,78,58,0,0,0,25
+specialty:coffee,Kaffe,extra,malmo-2km,67,20,21,67,46,0,0,0,22
+specialty:coffee,Kaffe,extra,uppsala-2km,17,14,16,17,1,0,0,0,10
+specialty:coffee,Kaffe,extra,varnamo-2km,4,4,4,4,0,0,0,0,3
+specialty:coffee,Kaffe,extra,enskede-2km,12,12,12,12,0,0,0,0,6
+search:te,Te,extra,sodermalm-2km,3,unsupported,2,3,1,0,0,0,24
+search:te,Te,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:te,Te,extra,malmo-2km,3,unsupported,2,3,1,0,0,0,22
+search:te,Te,extra,uppsala-2km,2,unsupported,1,2,1,0,0,0,10
+search:te,Te,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:te,Te,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:dessert,Dessert,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:dessert,Dessert,extra,goteborg-2km,2,unsupported,0,2,2,0,0,0,25
+search:dessert,Dessert,extra,malmo-2km,1,unsupported,0,1,1,0,0,0,22
+search:dessert,Dessert,extra,uppsala-2km,1,unsupported,0,1,1,0,0,0,10
+search:dessert,Dessert,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:dessert,Dessert,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:tarta,Tårta,extra,sodermalm-2km,7,unsupported,1,7,6,0,0,0,24
+search:tarta,Tårta,extra,goteborg-2km,3,unsupported,0,3,3,0,0,0,25
+search:tarta,Tårta,extra,malmo-2km,9,unsupported,2,9,7,0,0,0,22
+search:tarta,Tårta,extra,uppsala-2km,4,unsupported,2,4,2,0,0,0,10
+search:tarta,Tårta,extra,varnamo-2km,1,unsupported,1,1,0,0,0,0,3
+search:tarta,Tårta,extra,enskede-2km,2,unsupported,2,2,0,0,0,0,6
+search:vafflor,Våfflor,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:vafflor,Våfflor,extra,goteborg-2km,1,unsupported,0,1,1,0,0,0,25
+search:vafflor,Våfflor,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:vafflor,Våfflor,extra,uppsala-2km,1,unsupported,0,1,1,0,0,0,10
+search:vafflor,Våfflor,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:vafflor,Våfflor,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:crêpes,Crêpes,extra,sodermalm-2km,2,unsupported,1,2,1,0,0,0,24
+search:crêpes,Crêpes,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:crêpes,Crêpes,extra,malmo-2km,1,unsupported,1,1,0,0,0,0,22
+search:crêpes,Crêpes,extra,uppsala-2km,2,unsupported,1,2,1,0,0,0,10
+search:crêpes,Crêpes,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:crêpes,Crêpes,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:donuts,Donuts,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:donuts,Donuts,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:donuts,Donuts,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:donuts,Donuts,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:donuts,Donuts,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:donuts,Donuts,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:frozen-yoghurt,Frozen yoghurt,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:frozen-yoghurt,Frozen yoghurt,extra,goteborg-2km,0,unsupported,0,0,0,0,0,0,25
+search:frozen-yoghurt,Frozen yoghurt,extra,malmo-2km,0,unsupported,0,0,0,0,0,0,22
+search:frozen-yoghurt,Frozen yoghurt,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:frozen-yoghurt,Frozen yoghurt,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:frozen-yoghurt,Frozen yoghurt,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:bubble-tea,Bubble tea,extra,sodermalm-2km,2,unsupported,2,2,0,0,0,0,24
+search:bubble-tea,Bubble tea,extra,goteborg-2km,1,unsupported,1,1,0,0,0,0,25
+search:bubble-tea,Bubble tea,extra,malmo-2km,2,unsupported,2,2,0,0,0,0,22
+search:bubble-tea,Bubble tea,extra,uppsala-2km,0,unsupported,0,0,0,0,0,0,10
+search:bubble-tea,Bubble tea,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:bubble-tea,Bubble tea,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:kyckling,Kyckling,extra,sodermalm-2km,0,unsupported,0,0,0,0,0,0,24
+search:kyckling,Kyckling,extra,goteborg-2km,2,unsupported,0,2,2,0,0,0,25
+search:kyckling,Kyckling,extra,malmo-2km,5,unsupported,3,5,2,0,0,0,22
+search:kyckling,Kyckling,extra,uppsala-2km,1,unsupported,1,1,0,0,0,0,10
+search:kyckling,Kyckling,extra,varnamo-2km,0,unsupported,0,0,0,0,0,0,3
+search:kyckling,Kyckling,extra,enskede-2km,0,unsupported,0,0,0,0,0,0,6
+search:glassbar,Glass,extra,sodermalm-2km,10,unsupported,8,10,2,0,0,0,24
+search:glassbar,Glass,extra,goteborg-2km,5,unsupported,4,5,1,0,0,0,25
+search:glassbar,Glass,extra,malmo-2km,13,unsupported,10,13,3,0,0,1,22
+search:glassbar,Glass,extra,uppsala-2km,4,unsupported,4,4,0,0,0,1,10
+search:glassbar,Glass,extra,varnamo-2km,1,unsupported,1,1,0,0,0,0,3
+search:glassbar,Glass,extra,enskede-2km,1,unsupported,1,1,0,0,0,0,6
+category:matvagn,Matvagn,extra,sodermalm-2km,0,0,0,0,0,0,0,0,1
+category:matvagn,Matvagn,extra,goteborg-2km,0,0,0,0,0,0,0,0,1
+category:matvagn,Matvagn,extra,malmo-2km,0,0,0,0,0,0,0,0,1
+category:matvagn,Matvagn,extra,uppsala-2km,0,0,0,0,0,0,0,0,1
+category:matvagn,Matvagn,extra,varnamo-2km,0,0,0,0,0,0,0,0,1
+category:matvagn,Matvagn,extra,enskede-2km,0,0,0,0,0,0,0,0,1

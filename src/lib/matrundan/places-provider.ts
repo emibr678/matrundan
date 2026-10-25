@@ -13,6 +13,8 @@ import {
 } from "./place-discovery";
 import {
   matchesPlaceSearchIntent,
+  savedPlaceSearchEvidence,
+  searchRelevanceRank,
   resolveDiscoverySearchIntent,
   type SelectedPlaceSearchFilter,
 } from "./place-search-intent";
@@ -41,6 +43,8 @@ export interface PlaceSuggestion {
   provider?: string;
   website?: string;
   raw?: string;
+  searchEvidence?: import("./place-search-intent").SearchablePlaceSuggestion["searchEvidence"];
+  searchIdentityKey?: string;
   nearestAreaLabel?: string;
   nearestAreaId?: string;
   matchingAreaLabels?: string[];
@@ -169,6 +173,65 @@ function pointInBoundary(point: [number, number], boundary: SearchAreaBoundaryGe
 }
 
 const DEMO_SUGGESTIONS: PlaceSuggestion[] = [
+  {
+    externalId: "demo-varmdo-pasta",
+    provider: "demo",
+    name: "Skärgårdens Pastakök",
+    category: "restaurang",
+    address: "Exempelbryggan 4",
+    city: "Gustavsberg",
+    cuisines: ["italienskt", "pasta"],
+    lat: 59.326,
+    lng: 18.392,
+  },
+  {
+    externalId: "demo-varmdo-trattoria",
+    provider: "demo",
+    name: "Vikens Trattoria",
+    category: "restaurang",
+    address: "Smakgränden 6",
+    city: "Gustavsberg",
+    cuisines: ["italienskt"],
+    lat: 59.327,
+    lng: 18.394,
+  },
+  {
+    externalId: "demo-kebab",
+    provider: "demo",
+    name: "Kompassens Kebab",
+    category: "snabbmat",
+    address: "Kompassgatan 8",
+    city: "Göteborg",
+    area: "Haga",
+    cuisines: ["kebab"],
+    lat: 57.699,
+    lng: 11.957,
+  },
+  {
+    externalId: "demo-vegan-only",
+    provider: "demo",
+    name: "Gröna Gläntan",
+    category: "restaurang",
+    address: "Gläntan 9",
+    city: "Göteborg",
+    area: "Haga",
+    cuisines: ["Helt veganskt"],
+    lat: 57.7,
+    lng: 11.958,
+  },
+  {
+    externalId: "demo-dumplings",
+    provider: "demo",
+    name: "Ångkorgen",
+    category: "restaurang",
+    address: "Korggatan 3",
+    city: "Göteborg",
+    area: "Haga",
+    cuisines: ["dumpling", "chinese"],
+    lat: 57.699,
+    lng: 11.959,
+  },
+
   {
     externalId: "demo-1",
     provider: "demo",
@@ -452,8 +515,9 @@ const demoProvider: PlacesProvider = {
       ...(query?.trim().length && query.trim().length >= 2
         ? [DEMO_CANONICAL_ROW, DEMO_MATCHED_ROW]
         : []),
-    ].map((suggestion) => ({
+    ].map((suggestion): PlaceSuggestion => ({
       ...suggestion,
+      searchEvidence: savedPlaceSearchEvidence(suggestion, intent),
       cuisines: normalizeFoodTags(suggestion.cuisines ?? []),
     }));
     let items = suppliedCenter
@@ -508,7 +572,9 @@ const demoProvider: PlacesProvider = {
 
     filtered.sort(
       (a, b) =>
-        (a.distanceKm ?? 999) - (b.distanceKm ?? 999) || a.name.localeCompare(b.name, "sv-SE"),
+        searchRelevanceRank(a) - searchRelevanceRank(b) ||
+        (a.distanceKm ?? 999) - (b.distanceKm ?? 999) ||
+        a.name.localeCompare(b.name, "sv-SE"),
     );
 
     // Boundaryns centrumavstånd används bara för deterministisk intern sortering.

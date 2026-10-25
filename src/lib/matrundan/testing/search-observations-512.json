@@ -1,0 +1,513 @@
+{
+  "source": "matrundan-geoapify-komplettering-3.json",
+  "sha256": "240e37764b753c72498cf1da805bb01cb270f4d8f77d04076a1c0403ac0df83a",
+  "collectedAt": "2026-10-23",
+  "attribution": "Platsdata från Geoapify och © OpenStreetMap-bidragsgivare.",
+  "places": [
+    {
+      "area": "goteborg-2km",
+      "id": "51684de262fbe72740596616fc917dd94c40f00103f9013b85a5cd0000000092030a4d69646f205375736869",
+      "name": "Mido Sushi",
+      "cuisine": "sushi",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.sushi"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51ed331df0afe8274059c173efe192d94c40f00103f9010921c07c0100000092031148c3a46c736f626172656e205375736869",
+      "name": "Hälsobaren Sushi",
+      "cuisine": "sushi",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.sushi"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51f8263c574ae927405986d73f9990d94c40f00103f901be71b8a0000000009203104475702048c3a46c736f205375736869",
+      "name": "Dup Hälso Sushi",
+      "cuisine": "sushi",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.sushi"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "5181f56ee29ae9274059f715b545e3d84c40f00103f9014cdaff4e020000009203155468616920466f6f6420262054616b652041776179",
+      "name": "Thai Food & Take Away",
+      "cuisine": "thai",
+      "categories": [
+        "access",
+        "access.yes",
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.thai",
+        "gluten_free"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "5153fbbec980ed274059c86361e355d94c40f00103f9012ef046810000000092030954686169486f757365",
+      "name": "ThaiHouse",
+      "cuisine": "thai",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.thai"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "512ba798de59e62740592e5cb11aa6d84c40f00103f901de295c2a00000000920311546861692053616d696c612d495341414e",
+      "name": "Thai Samila-ISAAN",
+      "cuisine": "thai",
+      "categories": [
+        "access",
+        "access.yes",
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.thai",
+        "wheelchair",
+        "wheelchair.limited"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "516773e44fabf0274059b9d6a0226bd94c40f00102f901866810380000000092030b566173616772696c6c656e",
+      "name": "Vasagrillen",
+      "cuisine": "grill",
+      "categories": [
+        "building",
+        "building.catering",
+        "building.commercial",
+        "catering",
+        "catering.fast_food",
+        "vegan",
+        "vegetarian"
+      ],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "malmo-2km",
+      "id": "51eb877da76e032a405922e3512ae1cb4b40f00103f901b4ebdc1f00000000920317537461722072657374617572616e67206f636820626172",
+      "name": "Star restaurang och bar",
+      "cuisine": "burger;pasta;bar;grill",
+      "categories": ["catering", "catering.restaurant", "wheelchair", "wheelchair.limited"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "sodermalm-2km",
+      "id": "51e8bd310400153240594784903d8ca74d40f00103f90113e26515020000009203145265676765762048756d6d75732053c3b6646572",
+      "name": "Reggev Hummus Söder",
+      "cuisine": "grill;kebab;lebanese",
+      "categories": ["catering", "catering.restaurant", "vegan", "vegetarian"],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "514a8d751662ee2740590f3da9380eda4c40f00103f901ae5fdab902000000920311427269736b6574202620467269656e6473",
+      "name": "Brisket & Friends",
+      "cuisine": "barbecue",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.barbecue"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "514b8d751662ee2740593ae7a7380eda4c40f00103f901ae5fdab902000000920311427269736b6574202620467269656e6473",
+      "name": "Brisket & Friends",
+      "cuisine": "barbecue",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.barbecue"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "malmo-2km",
+      "id": "51f6bc76c47c042a4059aa1908b8d6cb4b40f00103f90151ee18b301000000920305562e452e44",
+      "name": "V.E.D",
+      "cuisine": "barbecue;burger;indian",
+      "categories": ["catering", "catering.restaurant"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "518f2c054944f1274059d2ae53ee3eda4c40f00103f9019d4245800000000092030a496e204265747765656e",
+      "name": "In Between",
+      "cuisine": "seafood;fish",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.fish",
+        "catering.restaurant.seafood"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "5163b83a00e2ea274059ebc6bb2363d94c40f00103f901d86f3afa01000000920309536ac3b6626172656e",
+      "name": "Sjöbaren",
+      "cuisine": "fish",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.fish",
+        "gluten_free",
+        "wheelchair",
+        "wheelchair.limited"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "517d3d5fb35cee2740593033c74d68d94c40f00103f901d01f3328000000009203044b6f6b61",
+      "name": "Koka",
+      "cuisine": "swedish;local;fish;organic",
+      "categories": ["catering", "catering.restaurant", "vegan", "vegetarian"],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51bcbfe6c182ec27405978cdbe8ffed94c40f00103f901cabdf37f00000000",
+      "name": "",
+      "cuisine": "seafood",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.seafood"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "5114967840d9ec2740599422cd61f7d94c40f00103f90191f3f30f0300000092030a4669736b626172203137",
+      "name": "Fiskbar 17",
+      "cuisine": "seafood",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.seafood"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "517b9faa4203ed2740592655db4df0d94c40f00103f901a93111d8010000009203065441564f4c4f",
+      "name": "TAVOLO",
+      "cuisine": "italian;italian_pizza;pasta",
+      "categories": ["catering", "catering.restaurant"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51886e51c13ce72740597065e487a5d84c40f00103f901247678c80000000092031252657374617572616e672042656c6c696e69",
+      "name": "Restaurang Bellini",
+      "cuisine": "pasta;italian",
+      "categories": [
+        "access",
+        "access.yes",
+        "catering",
+        "catering.restaurant",
+        "wheelchair",
+        "wheelchair.limited"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "515314f93fd1e2274059d9f5c1e8a8da4c40f00103f901ca9480920200000092030542656e6e65",
+      "name": "Benne",
+      "cuisine": "pasta",
+      "categories": ["catering", "catering.restaurant"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "511a29976011e827405924e2e56295d94c40f00102f9012383490c0000000092030c4ac3a4726e6772696c6c656e",
+      "name": "Järngrillen",
+      "cuisine": "burger;kebab;falafel;hot_dog",
+      "categories": [
+        "building",
+        "building.catering",
+        "catering",
+        "catering.fast_food",
+        "vegan",
+        "vegetarian",
+        "wheelchair",
+        "wheelchair.yes"
+      ],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51b0b4424761f12740595774907ccad84c40f00103f90164767bf90200000092030e476f746869612046616c6166656c",
+      "name": "Gothia Falafel",
+      "cuisine": "falafel",
+      "categories": [
+        "catering",
+        "catering.fast_food",
+        "vegan",
+        "vegan.only",
+        "vegetarian",
+        "vegetarian.only"
+      ],
+      "dietVegetarian": "only",
+      "dietVegan": "only"
+    },
+    {
+      "area": "malmo-2km",
+      "id": "5186ce382068fe294059db6b043334cc4b40f00102f9019fec9a2e00000000920314537461747366616c6166656c2026204772696c6c",
+      "name": "Statsfalafel & Grill",
+      "cuisine": "falafel;kebab",
+      "categories": ["building", "building.catering", "catering", "catering.fast_food"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "518d0c721761ea2740590609f6042eda4c40f00103f90115a8b38e000000009203044b6f6265",
+      "name": "Kobe",
+      "cuisine": "japanese",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.japanese"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51670b08ad87e72740597e03eed4b7d84c40f00103f901cd5763c80000000092030b4c696c6c6120546f6b796f",
+      "name": "Lilla Tokyo",
+      "cuisine": "japanese",
+      "categories": [
+        "access",
+        "access.yes",
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.japanese",
+        "wheelchair",
+        "wheelchair.yes"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51829ce6d319ea2740597f0a911d65da4c40f00103f901bd418e700100000092030a53757368692059616d61",
+      "name": "Sushi Yama",
+      "cuisine": "japanese",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.japanese",
+        "wheelchair",
+        "wheelchair.yes"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51495ba6704eea2740598e7a1929efd84c40f00103f90146daff4e0200000092031250697a7a61627574696b2047616d6265726f",
+      "name": "Pizzabutik Gambero",
+      "cuisine": "burger;kebab;pizza",
+      "categories": [
+        "access_limited",
+        "access_limited.private",
+        "catering",
+        "catering.fast_food",
+        "catering.fast_food.burger",
+        "catering.fast_food.kebab",
+        "vegetarian",
+        "wheelchair",
+        "wheelchair.limited"
+      ],
+      "dietVegetarian": "yes",
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51894caf8339e4274059ae275f7589db4c40f00103f901796a4b10030000009203054c617a697a",
+      "name": "Laziz",
+      "cuisine": "kebab",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.kebab"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51828472eceae7274059db83b5d6bcd84c40f00103f901aac1004f0200000092030c4272756e63686f74656b6574",
+      "name": "Brunchoteket",
+      "cuisine": "breakfast;sandwich;salad",
+      "categories": [
+        "access",
+        "access.yes",
+        "catering",
+        "catering.restaurant",
+        "gluten_free",
+        "vegetarian"
+      ],
+      "dietVegetarian": "yes",
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "5188c7348930f027405900cf51a280d94c40f00103f901c68c40730000000092030450697461",
+      "name": "Pita",
+      "cuisine": "sandwich",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.sandwich"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51eb96789b92ef2740597cae5ba90cda4c40f00103f901ce5310950200000092031448617373656c736f6e73204d61636b6c75636b61",
+      "name": "Hasselsons Macklucka",
+      "cuisine": "sandwich",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.sandwich"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51363ffed2a2e6274059f80379d1b2d94c40f00103f901174aacb60200000092030b486f6c7920477265656e73",
+      "name": "Holy Greens",
+      "cuisine": "salad",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "vegan",
+        "vegetarian",
+        "wheelchair",
+        "wheelchair.yes"
+      ],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51847703160aee2740596a6f4b3f3cda4c40f00103f901bc86ef05010000009203034a4f53",
+      "name": "JOS",
+      "cuisine": "salad;poke;smoothie;cafe",
+      "categories": ["catering", "catering.restaurant", "vegan", "vegetarian"],
+      "dietVegetarian": "yes",
+      "dietVegan": "yes"
+    },
+    {
+      "area": "malmo-2km",
+      "id": "514e4f0e55e7032a40599f0436e7e0ca4b40f00103f9014e2e0980020000009203054d616e746f",
+      "name": "Manto",
+      "cuisine": "afghan;dumplings",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "vegan",
+        "vegan.only",
+        "vegetarian",
+        "vegetarian.only"
+      ],
+      "dietVegetarian": "only",
+      "dietVegan": "only"
+    },
+    {
+      "area": "malmo-2km",
+      "id": "512be56b859ffe294059b06b2002b3cd4b40f00103f90112f4ffd70200000092030653c3a56a6a61",
+      "name": "Såjja",
+      "cuisine": "dumplings",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.dumpling"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "malmo-2km",
+      "id": "512ae56b859ffe294059da9f1f02b3cd4b40f00103f90112f4ffd70200000092030653c3a56a6a61",
+      "name": "Såjja",
+      "cuisine": "dumplings",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.dumpling"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "515c316d4958f127405959cb530c46da4c40f00103f9019a424580000000009203034b4643",
+      "name": "KFC",
+      "cuisine": "chicken",
+      "categories": ["catering", "catering.fast_food"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "517f8eeacfd9f1274059b8cb7edde9da4c40f00103f901617d0693000000009203114e464320467269656420436869636b656e",
+      "name": "NFC Fried Chicken",
+      "cuisine": "chicken",
+      "categories": ["catering", "catering.fast_food"],
+      "dietVegetarian": "no",
+      "dietVegan": null
+    },
+    {
+      "area": "malmo-2km",
+      "id": "51c586133d95042a4059c57f611058cc4b40f00103f901aa9e89b502000000920305446f6f7269",
+      "name": "Doori",
+      "cuisine": "chicken;korean",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.chicken",
+        "catering.restaurant.korean"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "515fd0420246f7274059cf328b506cd94c40f00103f901f5d5b3ae0000000092031448656c656e657320536dc3b67272656272c3b664",
+      "name": "Helenes Smörrebröd",
+      "cuisine": "danish",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.danish"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51ab7c2a02f7f7274059cee90d524bd94c40f00103f9019e026b7f0000000092030d53616d617261204c6f756e6765",
+      "name": "Samara Lounge",
+      "cuisine": "arab;lebanese",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.arab",
+        "catering.restaurant.lebanese"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "goteborg-2km",
+      "id": "51ac7c2a02f7f7274059ec3d0f524bd94c40f00103f9019e026b7f0000000092030d53616d617261204c6f756e6765",
+      "name": "Samara Lounge",
+      "cuisine": "arab;lebanese",
+      "categories": [
+        "catering",
+        "catering.restaurant",
+        "catering.restaurant.arab",
+        "catering.restaurant.lebanese"
+      ],
+      "dietVegetarian": null,
+      "dietVegan": null
+    },
+    {
+      "area": "malmo-2km",
+      "id": "51a0b82ddb98002a4059bfddedd522cc4b40f00103f901b9da053d0100000092030b4b69746368656e20393631",
+      "name": "Kitchen 961",
+      "cuisine": "lebanese",
+      "categories": ["catering", "catering.restaurant", "catering.restaurant.lebanese"],
+      "dietVegetarian": null,
+      "dietVegan": null
+    }
+  ]
+}

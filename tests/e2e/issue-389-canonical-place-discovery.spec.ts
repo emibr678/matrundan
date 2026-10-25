@@ -65,6 +65,7 @@ async function setup(
     mapPaging?: boolean;
     mapPagingExtra?: boolean;
     mapFailOnce?: boolean;
+    morePartialOnce?: boolean;
   } = {},
 ) {
   const now = new Date().toISOString(),
@@ -104,6 +105,7 @@ async function setup(
   let hintSearches = 0;
   const mapSearchCalls: Array<{ filter: string; offset: number }> = [];
   let mapRefillFailures = 0;
+  const moreBudgets: Array<{ requests: number; credits: number }> = [];
   const ambiguousCandidates = [
     { ...provider.identity.candidates[0], canConfirmSource: false },
     {
@@ -307,12 +309,19 @@ async function setup(
           areaOffsets?: Record<string, number>;
           selectedFilter?: { id: string };
           searchPhase?: string;
+          providerRequestLimit: number;
+          providerCreditLimit: number;
         };
       };
       if (request.data.searchPhase !== "hints") {
         const offset = request.data.areaOffsets?.["area-1"] ?? 0;
         const filter = request.data.selectedFilter?.id ?? "all";
         mapSearchCalls.push({ filter, offset });
+        if (offset > 0)
+          moreBudgets.push({
+            requests: request.data.providerRequestLimit,
+            credits: request.data.providerCreditLimit,
+          });
         if (options.mapFailOnce && offset > 0 && mapRefillFailures === 0) {
           mapRefillFailures += 1;
           await route.abort("failed");
@@ -354,6 +363,8 @@ async function setup(
           areaOffsets: { "area-1": offset + 20 },
           exhaustedAreaIds: offset >= 40 ? ["area-1"] : [],
           budgetUsage: { requests: 1, reservedCredits: 1, limited: false },
+          failedAreaLabels: options.morePartialOnce && offset === 20 ? ["Teststad"] : [],
+          failedAreaIds: options.morePartialOnce && offset === 20 ? ["area-1"] : [],
         };
       }
     }
@@ -502,6 +513,7 @@ async function setup(
     manualRequests,
     getHintSearchCount: () => hintSearches,
     getMapSearchCalls: () => [...mapSearchCalls],
+    getMoreBudgets: () => [...moreBudgets],
   };
 }
 
@@ -1000,7 +1012,7 @@ test("20+ visas först när en ytterligare handlingsbar träff finns i bufferten
   await noOverflow(page);
 });
 
-test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza (#465)", async ({
+test("valt kök fylls på genom Visa fler och borttaget filter får egen kartström (#512)", async ({
   page,
 }) => {
   const mocked = await setup(page, { mapPaging: true });
@@ -1014,13 +1026,49 @@ test("kartpåfyllning använder filteridentitet när användaren tar bort Pizza 
   await search.getByRole("button", { name: "Karta", exact: true }).click();
   const pizzaRefilled = () =>
     mocked.getMapSearchCalls().some((call) => call.filter !== "all" && call.offset > 0);
+  // A selected concept never scans another metadata page merely because the map opens.
+  const more = search.getByRole("button", { name: "Visa fler", exact: true });
+  await expect(more).toBeVisible();
+  await page.waitForTimeout(600);
+  expect(pizzaRefilled()).toBe(false);
+  await more.click();
   await expect.poll(pizzaRefilled).toBe(true);
 
+  const beforeClear = mocked.getMapSearchCalls().length;
   await search.getByRole("button", { name: "Ta bort filtret Pizza" }).click();
   const allRefilled = () =>
-    mocked.getMapSearchCalls().some((call) => call.filter === "all" && call.offset > 0);
+    mocked
+      .getMapSearchCalls()
+      .slice(beforeClear)
+      .some((call) => call.filter === "all" && call.offset > 0);
   await expect.poll(allRefilled).toBe(true);
   await noOverflow(page);
+});
+
+test("Visa fler använder 5/20 och visar samt rensar partiellt områdesfel (#515)", async ({
+  page,
+}) => {
+  const mocked = await setup(page, { mapPaging: true, morePartialOnce: true });
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/matstallen");
+  await page.getByRole("button", { name: "Lägg till ställe", exact: true }).click();
+  const search = page.getByRole("dialog", { name: "Lägg till matställe" });
+  await search.getByRole("combobox", { name: "Sök matställen" }).fill("Sushi");
+  await search.getByRole("listbox").getByRole("option").filter({ hasText: "Sushi" }).click();
+  const more = search.getByRole("button", { name: "Visa fler", exact: true });
+  await more.click();
+  const warning = search.getByText("Kunde inte söka i Teststad. Övriga resultat visas.");
+  await expect(warning).toBeVisible();
+  expect(mocked.getMoreBudgets().at(-1)).toEqual({ requests: 5, credits: 20 });
+  await noOverflow(page);
+  await warning.scrollIntoViewIfNeeded();
+  await page.screenshot({ path: "visual-review/search-more-partial-515.png", fullPage: true });
+  await more.click();
+  await expect(warning).toHaveCount(0);
+  await expect(
+    search.getByRole("button", { name: "Visa information om Matställe 59", exact: true }),
+  ).toBeVisible();
+  expect(mocked.getMoreBudgets()).toHaveLength(2);
 });
 
 test("misslyckad kartpåfyllning försöker inte igen i loop men kan göras om (#465)", async ({
