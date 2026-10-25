@@ -934,7 +934,7 @@ export function PlaceDiscovery({
       ) {
         toast.info("Inga nya träffar i den här omgången.", {
           description: filled.hasMore
-            ? "Sökningen är inte färdig. Du kan fortsätta med Visa fler."
+            ? "Sökningen är inte färdig. Du kan söka vidare."
             : "Nu har vi sökt klart i de valda områdena.",
         });
       }
