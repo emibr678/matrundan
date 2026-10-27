@@ -1,0 +1,112 @@
+name: Overpass read-only diagnostic 512
+
+on:
+  push:
+    branches: [diagnostics/live-verification-515]
+    paths: [.github/workflows/overpass-readonly-512.yml]
+
+permissions: {}
+
+concurrency:
+  group: overpass-readonly-512
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    if: github.ref == 'refs/heads/diagnostics/live-verification-515'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      # No checkout, repository code, installs, database, API keys or deployment.
+      - name: Run at most two sequential public read-only requests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime
+          import json
+          import os
+          import pathlib
+          import subprocess
+          import sys
+          import time
+          import urllib.parse
+
+          root = pathlib.Path(os.environ['RUNNER_TEMP']) / 'overpass-512'
+          root.mkdir(exist_ok=True)
+          endpoint = 'https://overpass.private.coffee/api/interpreter'
+          minimal = '[out:json][timeout:10][maxsize:16777216];node(1);out ids;'
+          stockholm = '''[out:json][timeout:15][maxsize:16777216];
+          nwr(around:5000,59.3293,18.0686)
+            ["amenity"~"^(restaurant|fast_food)$"]
+            ["cuisine"~"(^|;)[[:space:]]*(pasta|falafel|kebab|ramen)[[:space:]]*(;|$)",i];
+          out tags center 100;
+          '''
+          records = []
+          # No retries or other endpoints. A failed first request prevents the second.
+          for label, query in [('minimal', minimal), ('stockholm-5km', stockholm)]:
+              (root / (label + '.overpassql')).write_text(query)
+              body_path = root / (label + '.response.json')
+              started = time.perf_counter()
+              record = {
+                  'label': label, 'endpoint': endpoint, 'method': 'POST',
+                  'atUtc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'query': query, 'release': os.environ.get('GITHUB_SHA'),
+                  'maximumRequests': 2, 'retries': 0,
+              }
+              command = [
+                  'curl', '--silent', '--show-error', '--retry', '0',
+                  '--max-redirs', '0', '--connect-timeout', '10', '--max-time', '55',
+                  '--max-filesize', '1048576', '--request', 'POST',
+                  '--header', 'Content-Type: application/x-www-form-urlencoded',
+                  '--user-agent', 'Matrundan-Issue512-readonly/1.0 (+https://github.com/emibr678/matrundan/issues/512)',
+                  '--data-binary', '@-', '--output', str(body_path),
+                  '--write-out', '%{json}', endpoint,
+              ]
+              try:
+                  result = subprocess.run(
+                      command, input=urllib.parse.urlencode({'data': query}),
+                      text=True, capture_output=True, timeout=60,
+                  )
+                  record.update(curlExit=result.returncode, stderr=result.stderr[:2000])
+                  metrics = json.loads(result.stdout)
+                  record['http'] = {key: metrics.get(key) for key in [
+                      'http_code', 'http_connect', 'time_connect', 'time_appconnect',
+                      'time_starttransfer', 'time_total', 'size_upload', 'size_download',
+                      'content_type', 'num_redirects', 'errormsg',
+                  ]}
+                  data = json.loads(body_path.read_text()) if body_path.exists() else None
+                  if not isinstance(data, dict) or not isinstance(data.get('elements'), list):
+                      raise ValueError('Response has no valid OSM elements array')
+                  record.update(
+                      objectCount=len(data['elements']), osm3s=data.get('osm3s'),
+                      remark=data.get('remark'),
+                      outputCapPossiblyReached=label == 'stockholm-5km' and len(data['elements']) >= 100,
+                  )
+                  if result.returncode != 0 or metrics.get('http_code') != 200 or data.get('remark'):
+                      raise ValueError('Incomplete or unsuccessful API response; stopping')
+                  record['ok'] = True
+              except Exception as error:
+                  record.update(ok=False, error=type(error).__name__ + ': ' + str(error))
+              record['elapsedMs'] = round((time.perf_counter() - started) * 1000)
+              records.append(record)
+              (root / 'receipts.json').write_text(json.dumps(records, ensure_ascii=False, indent=2))
+              print('OVERPASS_RECEIPT ' + json.dumps(record, ensure_ascii=False), flush=True)
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as summary:
+                  summary.write('### ' + label + '\n\n```json\n' + json.dumps(record, ensure_ascii=False, indent=2) + '\n```\n\n')
+              if not record['ok']:
+                  sys.exit(1)
+              if label == 'stockholm-5km':
+                  # Only public OSM tags/identity/coordinates; no user/group/provider secrets.
+                  for element in data['elements']:
+                      print('OSM_RESULT ' + json.dumps(element, ensure_ascii=False), flush=True)
+          PY
+
+      - name: Preserve public responses and diagnostic receipts for seven days
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: overpass-readonly-512-${{ github.run_id }}
+          path: ${{ runner.temp }}/overpass-512/
+          retention-days: 7
+          if-no-files-found: error
