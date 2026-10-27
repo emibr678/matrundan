@@ -21,8 +21,12 @@ import { loadLiveGroup } from "@/lib/matrundan/live-repository";
 import { SessionProvider, consumePendingInvitePath, useSession } from "@/lib/matrundan/session";
 import { StoreProvider } from "@/lib/matrundan/store";
 import { UserGuidanceProvider } from "@/lib/matrundan/user-guidance-context";
+import { IS_STAGING } from "@/lib/app-environment";
 
 export function AppShell() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  // Temporary standalone diagnostic: no session/group bootstrap for this page.
+  if (IS_STAGING && pathname === "/sokverifiering") return <Outlet />;
   return (
     <SessionProvider>
       <UserGuidanceProvider>

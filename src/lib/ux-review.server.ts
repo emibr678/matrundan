@@ -21,7 +21,7 @@ export function handleUxReviewRequest(
   }
 
   const nonce = crypto.randomUUID();
-  return new Response(reviewDocument(nonce), {
+  return new Response(reviewDocument(nonce, environment === "staging"), {
     headers: {
       "content-type": "text/html; charset=utf-8",
       "cache-control": "no-store",
@@ -32,7 +32,7 @@ export function handleUxReviewRequest(
   });
 }
 
-function reviewDocument(nonce: string): string {
+function reviewDocument(nonce: string, stagingDiagnostic: boolean): string {
   return `<!doctype html>
 <html lang="sv">
 <head>
@@ -72,7 +72,7 @@ function reviewDocument(nonce: string): string {
         <label><input type="radio" name="viewport" value="desktop"> Desktop 1280 × 900</label>
       </fieldset>
       <div class="secondary">
-        <label>Startvy <select id="start-view"><option value="/exempel">Exempelgruppen</option><option value="/">Vanliga appen</option></select></label>
+        <label>Startvy <select id="start-view"><option value="/exempel">Exempelgruppen</option><option value="/">Vanliga appen</option>${stagingDiagnostic ? '<option value="/sokverifiering">Overpass-diagnostik</option>' : ""}</select></label>
         <output id="viewport" aria-label="Uppmätt viewport" aria-live="polite">Laddar appen…</output>
         <a href="/" target="_blank" rel="noopener">Logga in i appen</a>
       </div>
@@ -112,7 +112,7 @@ function reviewDocument(nonce: string): string {
         try { frame.contentWindow.sessionStorage.removeItem(${JSON.stringify(EXAMPLE_SESSION_KEY)}); }
         catch { /* Storage restrictions do not grant access to any session. */ }
       }
-      if (next === '/' || next === '/exempel') frame.src = next;
+      if (next === '/' || next === '/exempel'${stagingDiagnostic ? " || next === '/sokverifiering'" : ""}) frame.src = next;
     });
   </script>
 </body>

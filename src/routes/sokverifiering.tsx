@@ -1,157 +1,343 @@
 import * as React from "react";
-import { createFileRoute } from "@tanstack/react-router";
-import { IS_STAGING } from "@/lib/app-environment";
-import { useSession } from "@/lib/matrundan/session";
+import { createFileRoute, notFound } from "@tanstack/react-router";
+import { appPageTitle, IS_STAGING } from "@/lib/app-environment";
 import {
-  measureLiveSearch,
-  type ProbeProgress,
-} from "@/lib/matrundan/live-search-verification.functions";
+  OVERPASS_ENDPOINT,
+  OVERPASS_RESULT_LIMIT,
+  PROBE_AREAS,
+  PROBE_CUISINES,
+  probeQuery,
+  probeUrl,
+  runOverpassProbe,
+  type ProbeArea,
+  type ProbeCuisine,
+  type ProbeReceipt,
+  type ProbeSelection,
+} from "@/lib/overpass-diagnostic";
 
-export const Route = createFileRoute("/sokverifiering")({ component: Probe });
-type Row = {
-  target: string;
-  strategy: string;
-  areas: number;
-  sample: number;
-  action: string;
-  requestedCache: string;
-  httpMs: number;
-  relayMs: number;
-  browserMs: number;
-  healthMs: number;
-  count: number;
-  failedAreas: number;
-  canonicalIncomplete: boolean;
-  requests: number | null;
-  cacheHits: number | null;
-  reservedCredits: number;
-  limited: boolean;
-  hasMore: boolean;
-  error: string | null;
-  sha: string;
-};
+export const Route = createFileRoute("/sokverifiering")({
+  beforeLoad: () => {
+    if (!IS_STAGING) throw notFound();
+  },
+  head: () => ({
+    meta: [
+      { title: appPageTitle("Manuellt Overpass-prov") },
+      { name: "robots", content: "noindex,nofollow" },
+    ],
+  }),
+  component: OverpassDiagnostic,
+});
+const button =
+  "min-h-11 rounded-md border px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50";
+const MAX_REQUESTS = 10;
 
-function Probe() {
-  const { activeGroupId, mode } = useSession();
-  const [rows, setRows] = React.useState<Row[]>([]);
+function OverpassDiagnostic() {
+  const [ready, setReady] = React.useState(false);
+  const [area, setArea] = React.useState<ProbeArea>("stockholm");
+  const [cuisine, setCuisine] = React.useState<ProbeCuisine>("pasta");
+  const [receipt, setReceipt] = React.useState<ProbeReceipt | null>(null);
   const [running, setRunning] = React.useState(false);
-  const [status, setStatus] = React.useState("Inte startad");
-  if (!IS_STAGING) return <p>Endast staging</p>;
-  if (mode !== "live" || !activeGroupId)
-    return (
-      <p>
-        Logga in i den ordinarie appen och välj testgruppen. <a href="/">Öppna appen</a>
-      </p>
-    );
-  async function run() {
-    if (running || rows.length) return;
+  const [requests, setRequests] = React.useState(0);
+  const [verified, setVerified] = React.useState(false);
+  const [openedMinimal, setOpenedMinimal] = React.useState(false);
+  const [confirmedInTab, setConfirmedInTab] = React.useState(false);
+  const [stopped, setStopped] = React.useState(false);
+  const active = React.useRef<AbortController | null>(null);
+  const mounted = React.useRef(true);
+  React.useEffect(() => {
+    setReady(true);
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      active.current?.abort();
+    };
+  }, []);
+  const selection = { area, cuisine };
+  const enabled = ready && (verified || confirmedInTab) && !stopped && requests < MAX_REQUESTS;
+  const chosenArea = PROBE_AREAS[area];
+  async function run(query: ProbeSelection) {
+    if (active.current || stopped || requests >= MAX_REQUESTS) return;
+    if (query !== "minimal" && !enabled) return;
+    const controller = new AbortController();
+    active.current = controller;
     setRunning(true);
-    let spent = 0;
+    setRequests((count) => count + 1);
+    setReceipt(null);
     try {
-      for (const sample of [0])
-        for (const areas of [5] as const)
-          for (const strategy of ["restaurant"] as const)
-            for (const target of ["candidate"] as const) {
-              let progress: ProbeProgress | undefined;
-              let more = false;
-              for (const action of ["first", "more"] as const) {
-                if (action === "more" && !more) continue;
-                const inputProgress = progress;
-                for (const requestedCache of ["cold", "warm"]) {
-                  if (spent >= 10) {
-                    setStatus("Stopp: 10 krediter reserverade");
-                    return;
-                  }
-                  setStatus(
-                    `${target} ${strategy} ${areas} områden ${action} ${requestedCache}, prov ${sample + 1}`,
-                  );
-                  const start = performance.now();
-                  const result = await measureLiveSearch({
-                    data: {
-                      groupId: activeGroupId!,
-                      target,
-                      strategy,
-                      areas,
-                      sample,
-                      action,
-                      progress: inputProgress,
-                      remainingCredits: 10 - spent,
-                    },
-                  });
-                  const browserMs = performance.now() - start;
-                  spent += result.budget.reservedCredits;
-                  const row: Row = {
-                    target,
-                    strategy,
-                    areas,
-                    sample,
-                    action,
-                    requestedCache,
-                    browserMs,
-                    httpMs: result.httpMs,
-                    relayMs: result.relayMs,
-                    healthMs: result.healthMs,
-                    count: result.count,
-                    failedAreas: result.failedAreas,
-                    canonicalIncomplete: result.canonicalIncomplete,
-                    requests: result.budget.requests,
-                    cacheHits: result.budget.cacheHits ?? null,
-                    reservedCredits: result.budget.reservedCredits,
-                    limited: result.budget.limited,
-                    hasMore: result.hasMore,
-                    error: result.error,
-                    sha: result.sha,
-                  };
-                  setRows((prev) => [...prev, row]);
-                  if (
-                    result.error ||
-                    result.budget.limited ||
-                    result.failedAreas ||
-                    result.canonicalIncomplete
-                  ) {
-                    setStatus("Stopp: fel eller ofullständigt svar");
-                    return;
-                  }
-                  if (requestedCache === "cold") {
-                    progress = result.progress;
-                    more = result.hasMore;
-                  }
-                }
-              }
-            }
-      setStatus("Klart");
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "";
-      const safe = /^PROBE_[A-Z0-9_]+$/.test(message)
-        ? message
-        : message.startsWith("Unauthorized:")
-          ? "PROBE_AUTH_REJECTED"
-          : "PROBE_RPC_FAILED";
-      setStatus("Stopp: " + safe);
+      const result = await runOverpassProbe(query, controller.signal);
+      if (!mounted.current) return;
+      setReceipt(result);
+      if (query === "minimal" && result.complete) setVerified(true);
+      if (result.httpStatus === 429 || result.outcome === "partial") setStopped(true);
     } finally {
-      setRunning(false);
+      active.current = null;
+      if (mounted.current) setRunning(false);
     }
   }
   return (
-    <main style={{ padding: 16 }}>
-      <h1>Avgränsad liveverifiering av PR #515</h1>
-      <p>
-        Endast läsning. Oförändrad main och exakt kandidat. Riktad efterkontroll: två varv för Sushi
-        i ett område; ett varv för Sushi i fem områden och direkt typ. Kall betyder avsedd
-        appcachemiss; kvittot avgör faktisk cache. Server-HTTP inkluderar autentisering, databas,
-        provider, transport och serialisering. Providerlatens isoleras inte. Inga råsvar,
-        identiteter eller sessionsuppgifter sparas.
-      </p>
-      <p>Högst 10 reserverade krediter för hela omgången. Ingen faktisk debitering rapporteras.</p>
-      <button disabled={running || rows.length > 0} onClick={run}>
-        Kör begränsat liveprov
-      </button>
-      <p role="status">{status}</p>
-      <p>
-        Observationer: {rows.length} · Reserverade krediter:{" "}
-        {rows.reduce((a, r) => a + r.reservedCredits, 0)}
-      </p>
-      <pre aria-label="Mätresultat">{JSON.stringify(rows, null, 2)}</pre>
+    <main className="mx-auto min-h-dvh max-w-3xl space-y-5 bg-background px-4 py-6 text-foreground">
+      <header className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+          Matrundan Staging · Tillfällig diagnostik
+        </p>
+        <h1 className="font-display text-2xl">Manuellt Overpass-prov</h1>
+        <p className="rounded-md border border-amber-600/40 bg-amber-100/40 p-3 text-sm">
+          Den här branchen har äldre sökkod. Provet jämför inte resultaten med aktuell PR #515 och
+          ska aldrig mergas till main.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Ett klick gör ett anrop direkt från din webbläsare. Bara den fasta frågan skickas, utan
+          Matrundans cookies, session, gruppuppgifter eller referer. Inget sparas.
+        </p>
+      </header>
+
+      <section className="space-y-3 rounded-lg border p-4" aria-labelledby="connection-heading">
+        <h2 id="connection-heading" className="font-semibold">
+          1. Kontrollera anslutningen
+        </h2>
+        <button
+          className={`${button} bg-primary text-primary-foreground`}
+          disabled={!ready || running || stopped || requests >= MAX_REQUESTS}
+          onClick={() => void run("minimal")}
+        >
+          Kör minimalt anrop
+        </button>
+        {running && (
+          <p className="text-sm">Anrop pågår. Status och Avbryt finns under provvalen.</p>
+        )}
+        <p className="text-sm">
+          Hämtar endast ett fast OSM-ID. Även en tom elements-lista kan vara ett giltigt JSON-svar.
+        </p>
+        {ready && !stopped && (
+          <a
+            className="block text-sm font-medium text-primary underline"
+            href={probeUrl("minimal")}
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+            onClick={() => setOpenedMinimal(true)}
+          >
+            Öppna samma minimala fråga i ny flik
+          </a>
+        )}
+        <p className="text-xs text-muted-foreground">
+          En ny flik behöver inte CORS för att visa svaret. Om JSON visas där men anropet här
+          misslyckas talar det för en skillnad i CORS eller hur anropen hanteras; det bevisar inte
+          ensamt orsaken.
+        </p>
+        {openedMinimal && !verified && !confirmedInTab && (
+          <button
+            className={button}
+            disabled={running || stopped}
+            onClick={() => setConfirmedInTab(true)}
+          >
+            Jag ser giltig OSM-JSON i den nya fliken
+          </button>
+        )}
+        <p className="text-sm font-medium">
+          {verified
+            ? "Anslutning verifierad på sidan."
+            : confirmedInTab
+              ? "Giltig JSON bekräftad av dig i ny flik; inte avläst av sidan."
+              : "Anslutning ännu inte verifierad."}
+        </p>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4" aria-labelledby="search-heading">
+        <h2 id="search-heading" className="font-semibold">
+          2. Prova explicita OSM-taggar
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          Låses upp efter giltig OSM-JSON på sidan eller din uttryckliga bekräftelse från den nya
+          fliken.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1 text-sm">
+            <span className="block">Fast område</span>
+            <select
+              className="min-h-11 w-full rounded-md border bg-background px-2"
+              value={area}
+              disabled={running}
+              onChange={(event) => setArea(event.target.value as ProbeArea)}
+            >
+              {Object.entries(PROBE_AREAS).map(([id, item]) => (
+                <option key={id} value={id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="space-y-1 text-sm">
+            <span className="block">Exakt cuisine-tagg</span>
+            <select
+              className="min-h-11 w-full rounded-md border bg-background px-2"
+              value={cuisine}
+              disabled={running}
+              onChange={(event) => setCuisine(event.target.value as ProbeCuisine)}
+            >
+              {Object.entries(PROBE_CUISINES).map(([id, label]) => (
+                <option key={id} value={id}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Centrum {chosenArea.lat}, {chosenArea.lon} · 5 km · restaurant/fast_food · högst{" "}
+          {OVERPASS_RESULT_LIMIT} objekt. Inga köksassociationer eller menyantaganden.
+        </p>
+        <button
+          className={`${button} bg-primary text-primary-foreground`}
+          disabled={!enabled || running}
+          onClick={() => void run(selection)}
+        >
+          Sök {PROBE_CUISINES[cuisine]} i {chosenArea.label}
+        </button>
+        {enabled && (
+          <a
+            className="block text-sm font-medium text-primary underline"
+            href={probeUrl(selection)}
+            target="_blank"
+            rel="noopener noreferrer"
+            referrerPolicy="no-referrer"
+          >
+            Öppna samma taggfråga i ny flik
+          </a>
+        )}
+        <details className="text-sm">
+          <summary className="cursor-pointer py-2">Visa den fasta taggfrågan</summary>
+          <pre className="whitespace-pre-wrap break-all rounded bg-muted p-3 text-xs">
+            {probeQuery(selection)}
+          </pre>
+        </details>
+      </section>
+
+      <section className="space-y-3 rounded-lg border p-4" aria-labelledby="result-heading">
+        <h2 id="result-heading" className="font-semibold">
+          Svar från senaste anropet
+        </h2>
+        <p role="status" className="text-sm">
+          {running
+            ? "Anrop pågår… avbryts senast efter 45 sekunder."
+            : (receipt?.message ?? "Inget anrop har gjorts.")}
+        </p>
+        {running && (
+          <button className={button} onClick={() => active.current?.abort()}>
+            Avbryt anrop
+          </button>
+        )}
+        <dl className="grid grid-cols-2 gap-3 text-sm">
+          <div>
+            <dt className="text-muted-foreground">HTTP-status</dt>
+            <dd>{receipt?.httpStatus ?? "Ej avläst"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Svarstid inkl. läsning</dt>
+            <dd>{receipt ? `${receipt.elapsedMs} ms` : "Ej uppmätt"}</dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Giltig OSM-JSON</dt>
+            <dd>
+              {receipt?.validOsmJson == null ? "Ej avläst" : receipt.validOsmJson ? "Ja" : "Nej"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-muted-foreground">Komplett svar</dt>
+            <dd>{receipt ? (receipt.complete ? "Ja" : "Nej") : "Ej avläst"}</dd>
+          </div>
+        </dl>
+        {receipt && (
+          <>
+            <p className="text-sm">
+              {receipt.validOsmJson
+                ? `Visar ${receipt.elements.length} OSM-objekt${receipt.total !== null ? ` av ${receipt.total} matchande` : " (totalantal ej rapporterat)"}.`
+                : "Objektantal ej uppmätt."}
+            </p>
+            {receipt.capped && (
+              <p className="rounded border border-amber-600/40 p-2 text-sm">
+                Resultattaket är nått. Detta är ett begränsat urval; inga fler sidor hämtas.
+              </p>
+            )}
+            {receipt.sourceTime && (
+              <p className="break-all text-xs text-muted-foreground">
+                OSM-källtid: {receipt.sourceTime}
+              </p>
+            )}
+            {receipt.excerpt && (
+              <pre className="whitespace-pre-wrap break-all rounded bg-muted p-3 text-xs">
+                {receipt.excerpt}
+              </pre>
+            )}
+            <ul className="space-y-3">
+              {receipt.elements.map((element) => (
+                <li
+                  key={`${element.type}/${element.id}`}
+                  className="space-y-1 rounded-md border p-3 text-sm"
+                >
+                  <p className="break-words font-semibold">
+                    {element.tags.name || "Namnlöst OSM-objekt"}
+                  </p>
+                  <a
+                    className="break-all text-primary underline"
+                    href={`https://www.openstreetmap.org/${element.type}/${element.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    referrerPolicy="no-referrer"
+                  >
+                    {element.type}/{element.id}
+                  </a>
+                  {Object.entries(element.tags)
+                    .filter(([key]) =>
+                      [
+                        "amenity",
+                        "cuisine",
+                        "opening_hours",
+                        "check_date",
+                        "disused",
+                        "end_date",
+                      ].includes(key),
+                    )
+                    .map(([key, value]) => (
+                      <p className="break-all" key={key}>
+                        <span className="text-muted-foreground">{key}: </span>
+                        {value}
+                      </p>
+                    ))}
+                </li>
+              ))}
+            </ul>
+            <details className="text-sm">
+              <summary className="cursor-pointer py-2">Visa kvitto och körd fråga</summary>
+              <pre className="whitespace-pre-wrap break-all rounded bg-muted p-3 text-xs">
+                {JSON.stringify(receipt, null, 2)}
+              </pre>
+            </details>
+          </>
+        )}
+        {stopped && (
+          <p className="text-sm font-medium">
+            Provet stoppat efter kvotbesked eller ofullständigt svar. Gör inga fler anrop.
+          </p>
+        )}
+      </section>
+      <footer className="space-y-2 break-words text-xs text-muted-foreground">
+        <p>
+          Anrop från sidan i denna sidvisning: {requests}/{MAX_REQUESTS}. Inga automatiska
+          återförsök. Anrop i nya flikar räknas inte här.
+        </p>
+        <p>
+          OSM-taggar bevisar inte aktuellt menyutbud eller att verksamheten är öppen. Resultaten
+          sparas inte som platsattribut.
+        </p>
+        <p className="break-all">
+          Källa: © OpenStreetMap contributors · Endpoint: {OVERPASS_ENDPOINT}
+        </p>
+        <p className="break-all">
+          Diagnostikbranch: diagnostics/live-verification-515 · Head:{" "}
+          {import.meta.env.VITE_MATRUNDAN_RELEASE_SHA}
+        </p>
+      </footer>
     </main>
   );
 }

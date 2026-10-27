@@ -1,5 +1,28 @@
 # Tillfälligt mätverktyg för PR #515
 
+## Manuell Overpass-diagnostik, 27 oktober
+
+`/sokverifiering` är nu en fristående staging-only testyta för användarens mobil.
+Inga anrop sker före manuellt klick. Minimal OSM-fråga först; därefter fasta
+Pasta/Falafel/Kebab/Ramen-frågor i Stockholm eller Värnamo, punkt 5 km.
+Webbläsaren anropar endast den fasta Private.coffee-adressen, utan session,
+cookies, gruppuppgifter eller referrer. Samma fråga kan öppnas som kodad GET i
+ny flik. Manuell JSON-bekräftelse från den fliken markeras separat från ett
+maskinellt avläst svar. JavaScript kan inte säkert skilja CORS från DNS/TLS.
+
+45 sekunders klienttimeout, 10/15 sekunders querytimeout, 16 MiB serverbudget,
+512 KiB svarstak och 50 resultat plus count. Högst 10 anrop från sidan per
+sidvisning, inga automatiska återförsök. Allt resultat är flyktig sidstatus;
+inga databas- eller platsattribut skrivs. Kvotbesked och partiellt svar stoppar
+fortsättningen. Nya flikars manuella anrop räknas inte i sidans räknare.
+
+Branchens sökkod är äldre än aktuell PR #515 och får inte användas som aktuell
+produktjämförelse. Detta är ingen Overpass-integration i Matrundans sökning.
+**Branchen ska aldrig mergas till main.** Den äldre Geoapify-mätfunktionen finns
+kvar som historiskt underlag men anropas inte av den nya sidan.
+
+## Tidigare Geoapify-upplägg (historik)
+
 Denna branch ska inte mergas. Den mäter oförändrad main ead5a34 och exakt
 produktkandidat 593d5efe genom ordinarie stagingautentisering och gruppkontroller.
 Inga privata grupp-ID:n, sessioner eller råsvar returneras eller lagras i kvittot.
