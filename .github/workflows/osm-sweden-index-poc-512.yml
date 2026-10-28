@@ -1,0 +1,106 @@
+name: Temporary OSM Sweden food-index PoC 512
+
+on:
+  push:
+    branches:
+      - diagnostics/osm-sweden-index-512
+    paths:
+      - scripts/diagnostics/osm_sweden_index_poc.py
+      - .github/workflows/osm-sweden-index-poc-512.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osm-sweden-index-poc-512
+  cancel-in-progress: true
+
+jobs:
+  measure:
+    name: One-off read-only Sweden OSM index
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      LC_ALL: C.UTF-8
+      OSM_WORK: /tmp/osm-sweden-poc
+    steps:
+      - name: Check out isolated diagnostics branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Check environment and install Osmium
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/diagnostics/osm-sweden-index-512"
+          git status --short
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y osmium-tool
+          osmium --version
+          python3 --version
+          mkdir -p "$OSM_WORK"
+
+      - name: Download one public Geofabrik Sweden snapshot
+        run: |
+          set -euo pipefail
+          # A one-time public file, no token. Limit traffic and fail rather than retry blindly.
+          curl --fail --location --silent --show-error --retry 0 \
+            --connect-timeout 30 --max-time 900 --max-filesize 1300000000 \
+            "https://download.geofabrik.de/europe/sweden-latest.osm.pbf" \
+            --output "$OSM_WORK/sweden.osm.pbf"
+          test -s "$OSM_WORK/sweden.osm.pbf"
+          osmium fileinfo "$OSM_WORK/sweden.osm.pbf"
+          du -h "$OSM_WORK/sweden.osm.pbf"
+
+      - name: Extract public food amenities and retain geometry references
+        run: |
+          set -euo pipefail
+          # Referenced nodes are required to construct way/relation geometries.
+          osmium tags-filter --remove-tags \
+            "$OSM_WORK/sweden.osm.pbf" \
+            "amenity=restaurant,fast_food,cafe,bar,pub,food_court,biergarten,ice_cream" \
+            "shop=bakery" \
+            -o "$OSM_WORK/food.osm.pbf"
+          osmium export "$OSM_WORK/food.osm.pbf" \
+            --attributes=type,id \
+            --geometry-types=point,linestring,polygon \
+            --output-format=geojsonseq \
+            -o "$OSM_WORK/food.geojsonseq"
+          du -h "$OSM_WORK/food.osm.pbf" "$OSM_WORK/food.geojsonseq"
+
+      - name: Build temporary SQLite index and measure identical 5 km queries
+        run: |
+          set -euo pipefail
+          python3 scripts/diagnostics/osm_sweden_index_poc.py \
+            --input "$OSM_WORK/food.geojsonseq" \
+            --db "$OSM_WORK/food.sqlite" \
+            --report "$OSM_WORK/report.json" \
+            --source-pbf "$OSM_WORK/sweden.osm.pbf" \
+            --filtered-pbf "$OSM_WORK/food.osm.pbf"
+          echo "### Sweden OSM food index PoC" >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          d=json.loads(Path("/tmp/osm-sweden-poc/report.json").read_text())
+          print("| Measure | Result |\n|---|---:|")
+          for key in ["places","source_pbf_bytes","filtered_pbf_bytes","sqlite_bytes",
+                      "with_cuisine","geometry_approximate","build_seconds"]:
+              print(f"| {key} | {d[key]} |")
+          r=d["stockholm_5km_pasta_oct28_overpass_reference"]
+          print(f"| Stockholm known 19 OSM IDs matched | {r['matched']}/19 |")
+          print("\nQueries (5 km, warm single-user SQLite reads):\n")
+          print("| Area | Filter | Count | Warm median ms |")
+          print("|---|---|---:|---:|")
+          for area,scenarios in d["queries"].items():
+              for label,q in scenarios.items():
+                  print(f"| {area} | {label} | {q['count']} | {q['warm_median_ms']} |")
+          PY
+
+      - name: Upload short-lived metrics only, never raw extract or private data
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: osm-sweden-index-poc-512
+          path: /tmp/osm-sweden-poc/report.json
+          if-no-files-found: warn
+          retention-days: 5
