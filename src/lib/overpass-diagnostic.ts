@@ -1,5 +1,5 @@
 /** Temporary browser diagnostic. Never merge or save these facts to places. */
-export const OVERPASS_ENDPOINT = "https://overpass.private.coffee/api/interpreter";
+export const OVERPASS_ENDPOINT = "https://overpass-api.de/api/interpreter";
 export const OVERPASS_TIMEOUT_MS = 45_000;
 export const OVERPASS_RESULT_LIMIT = 50;
 const MAX_RESPONSE_BYTES = 512 * 1024;
