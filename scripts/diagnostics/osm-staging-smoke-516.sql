@@ -131,7 +131,7 @@ FROM unnest(ARRAY[
   11829871768,11907603210,12300183770,13359851124
 ]) AS id;
 
-DO $
+DO $$
 DECLARE
   _old_cursor jsonb;
   _row jsonb;
@@ -149,7 +149,7 @@ BEGIN
   IF (SELECT generation_id FROM osm_staging.current_generation) <> 1 THEN
     RAISE EXCEPTION 'Rollback failed to restore first generation';
   END IF;
-END $;
+END $$;
 
 -- Cannot use function for malformed coordinates or unbounded search.
 DO $$
