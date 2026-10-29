@@ -4,6 +4,7 @@
 -- Does not touch Matrundan's canonical places or any group table.
 \set ON_ERROR_STOP on
 BEGIN;
+SELECT pg_catalog.set_config('osm_poc.generation_id', :'osm_generation_id', true);
 
 CREATE TEMP TABLE osm_poc_incoming (
   osm_type text,
