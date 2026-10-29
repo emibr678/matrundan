@@ -125,8 +125,8 @@ jobs:
           );
           SQL
           psql -v ON_ERROR_STOP=1 -f "$OSM_WORK/schema.sql"
-          psql -v ON_ERROR_STOP=1 -c "\copy osm_places (osm_type,osm_id,name,amenity,shop,cuisine,lat,lon,approximate,addr_street,addr_housenumber,addr_postcode,addr_city,website,opening_hours,phone,tags) FROM '$OSM_WORK/places.csv' WITH (FORMAT csv)"
-          psql -v ON_ERROR_STOP=1 -c "\copy osm_tokens (token,osm_type,osm_id) FROM '$OSM_WORK/tokens.csv' WITH (FORMAT csv)"
+          psql -v ON_ERROR_STOP=1 -c "\copy osm_places (osm_type,osm_id,name,amenity,shop,cuisine,lat,lon,approximate,addr_street,addr_housenumber,addr_postcode,addr_city,website,opening_hours,phone,tags) FROM '$OSM_WORK/places.csv' WITH (FORMAT csv, NULL '\N')"
+          psql -v ON_ERROR_STOP=1 -c "\copy osm_tokens (token,osm_type,osm_id) FROM '$OSM_WORK/tokens.csv' WITH (FORMAT csv, NULL '\N')"
           psql -v ON_ERROR_STOP=1 <<'SQL'
           CREATE INDEX osm_places_location_gist ON osm_places USING gist (geom);
           CREATE INDEX osm_places_name_lower ON osm_places (lower(name));
