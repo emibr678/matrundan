@@ -56,6 +56,7 @@ function OsmSearchComparisonPage() {
 
   const reset = () => {
     currentRequest.current += 1;
+    setBusy(false);
     setResponse(null);
     setError("");
     setDuration(null);
