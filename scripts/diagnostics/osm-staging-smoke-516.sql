@@ -111,6 +111,46 @@ BEGIN
   THEN RAISE EXCEPTION 'Current pointer modified by failed activation'; END IF;
 END $$;
 
+-- A complete second snapshot activates atomically. A cursor created on gen 1
+-- must still return gen 1 after switching to gen 2. The older snapshot can
+-- subsequently be reinstated without deleting source rows.
+INSERT INTO osm_staging.places (
+  generation_id,osm_type,osm_id,name,amenity,cuisine_raw,cuisine_tokens,location
+) SELECT 2,'node',200000000000::bigint+num,'Testplats','restaurant','pasta',ARRAY['pasta'],
+  extensions.st_setsrid(extensions.st_makepoint(18.0686,59.3293),4326)::extensions.geography
+FROM generate_series(101,16000) AS num;
+
+INSERT INTO osm_staging.places (
+  generation_id,osm_type,osm_id,name,amenity,cuisine_raw,cuisine_tokens,location
+) SELECT 2,'node',id,'Känt OSM-ställe','restaurant','pasta',ARRAY['pasta'],
+  extensions.st_setsrid(extensions.st_makepoint(18.0686,59.3293),4326)::extensions.geography
+FROM unnest(ARRAY[
+  318324117::bigint,360935262,707627932,712621281,810044221,
+  957961775,1258633968,1349576854,1580839502,1717695879,
+  2238199867,5079680337,7117300291,9186795630,11197610953,
+  11829871768,11907603210,12300183770,13359851124
+]) AS id;
+
+DO $
+DECLARE
+  _old_cursor jsonb;
+  _row jsonb;
+BEGIN
+  _old_cursor := public.osm_staging_search_v1(59.3293,18.0686,5,ARRAY['pasta'],20,NULL)->'cursor';
+  PERFORM osm_staging.activate_validated_generation(2);
+  IF (SELECT generation_id FROM osm_staging.current_generation) <> 2 THEN
+    RAISE EXCEPTION 'Activation failed to switch atomically';
+  END IF;
+  _row := public.osm_staging_search_v1(59.3293,18.0686,5,ARRAY['pasta'],20,_old_cursor);
+  IF (_row->>'generation')::bigint <> 1 THEN
+    RAISE EXCEPTION 'In-flight cursor switched to wrong generation';
+  END IF;
+  PERFORM osm_staging.activate_validated_generation(1);
+  IF (SELECT generation_id FROM osm_staging.current_generation) <> 1 THEN
+    RAISE EXCEPTION 'Rollback failed to restore first generation';
+  END IF;
+END $;
+
 -- Cannot use function for malformed coordinates or unbounded search.
 DO $$
 BEGIN
