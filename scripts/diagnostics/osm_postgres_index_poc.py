@@ -72,6 +72,7 @@ def normalized_tokens(text):
 def prepare(src, dest):
     dest.mkdir(parents=True, exist_ok=True)
     counts, amenity_counts = Counter(), Counter()
+    seen_osm_keys = set()  # Osmium may export both line/polygon geometry for one OSM way
     approx = 0
     no_name = 0
     no_cuisine = 0
@@ -102,6 +103,11 @@ def prepare(src, dest):
                     counts["missing_geometry"] += 1
                     continue
                 lat, lon, approximate = loc
+                identity = (typ, oid)
+                if identity in seen_osm_keys:
+                    counts["duplicate_geometry"] += 1
+                    continue
+                seen_osm_keys.add(identity)
                 name = tags.get("name") or ""
                 cuisine = tags.get("cuisine") or ""
                 website = (tags.get("website") or tags.get("contact:website") or "")
