@@ -1,0 +1,158 @@
+name: OSM staging import rehearsal (Issue 516)
+
+on:
+  push:
+    branches: [feature/osm-staging-comparison-516]
+    paths:
+      - scripts/diagnostics/osm-staging-prepare-516.py
+      - scripts/diagnostics/osm-staging-import-516.sql
+      - .github/workflows/osm-staging-ingest-516.yml
+  pull_request:
+    paths:
+      - scripts/diagnostics/osm-staging-prepare-516.py
+      - scripts/diagnostics/osm-staging-import-516.sql
+      - .github/workflows/osm-staging-ingest-516.yml
+
+permissions:
+  contents: read
+concurrency:
+  group: osm-staging-ingest-516
+  cancel-in-progress: true
+
+jobs:
+  ingestion:
+    name: One-off public Sweden data into disposable PostgreSQL
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      OSM_WORK: /tmp/osm-staging-516
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: poc
+      PGPASSWORD: poc
+      PGDATABASE: osm_poc
+      LC_ALL: C.UTF-8
+    services:
+      postgres:
+        image: postgis/postgis:17-3.6
+        env:
+          POSTGRES_DB: osm_poc
+          POSTGRES_USER: poc
+          POSTGRES_PASSWORD: poc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U poc -d osm_poc"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 8
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Install offline-only tools
+        run: |
+          set -euo pipefail
+          mkdir -p "$OSM_WORK"
+          python3 -m py_compile scripts/diagnostics/osm-staging-prepare-516.py
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y osmium-tool postgresql-client
+          psql -v ON_ERROR_STOP=1 -c "DROP EXTENSION IF EXISTS postgis_topology CASCADE; DROP EXTENSION IF EXISTS postgis CASCADE;"
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN;
+          CREATE SCHEMA auth;
+          GRANT USAGE ON SCHEMA auth TO authenticated;
+          CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE SET search_path='' AS $$
+            SELECT nullif(pg_catalog.current_setting('request.jwt.claim.sub',true),'')::uuid;
+          $$;
+          GRANT EXECUTE ON FUNCTION auth.uid() TO authenticated;
+          SQL
+          psql -v ON_ERROR_STOP=1 -f scripts/diagnostics/osm-staging-schema-516.sql
+
+      - name: Download one public Sweden OSM snapshot
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 0 \
+            --connect-timeout 30 --max-time 900 --max-filesize 1300000000 \
+            "https://download.geofabrik.de/europe/sweden-latest.osm.pbf" \
+            --output "$OSM_WORK/sweden.osm.pbf"
+          test -s "$OSM_WORK/sweden.osm.pbf"
+          echo "OSM_SHA256=$(sha256sum "$OSM_WORK/sweden.osm.pbf" | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          echo "OSM_TIMESTAMP=$(osmium fileinfo -g header.option.osmosis_replication_timestamp "$OSM_WORK/sweden.osm.pbf")" >> "$GITHUB_ENV"
+          osmium fileinfo "$OSM_WORK/sweden.osm.pbf"
+
+      - name: Export OSM-only food POIs with source geometry
+        run: |
+          set -euo pipefail
+          osmium tags-filter --remove-tags \
+            "$OSM_WORK/sweden.osm.pbf" \
+            "amenity=restaurant,fast_food,cafe,bar,pub,food_court,biergarten,ice_cream" \
+            "shop=bakery" \
+            -o "$OSM_WORK/food.osm.pbf"
+          osmium export "$OSM_WORK/food.osm.pbf" \
+            --attributes=type,id \
+            --geometry-types=point,linestring,polygon \
+            --output-format=geojsonseq \
+            -o "$OSM_WORK/food.geojsonseq"
+          python3 scripts/diagnostics/osm-staging-prepare-516.py \
+            --input "$OSM_WORK/food.geojsonseq" \
+            --out "$OSM_WORK/places.csv" \
+            --report "$OSM_WORK/quality.json"
+
+      - name: Import clean OSM geometry into disposable generation
+        run: |
+          set -euo pipefail
+          test -n "$OSM_TIMESTAMP"
+          test -n "$OSM_SHA256"
+          psql -v ON_ERROR_STOP=1 -v osm_timestamp="$OSM_TIMESTAMP" -v osm_sha="$OSM_SHA256" <<'SQL'
+          INSERT INTO osm_staging.generations (
+            source_timestamp, source_sha256, importer_version, status
+          ) VALUES (:'osm_timestamp'::timestamptz, :'osm_sha', 'rehearsal-516', 'building');
+          SQL
+          psql -X -v ON_ERROR_STOP=1 -v osm_generation_id=1 \
+            -f scripts/diagnostics/osm-staging-import-516.sql
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          DO $$
+          DECLARE
+            _places integer;
+            _pasta integer;
+          BEGIN
+            SELECT count(*) INTO _places FROM osm_staging.places WHERE generation_id=1;
+            SELECT count(*) INTO _pasta FROM osm_staging.places
+              WHERE generation_id=1 AND osm_type='node'
+              AND osm_id = ANY(ARRAY[
+                318324117::bigint,360935262,707627932,712621281,810044221,
+                957961775,1258633968,1349576854,1580839502,1717695879,
+                2238199867,5079680337,7117300291,9186795630,11197610953,
+                11829871768,11907603210,12300183770,13359851124
+              ]);
+            IF _places < 15000 OR _pasta < 15 THEN
+              RAISE EXCEPTION 'OSM ingest quality gate: places %, pasta reference %/19', _places, _pasta;
+            END IF;
+            UPDATE osm_staging.generations SET
+              expected_count = _places, status='validated', validated_at=now()
+              WHERE id=1;
+          END $$;
+          SELECT osm_staging.activate_validated_generation(1);
+          SELECT jsonb_build_object(
+            'places', (SELECT count(*) FROM osm_staging.places),
+            'source_bytes', pg_total_relation_size('osm_staging.places'),
+            'pasta_5km', (SELECT count(*) FROM osm_staging.places
+              WHERE 'pasta'=ANY(cuisine_tokens)
+                AND extensions.st_dwithin(location,
+                  extensions.st_setsrid(extensions.st_makepoint(18.0686,59.3293),4326)::extensions.geography,5000)),
+            'postgis_version', (SELECT extversion FROM pg_extension WHERE extname='postgis')
+          );
+          SQL
+
+      - name: Save aggregate quality report only
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: osm-staging-quality-516
+          path: /tmp/osm-staging-516/quality.json
+          if-no-files-found: warn
+          retention-days: 5
