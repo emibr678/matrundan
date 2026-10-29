@@ -7,12 +7,20 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { IS_STAGING } from "@/lib/app-environment";
 
+const cursorSchema = z.object({
+  g: z.number().int().positive(),
+  s: z.string().min(1).max(64),
+  d: z.number().finite().nonnegative(),
+  t: z.enum(["node", "way", "relation"]),
+  i: z.number().int().positive(),
+});
+
 const searchInput = z.object({
   lat: z.number().finite().min(-90).max(90),
   lng: z.number().finite().min(-180).max(180),
   radiusKm: z.number().finite().min(0.1).max(50),
   tokens: z.array(z.string().regex(/^[a-z0-9_:-]{1,64}$/)).max(20),
-  cursor: z.record(z.unknown()).nullable().optional(),
+  cursor: cursorSchema.nullable().optional(),
 });
 
 const resultSchema = z.object({
@@ -32,7 +40,7 @@ const responseSchema = z.object({
   generation: z.number().int().positive().optional(),
   results: z.array(resultSchema),
   hasMore: z.boolean(),
-  cursor: z.record(z.unknown()).nullable().optional(),
+  cursor: cursorSchema.nullable().optional(),
 });
 
 export type OsmStagingSearchResponse = z.infer<typeof responseSchema>;
