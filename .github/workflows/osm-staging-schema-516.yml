@@ -52,6 +52,9 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -qq -y postgresql-client
           psql -v ON_ERROR_STOP=1 -c "select version(),postgis_version();"
+          # The disposable PostGIS image pre-installs PostGIS in public. Supabase staging
+          # has no extension yet; reproduce the correct fresh install in 'extensions'.
+          psql -v ON_ERROR_STOP=1 -c "DROP EXTENSION IF EXISTS postgis_topology CASCADE; DROP EXTENSION IF EXISTS postgis CASCADE;"
       - name: Create minimal mocked Supabase auth roles (container only)
         run: |
           set -euo pipefail
