@@ -38,3 +38,9 @@ jobs:
         run: |
           bun run typecheck
           bun run typecheck:unit
+      - name: Install Chromium for one narrow visual smoke
+        run: bunx playwright install --with-deps chromium
+      - name: Check locked staging page at 360 px, no DB write
+        env:
+          VITE_MATRUNDAN_ENVIRONMENT: staging
+        run: bun run test:visual-smoke -- /osm-sokprov
