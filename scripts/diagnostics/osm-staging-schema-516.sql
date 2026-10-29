@@ -73,9 +73,9 @@ BEGIN
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM osm_staging.generations
-    WHERE id = _generation AND status = 'validated' AND validated_at IS NOT NULL
+    WHERE id = _generation AND status IN ('validated','retired') AND validated_at IS NOT NULL
   ) THEN
-    RAISE EXCEPTION 'OSM staging generation not validated';
+    RAISE EXCEPTION 'OSM staging generation not validated or retained for rollback';
   END IF;
   SELECT generation_id INTO _previous
   FROM osm_staging.current_generation WHERE singleton IS TRUE FOR UPDATE;
