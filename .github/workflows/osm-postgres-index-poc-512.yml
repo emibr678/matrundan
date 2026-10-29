@@ -1,0 +1,173 @@
+name: Temporary OSM/PostGIS sizing and quality PoC 512
+
+on:
+  push:
+    branches:
+      - diagnostics/osm-sweden-index-512
+    paths:
+      - .github/workflows/osm-postgres-index-poc-512.yml
+      - scripts/diagnostics/osm_postgres_index_poc.py
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osm-postgres-index-poc-512
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Public Sweden OSM to ephemeral PostgreSQL/PostGIS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      OSM_WORK: /tmp/osm-postgres-poc
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: poc
+      PGPASSWORD: poc
+      PGDATABASE: osm_poc
+      LC_ALL: C.UTF-8
+    services:
+      postgres:
+        image: postgis/postgis:17-3.6
+        env:
+          POSTGRES_PASSWORD: poc
+          POSTGRES_USER: poc
+          POSTGRES_DB: osm_poc
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U poc -d osm_poc"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - name: Checkout isolated diagnostic branch
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+
+      - name: Install read-only data tooling and verify isolated database
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/diagnostics/osm-sweden-index-512"
+          mkdir -p "$OSM_WORK"
+          python3 -m py_compile scripts/diagnostics/osm_postgres_index_poc.py
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y osmium-tool postgresql-client
+          psql -v ON_ERROR_STOP=1 -c "SELECT version(); SELECT postgis_version();"
+
+      - name: Download one public Geofabrik Sweden PBF, no private credentials
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 0 \
+            --connect-timeout 30 --max-time 900 --max-filesize 1300000000 \
+            "https://download.geofabrik.de/europe/sweden-latest.osm.pbf" \
+            --output "$OSM_WORK/sweden.osm.pbf"
+          test -s "$OSM_WORK/sweden.osm.pbf"
+          osmium fileinfo "$OSM_WORK/sweden.osm.pbf"
+          du -h "$OSM_WORK/sweden.osm.pbf"
+
+      - name: Extract food place tags, preserving geometry member references
+        run: |
+          set -euo pipefail
+          osmium tags-filter --remove-tags \
+            "$OSM_WORK/sweden.osm.pbf" \
+            "amenity=restaurant,fast_food,cafe,bar,pub,food_court,biergarten,ice_cream" \
+            "shop=bakery" \
+            -o "$OSM_WORK/food.osm.pbf"
+          osmium export "$OSM_WORK/food.osm.pbf" \
+            --attributes=type,id \
+            --geometry-types=point,linestring,polygon \
+            --output-format=geojsonseq \
+            -o "$OSM_WORK/food.geojsonseq"
+
+      - name: Audit food place completeness and prepare realistic public fields
+        run: |
+          set -euo pipefail
+          python3 scripts/diagnostics/osm_postgres_index_poc.py prepare \
+            --input "$OSM_WORK/food.geojsonseq" \
+            --directory "$OSM_WORK"
+
+      - name: Create disposable PostgreSQL/PostGIS index (NOT Supabase)
+        run: |
+          set -euo pipefail
+          cat > "$OSM_WORK/schema.sql" <<'SQL'
+          CREATE EXTENSION IF NOT EXISTS postgis;
+          CREATE TABLE osm_places (
+            osm_type text NOT NULL,
+            osm_id bigint NOT NULL,
+            name text NOT NULL,
+            amenity text,
+            shop text,
+            cuisine text,
+            lat double precision NOT NULL,
+            lon double precision NOT NULL,
+            approximate boolean NOT NULL,
+            addr_street text,
+            addr_housenumber text,
+            addr_postcode text,
+            addr_city text,
+            website text,
+            opening_hours text,
+            phone text,
+            tags jsonb NOT NULL,
+            geom geography(Point,4326)
+              GENERATED ALWAYS AS (ST_SetSRID(ST_MakePoint(lon,lat),4326)::geography) STORED,
+            PRIMARY KEY(osm_type, osm_id)
+          );
+          CREATE TABLE osm_tokens (
+            token text NOT NULL,
+            osm_type text NOT NULL,
+            osm_id bigint NOT NULL,
+            PRIMARY KEY(token,osm_type,osm_id)
+          );
+          SQL
+          psql -v ON_ERROR_STOP=1 -f "$OSM_WORK/schema.sql"
+          psql -v ON_ERROR_STOP=1 -c "\copy osm_places (osm_type,osm_id,name,amenity,shop,cuisine,lat,lon,approximate,addr_street,addr_housenumber,addr_postcode,addr_city,website,opening_hours,phone,tags) FROM '$OSM_WORK/places.csv' WITH (FORMAT csv)"
+          psql -v ON_ERROR_STOP=1 -c "\copy osm_tokens (token,osm_type,osm_id) FROM '$OSM_WORK/tokens.csv' WITH (FORMAT csv)"
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE INDEX osm_places_location_gist ON osm_places USING gist (geom);
+          CREATE INDEX osm_places_name_lower ON osm_places (lower(name));
+          CREATE INDEX osm_places_name_fts ON osm_places USING gin (to_tsvector('simple', name));
+          CREATE INDEX osm_tokens_osm_ref ON osm_tokens (osm_type,osm_id);
+          ANALYZE osm_places;
+          ANALYZE osm_tokens;
+          SQL
+          psql -v ON_ERROR_STOP=1 -c "SELECT count(*) AS place_count FROM osm_places; SELECT count(*) AS cuisine_tokens FROM osm_tokens;"
+
+      - name: Measure actual PG storage, quality and bounded geographic searches
+        run: |
+          set -euo pipefail
+          python3 scripts/diagnostics/osm_postgres_index_poc.py measure \
+            --directory "$OSM_WORK"
+          echo "### Ephemeral PostgreSQL / PostGIS Sweden OSM audit" >> "$GITHUB_STEP_SUMMARY"
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          from pathlib import Path
+          d=json.loads(Path("/tmp/osm-postgres-poc/report-postgres.json").read_text())
+          pg=d["postgresql"]
+          print("| Metric | Measured value |\n|---|---:|")
+          for k in ("total_places","missing_name","missing_cuisine",
+                    "has_address_street_or_postcode","has_website","has_opening_hours"):
+              print(f"| {k} | {d[k]} |")
+          for k in ("places_total_bytes","tokens_total_bytes","combined_bytes"):
+              print(f"| {k} | {pg[k]} |")
+          print(f"| Pasta 19 known OSM nodes verified | {d['reference_pasta_19']['matched']}/19 |")
+          print("\nSearches within 5 km (PostGIS server execution time only):\n")
+          print("| Area | Search | Results | Median ms |\n|---|---|---:|---:|")
+          for area, categories in d["query_results"].items():
+              for key,v in categories.items():
+                  print(f"| {area} | {key} | {v['count']} | {v['server_execution_median_ms']} |")
+          print("\n**Not an end-to-end app latency or full duplicate/closed-place audit.**")
+          PY
+
+      - name: Preserve report only, not source extract/database
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: osm-postgres-index-poc-512
+          path: /tmp/osm-postgres-poc/report-postgres.json
+          if-no-files-found: warn
+          retention-days: 5
