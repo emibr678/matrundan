@@ -134,7 +134,6 @@ BEGIN
     RAISE EXCEPTION 'Authentication required';
   END IF;
   IF _lat IS NULL OR _lng IS NULL OR _radius_km IS NULL
-    OR NOT pg_catalog.isfinite(_lat) OR NOT pg_catalog.isfinite(_lng)
     OR _lat NOT BETWEEN -90 AND 90 OR _lng NOT BETWEEN -180 AND 180
     OR _radius_km <= 0 OR _radius_km > 50
     OR _limit IS NULL OR _limit < 1 OR _limit > 20
