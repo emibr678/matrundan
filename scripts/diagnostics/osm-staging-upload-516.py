@@ -184,7 +184,11 @@ def run(args):
         raise RuntimeError("Invalid source SHA-256")
     if not re.fullmatch(r"20[0-9]{2}-[0-9]{2}-[0-9]{2}T[0-9:]+Z", timestamp):
         raise RuntimeError("Unexpected OSM replication timestamp")
-    if hashlib.sha256(args.pbf.read_bytes()).hexdigest() != source_hash:
+    sha = hashlib.sha256()
+    with args.pbf.open("rb") as stream:
+        for block in iter(lambda: stream.read(4 * 1024 * 1024), b""):
+            sha.update(block)
+    if sha.hexdigest() != source_hash:
         raise RuntimeError("PBF download checksum does not match source")
     source_rows = parse_csv(args.csv)
     source_count = len(source_rows)
@@ -254,9 +258,9 @@ def run(args):
     )
     if int(check["id"]) != generation:
         raise RuntimeError("Could not validate staging generation")
+    db.single(f"SELECT osm_staging.activate_validated_generation({generation}) AS activated;")
     activated = db.single(
-        f"WITH activation AS (SELECT osm_staging.activate_validated_generation({generation})) "
-        "SELECT c.generation_id AS active_id FROM osm_staging.current_generation c;"
+        "SELECT generation_id AS active_id FROM osm_staging.current_generation WHERE singleton IS TRUE;"
     )
     if int(activated["active_id"]) != generation:
         raise RuntimeError("OSM staging generation activation not confirmed")
