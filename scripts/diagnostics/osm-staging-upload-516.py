@@ -176,6 +176,24 @@ def finish_report(path: Path, report: dict):
     path.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
 
 
+def staging_preflight():
+    """Verify new short-scope import credential without writing or downloading data."""
+    validate_environment()
+    db = Database(os.environ.get("OSM_STAGING_IMPORT_ACCESS_TOKEN", ""))
+    health = db.single("""
+      SELECT current_database() AS database,
+        (SELECT extversion FROM pg_extension WHERE extname='postgis') AS postgis,
+        (to_regclass('osm_staging.places') IS NOT NULL) AS schema_ready,
+        (SELECT count(*) FROM osm_staging.current_generation) AS active_pointers;
+    """)
+    if (health.get("database") != "postgres" or
+        health.get("postgis") != "3.3.7" or
+        health.get("schema_ready") is not True or
+        int(health.get("active_pointers", -1)) != 0):
+        raise RuntimeError("Staging DB preflight failed: unexpected project/schema/active index")
+    print("Staging Management API credential passed read-only SQL preflight; no data changed.", flush=True)
+
+
 def run(args):
     validate_environment()
     source_hash = os.environ.get("OSM_SHA256", "").lower()
@@ -192,7 +210,7 @@ def run(args):
         raise RuntimeError("PBF download checksum does not match source")
     source_rows = parse_csv(args.csv)
     source_count = len(source_rows)
-    db = Database(os.environ.get("STAGING_SUPABASE_ACCESS_TOKEN", ""))
+    db = Database(os.environ.get("OSM_STAGING_IMPORT_ACCESS_TOKEN", ""))
     health = db.single("""
       SELECT current_database() AS database,
         (SELECT extversion FROM pg_extension WHERE extname='postgis') AS postgis,
@@ -302,9 +320,13 @@ def main():
     parser.add_argument("--pbf", type=Path)
     parser.add_argument("--report", type=Path)
     parser.add_argument("--self-test", action="store_true")
+    parser.add_argument("--preflight", action="store_true")
     args = parser.parse_args()
     if args.self_test:
         self_test()
+        return
+    if args.preflight:
+        staging_preflight()
         return
     if not args.csv or not args.pbf or not args.report:
         parser.error("--csv, --pbf and --report are required")
