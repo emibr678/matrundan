@@ -25,7 +25,7 @@ jobs:
     env:
       OSM_WORK: /tmp/osm-staging-upload-516
       STAGING_SUPABASE_PROJECT_ID: wpihfmwbubvdiaavtpia
-      STAGING_SUPABASE_ACCESS_TOKEN: ${{ secrets.STAGING_SUPABASE_ACCESS_TOKEN }}
+      OSM_STAGING_IMPORT_ACCESS_TOKEN: ${{ secrets.OSM_STAGING_IMPORT_ACCESS_TOKEN }}
       OSM_IMPORT_CONFIRMATION: IMPORT_OSM_STAGING_ONLY_516
       LC_ALL: C.UTF-8
     steps:
@@ -43,7 +43,7 @@ jobs:
           test "$GITHUB_REPOSITORY" = "emibr678/matrundan"
           test "$GITHUB_REF" = "refs/heads/feature/osm-staging-comparison-516"
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test -n "$STAGING_SUPABASE_ACCESS_TOKEN"
+          test -n "$OSM_STAGING_IMPORT_ACCESS_TOKEN"
           node --input-type=module <<'NODE'
           const expected = process.env.GITHUB_SHA;
           const response = await fetch(
@@ -68,6 +68,11 @@ jobs:
           console.log('Verified Issue #516 PR #517 exact head:', expected);
           NODE
           python3 scripts/diagnostics/osm-staging-upload-516.py --self-test
+
+      - name: Read-only permission preflight using dedicated OSM import token
+        run: |
+          set -euo pipefail
+          python3 scripts/diagnostics/osm-staging-upload-516.py --preflight
 
       - name: Download public Sweden OSM PBF
         run: |
