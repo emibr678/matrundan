@@ -20,7 +20,7 @@ jobs:
   approved-snapshot:
     name: Import public Sweden OSM data into staging index only
     runs-on: ubuntu-24.04
-    timeout-minutes: 38
+    timeout-minutes: 65
     environment: staging
     env:
       OSM_WORK: /tmp/osm-staging-upload-516
@@ -78,11 +78,28 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$OSM_WORK"
-          curl --fail --location --silent --show-error --retry 0 \
-            --connect-timeout 30 --max-time 900 --max-filesize 1300000000 \
-            "https://download.geofabrik.de/europe/sweden-latest.osm.pbf" \
-            --output "$OSM_WORK/sweden.osm.pbf"
+          # The Geofabrik transfer can be throttled to about 0.6 MB/s in CI.
+          # Keep the partial file across timed-out attempts *within this run*.
+          # A failed Range resume must fail closed rather than silently combining
+          # two different snapshots or restarting indefinitely.
+          ok=0
+          for attempt in 1 2 3; do
+            echo "Geofabrik download attempt $attempt (resume offset: $(stat -c %s "$OSM_WORK/sweden.osm.pbf" 2>/dev/null || echo 0) bytes)"
+            if curl --fail --location --silent --show-error --retry 0 \
+              --connect-timeout 30 --max-time 900 --max-filesize 1300000000 \
+              --continue-at - \
+              "https://download.geofabrik.de/europe/sweden-latest.osm.pbf" \
+              --output "$OSM_WORK/sweden.osm.pbf"; then
+              ok=1
+              break
+            fi
+            echo "Geofabrik attempt $attempt interrupted; same-file continuation required."
+          done
+          test "$ok" -eq 1
           test -s "$OSM_WORK/sweden.osm.pbf"
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y osmium-tool
+          osmium fileinfo "$OSM_WORK/sweden.osm.pbf" >/dev/null
           echo "OSM_SHA256=$(sha256sum "$OSM_WORK/sweden.osm.pbf" | cut -d' ' -f1)" >> "$GITHUB_ENV"
 
       - name: Install Osmium and prepare OSM-only source
