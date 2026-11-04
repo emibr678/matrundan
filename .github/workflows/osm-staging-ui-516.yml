@@ -1,0 +1,46 @@
+name: OSM staging comparison UI contract (Issue 516)
+
+on:
+  push:
+    branches: [feature/osm-staging-comparison-516]
+    paths:
+      - src/lib/matrundan/osm-staging.functions.ts
+      - src/routes/osm-sokprov.tsx
+      - .github/workflows/osm-staging-ui-516.yml
+  pull_request:
+    paths:
+      - src/lib/matrundan/osm-staging.functions.ts
+      - src/routes/osm-sokprov.tsx
+      - .github/workflows/osm-staging-ui-516.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: osm-staging-ui-516
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Staging OSM page TypeScript and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-ci
+      - name: Build staging branch and generate route types
+        env:
+          VITE_MATRUNDAN_ENVIRONMENT: staging
+        run: bun run build
+      - name: TypeScript contracts
+        run: |
+          bun run typecheck
+          bun run typecheck:unit
+      - name: Install Chromium for one narrow visual smoke
+        run: bunx playwright install --with-deps chromium
+      - name: Check locked staging page at 360 px, no DB write
+        env:
+          VITE_MATRUNDAN_ENVIRONMENT: staging
+        run: bun run test:visual-smoke -- /osm-sokprov
