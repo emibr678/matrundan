@@ -55,7 +55,7 @@ export const searchOsmStagingIndex = createServerFn({ method: "POST" })
     // The live/generated types must not be updated until an explicitly
     // authorized staging migration is applied. This bridge is limited to
     // this one provisional RPC and its validated response schema.
-    const call = context.supabase.rpc as unknown as (
+    const call = context.supabase.rpc.bind(context.supabase) as unknown as (
       name: string,
       args: Record<string, unknown>,
     ) => Promise<{ data: unknown; error: { code?: string } | null }>;
