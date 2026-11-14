@@ -1509,16 +1509,33 @@ export function PlaceDiscovery({
       </div>
 
       {canCompareOsm && !editingMobileAreas ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="staging-search-source">
+        <div
+          className="flex min-w-0 flex-wrap items-center gap-2"
+          data-testid="staging-search-source"
+        >
           <span className="text-xs text-muted-foreground">Sökkälla · stagingprov:</span>
-          <Button type="button" size="sm" className="min-h-9"
+          <Button
+            type="button"
+            size="sm"
+            className="min-h-9"
             variant={!osmMode ? "secondary" : "outline"}
-            aria-pressed={!osmMode} onClick={() => setSearchSource("geoapify")}>
+            aria-pressed={!osmMode}
+            onClick={() => setSearchSource("geoapify")}
+          >
             Geoapify
           </Button>
-          <Button type="button" size="sm" className="min-h-9"
+          <Button
+            type="button"
+            size="sm"
+            className="min-h-9"
             variant={osmMode ? "secondary" : "outline"}
-            aria-pressed={osmMode} onClick={() => { setSearchSource("osm"); setBulkMode(false); onClearSelected(); }}>
+            aria-pressed={osmMode}
+            onClick={() => {
+              setSearchSource("osm");
+              setBulkMode(false);
+              onClearSelected();
+            }}
+          >
             OSM
           </Button>
         </div>

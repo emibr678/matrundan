@@ -3,7 +3,10 @@ import { List, Map, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { MultiAreaPlaceMap } from "./MultiAreaPlaceMap";
 import { SearchResultSections } from "./SearchResultSections";
-import { searchOsmStagingPreview, type OsmStagingPreviewResponse } from "@/lib/matrundan/osm-staging.functions";
+import {
+  searchOsmStagingPreview,
+  type OsmStagingPreviewResponse,
+} from "@/lib/matrundan/osm-staging.functions";
 import {
   isOsmPreviewFilter,
   mergeOsmPreviewPages,
@@ -77,8 +80,12 @@ export function OsmStagingSearchResults({
       try {
         const direct = await searchOsmStagingPreview({
           data: {
-            lat: center.lat, lng: center.lng, radiusKm: selectedRadius,
-            filterId: selectedFilter, phase: "direct", cursor: null,
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: selectedRadius,
+            filterId: selectedFilter,
+            phase: "direct",
+            cursor: null,
           },
         });
         if (cancelled) return;
@@ -96,16 +103,23 @@ export function OsmStagingSearchResults({
         if (!direct.hasMore && rows.length < PER_PAGE && selectedFilter === "specialty:pasta") {
           const related = await searchOsmStagingPreview({
             data: {
-              lat: center.lat, lng: center.lng, radiusKm: selectedRadius,
-              filterId: selectedFilter, phase: "related", cursor: null,
+              lat: center.lat,
+              lng: center.lng,
+              radiusKm: selectedRadius,
+              filterId: selectedFilter,
+              phase: "related",
+              cursor: null,
             },
           });
           if (cancelled) return;
           if (related.status !== "ok" || related.generation !== direct.generation)
             throw new Error("OSM-indexet ändrades under sökningen. Försök igen.");
-          rows = mergeOsmPreviewPages(rows, related.results.map((row) =>
-            osmPreviewSuggestion(row, selectedFilter, "related", center.id, center.label),
-          ));
+          rows = mergeOsmPreviewPages(
+            rows,
+            related.results.map((row) =>
+              osmPreviewSuggestion(row, selectedFilter, "related", center.id, center.label),
+            ),
+          );
           relatedStarted = true;
           relatedCursor = related.cursor ?? null;
         }
@@ -118,7 +132,10 @@ export function OsmStagingSearchResults({
           relatedCursor,
         });
       } catch (caught) {
-        if (!cancelled) setError(caught instanceof Error ? caught.message : "OSM-sökningen kunde inte genomföras.");
+        if (!cancelled)
+          setError(
+            caught instanceof Error ? caught.message : "OSM-sökningen kunde inte genomföras.",
+          );
       } finally {
         if (!cancelled) {
           setDurationMs(Math.round(performance.now() - started));
@@ -126,11 +143,16 @@ export function OsmStagingSearchResults({
         }
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [key, retry]);
 
   const hasMore = Boolean(
-    loaded && (loaded.directCursor || (filter === "specialty:pasta" && !loaded.relatedStarted) || loaded.relatedCursor),
+    loaded &&
+    (loaded.directCursor ||
+      (filter === "specialty:pasta" && !loaded.relatedStarted) ||
+      loaded.relatedCursor),
   );
   const canShowMore = Boolean(loaded && (loaded.rows.length > shown || hasMore));
 
@@ -150,8 +172,12 @@ export function OsmStagingSearchResults({
     try {
       const response = await searchOsmStagingPreview({
         data: {
-          lat: area.lat, lng: area.lng, radiusKm: radius,
-          filterId: filter, phase, cursor,
+          lat: area.lat,
+          lng: area.lng,
+          radiusKm: radius,
+          filterId: filter,
+          phase,
+          cursor,
         },
       });
       if (originalKey !== currentKey.current) return;
@@ -163,9 +189,9 @@ export function OsmStagingSearchResults({
       setLoaded({
         ...loaded,
         rows: mergeOsmPreviewPages(loaded.rows, added),
-        directCursor: phase === "direct" ? response.cursor ?? null : loaded.directCursor,
+        directCursor: phase === "direct" ? (response.cursor ?? null) : loaded.directCursor,
         relatedStarted: loaded.relatedStarted || phase === "related",
-        relatedCursor: phase === "related" ? response.cursor ?? null : loaded.relatedCursor,
+        relatedCursor: phase === "related" ? (response.cursor ?? null) : loaded.relatedCursor,
       });
       setShown((count) => count + PER_PAGE);
       setDurationMs(Math.round(performance.now() - started));
@@ -179,44 +205,84 @@ export function OsmStagingSearchResults({
 
   if (!canRun) {
     return (
-      <div className="rounded-xl border border-border/70 p-4 text-sm" role="status" data-osm-preview-unsupported>
-        OSM-jämförelsen stöder just nu bara Pasta, Ramen och Asiatiskt i ett punktområde
-        med 3 eller 5 km radie. Ändra sökvalet eller välj Geoapify.
+      <div
+        className="rounded-xl border border-border/70 p-4 text-sm"
+        role="status"
+        data-osm-preview-unsupported
+      >
+        OSM-jämförelsen stöder just nu bara Pasta, Ramen och Asiatiskt i ett punktområde med 3 eller
+        5 km radie. Ändra sökvalet eller välj Geoapify.
       </div>
     );
   }
 
   const rows = (loaded?.rows ?? []).slice(0, shown);
   const pagination = canShowMore ? (
-    <Button type="button" variant="secondary" className="min-h-11 w-full"
-      disabled={loadingMore} onClick={() => void showMore()}>
-      {loadingMore ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Laddar…</> : "Visa fler"}
+    <Button
+      type="button"
+      variant="secondary"
+      className="min-h-11 w-full"
+      disabled={loadingMore}
+      onClick={() => void showMore()}
+    >
+      {loadingMore ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Laddar…
+        </>
+      ) : (
+        "Visa fler"
+      )}
     </Button>
   ) : null;
   const results = (
     <SearchResultSections
-      available={rows} sourceMatches={[]} existing={[]} existingOpen={false}
-      onExistingOpenChange={() => {}} selectedId={selectedId} selectedResultIds={new Set()}
-      bulkMode={false} onSelect={setSelectedId} onToggleSelected={() => {}}
-      onAdd={() => {}} onLinkSource={() => {}} places={[]}
-      showNearestAreaLabel={false} disabled={false} readOnly
+      available={rows}
+      sourceMatches={[]}
+      existing={[]}
+      existingOpen={false}
+      onExistingOpenChange={() => {}}
+      selectedId={selectedId}
+      selectedResultIds={new Set()}
+      bulkMode={false}
+      onSelect={setSelectedId}
+      onToggleSelected={() => {}}
+      onAdd={() => {}}
+      onLinkSource={() => {}}
+      places={[]}
+      showNearestAreaLabel={false}
+      disabled={false}
+      readOnly
       pagination={pagination}
     />
   );
   const map = (
     <MultiAreaPlaceMap
       items={rows.map((row) => ({
-        id: row.externalId, name: row.name, lat: row.lat, lng: row.lng,
-        category: row.category, actionable: false,
-        eyebrow: row.searchEvidence?.kind === "association" ? "Möjlig kökskoppling" : "Direkt OSM-tagg",
-        description: row.distanceKm != null ? Math.round(row.distanceKm * 1000) + " m från centrum" : "",
+        id: row.externalId,
+        name: row.name,
+        lat: row.lat,
+        lng: row.lng,
+        category: row.category,
+        actionable: false,
+        eyebrow:
+          row.searchEvidence?.kind === "association" ? "Möjlig kökskoppling" : "Direkt OSM-tagg",
+        description:
+          row.distanceKm != null ? Math.round(row.distanceKm * 1000) + " m från centrum" : "",
       }))}
-      centers={[{
-        id: area!.id, label: area!.label, lat: area!.lat, lng: area!.lng, searchMode: "point",
-      }]}
+      centers={[
+        {
+          id: area!.id,
+          label: area!.label,
+          lat: area!.lat,
+          lng: area!.lng,
+          searchMode: "point",
+        },
+      ]}
       radiusKm={radius}
       searchContextKey={key}
-      selectedId={selectedId} onSelect={setSelectedId}
+      selectedId={selectedId}
+      onSelect={setSelectedId}
       className="h-[55vh] min-h-[340px] lg:h-[52vh] lg:min-h-[390px]"
     />
   );
@@ -225,26 +291,41 @@ export function OsmStagingSearchResults({
       <div className="rounded-xl border border-border/70 bg-muted/20 p-3 text-xs leading-relaxed">
         <p className="font-medium">OSM · skrivskyddat sökprov</p>
         <p className="mt-1">
-          Direkta OSM-taggar visas före möjliga kökskopplingar. Taggarna bevisar
-          inte vilka rätter som finns på menyn. Träffar kan inte läggas till här.
+          Direkta OSM-taggar visas före möjliga kökskopplingar. Taggarna bevisar inte vilka rätter
+          som finns på menyn. Träffar kan inte läggas till här.
         </p>
-        {loaded ? <p className="mt-1 text-muted-foreground">
-          {loaded.rows.length} objekt hämtade · indexgeneration {loaded.generation}
-          {durationMs !== null ? " · senaste svar " + durationMs + " ms" : ""}
-        </p> : null}
+        {loaded ? (
+          <p className="mt-1 text-muted-foreground">
+            {loaded.rows.length} objekt hämtade · indexgeneration {loaded.generation}
+            {durationMs !== null ? " · senaste svar " + durationMs + " ms" : ""}
+          </p>
+        ) : null}
       </div>
-      {pending ? <p role="status" className="flex items-center gap-2 py-4 text-sm">
-        <Loader2 className="h-4 w-4 animate-spin" />Söker i OSM-indexet…
-      </p> : null}
-      {notLoaded ? <p role="alert" className="text-sm">
-        OSM-indexet är inte inläst i staging. Det är inte ett nollresultat.
-      </p> : null}
-      {error ? <div role="alert" className="rounded-lg border border-destructive/50 p-3 text-sm">
-        {error} <Button type="button" size="sm" variant="outline" className="ml-2"
-          onClick={() => setRetry((current) => current + 1)}>
-          Försök igen
-        </Button>
-      </div> : null}
+      {pending ? (
+        <p role="status" className="flex items-center gap-2 py-4 text-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Söker i OSM-indexet…
+        </p>
+      ) : null}
+      {notLoaded ? (
+        <p role="alert" className="text-sm">
+          OSM-indexet är inte inläst i staging. Det är inte ett nollresultat.
+        </p>
+      ) : null}
+      {error ? (
+        <div role="alert" className="rounded-lg border border-destructive/50 p-3 text-sm">
+          {error}{" "}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="ml-2"
+            onClick={() => setRetry((current) => current + 1)}
+          >
+            Försök igen
+          </Button>
+        </div>
+      ) : null}
       {loaded && loaded.rows.length === 0 && !hasMore ? (
         <p className="rounded-xl border border-dashed p-4 text-sm text-muted-foreground">
           Inga OSM-taggar matchade i det valda punktområdet.
@@ -254,12 +335,35 @@ export function OsmStagingSearchResults({
         <>
           <div className="min-w-0 lg:hidden">
             <div className="flex gap-2">
-              <Button type="button" size="sm" variant={view === "lista" ? "secondary" : "outline"}
-                onClick={() => onViewChange("lista")}><List className="mr-1 h-4 w-4" />Lista</Button>
-              <Button type="button" size="sm" variant={view === "karta" ? "secondary" : "outline"}
-                onClick={() => onViewChange("karta")}><Map className="mr-1 h-4 w-4" />Karta</Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={view === "lista" ? "secondary" : "outline"}
+                onClick={() => onViewChange("lista")}
+              >
+                <List className="mr-1 h-4 w-4" />
+                Lista
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant={view === "karta" ? "secondary" : "outline"}
+                onClick={() => onViewChange("karta")}
+              >
+                <Map className="mr-1 h-4 w-4" />
+                Karta
+              </Button>
             </div>
-            <div className="mt-3">{view === "lista" ? results : <div className="space-y-3">{map}{pagination}</div>}</div>
+            <div className="mt-3">
+              {view === "lista" ? (
+                results
+              ) : (
+                <div className="space-y-3">
+                  {map}
+                  {pagination}
+                </div>
+              )}
+            </div>
           </div>
           <div className="hidden min-w-0 gap-4 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
             <div className="max-h-[52vh] min-w-0 overflow-y-auto pr-1">{results}</div>
@@ -269,8 +373,15 @@ export function OsmStagingSearchResults({
       ) : null}
       <p className="text-[11px] text-muted-foreground">
         Platsdata: © OpenStreetMap-bidragsgivare ·{" "}
-        <a href="https://www.openstreetmap.org/copyright" target="_blank"
-          rel="noopener noreferrer" className="underline underline-offset-2">Källa och ODbL-licens</a>.
+        <a
+          href="https://www.openstreetmap.org/copyright"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2"
+        >
+          Källa och ODbL-licens
+        </a>
+        .
       </p>
     </section>
   );

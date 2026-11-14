@@ -28,10 +28,7 @@ export function isOsmPreviewFilter(id: string | null | undefined): id is OsmPrev
 }
 
 /** Deliberately limited to the three agreed search concepts, not all 38. */
-export function osmPreviewTokens(
-  id: OsmPreviewFilterId,
-  phase: OsmPreviewPhase,
-): string[] {
+export function osmPreviewTokens(id: OsmPreviewFilterId, phase: OsmPreviewPhase): string[] {
   if (phase === "related") return id === "specialty:pasta" ? ["italian"] : [];
   if (id === "specialty:pasta") return ["pasta"];
   if (id === "specialty:ramen") return ["ramen"];
@@ -47,8 +44,7 @@ function osmCategory(row: OsmPreviewRow): PlaceCategory {
   if (row.shop === "bakery") return "bageri";
   if (row.amenity === "cafe") return "café";
   if (row.amenity === "fast_food") return "snabbmat";
-  if (row.amenity === "pub" || row.amenity === "bar" || row.amenity === "biergarten")
-    return "pub";
+  if (row.amenity === "pub" || row.amenity === "bar" || row.amenity === "biergarten") return "pub";
   return "restaurang";
 }
 
@@ -68,7 +64,10 @@ export function osmPreviewSuggestion(
     address: "",
     city: "",
     // Raw OSM cuisine tags are shown as evidence, not persisted as Matrundan classifications.
-    cuisines: row.cuisine?.split(";").map((value) => value.trim()).filter(Boolean),
+    cuisines: row.cuisine
+      ?.split(";")
+      .map((value) => value.trim())
+      .filter(Boolean),
     lat: row.lat,
     lng: row.lng,
     distanceKm: row.distanceM / 1000,

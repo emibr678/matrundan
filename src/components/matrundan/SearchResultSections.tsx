@@ -104,13 +104,14 @@ export function SearchResultSections({
   );
   const statusFooterFor = React.useCallback(
     (suggestion: PlaceSuggestion, signal?: PlaceDataSignal): React.ReactNode | undefined => {
-      if (readOnly) return (
-        <span className="text-[11px] text-muted-foreground">
-          {suggestion.searchEvidence?.kind === "association"
-            ? "Möjlig kökskoppling: italienskt (inte verifierad meny)"
-            : "Direkt taggat i OSM (inte verifierad meny)"}
-        </span>
-      );
+      if (readOnly)
+        return (
+          <span className="text-[11px] text-muted-foreground">
+            {suggestion.searchEvidence?.kind === "association"
+              ? "Möjlig kökskoppling: italienskt (inte verifierad meny)"
+              : "Direkt taggat i OSM (inte verifierad meny)"}
+          </span>
+        );
       const ownReportOpen = hasOwnOpenReport(suggestion);
       const supporting =
         suggestion.searchMatchType === "tolerant"

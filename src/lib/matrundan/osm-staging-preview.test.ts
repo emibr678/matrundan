@@ -9,8 +9,14 @@ import {
 } from "./osm-staging-preview";
 
 const row: OsmPreviewRow = {
-  osmType: "way", osmId: 123, name: "Exempel", amenity: "restaurant",
-  cuisine: "italian;pasta", lat: 59.33, lng: 18.06, distanceM: 622,
+  osmType: "way",
+  osmId: 123,
+  name: "Exempel",
+  amenity: "restaurant",
+  cuisine: "italian;pasta",
+  lat: 59.33,
+  lng: 18.06,
+  distanceM: 622,
 };
 
 describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
@@ -42,7 +48,13 @@ describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
 
   test("olika OSM-typer med samma namn/id förblir separata träffar", () => {
     const way = osmPreviewSuggestion(row, "specialty:pasta", "direct", "a", "Stockholm");
-    const node = osmPreviewSuggestion({ ...row, osmType: "node" }, "specialty:pasta", "related", "a", "Stockholm");
+    const node = osmPreviewSuggestion(
+      { ...row, osmType: "node" },
+      "specialty:pasta",
+      "related",
+      "a",
+      "Stockholm",
+    );
     expect(mergeOsmPreviewPages([way], [node])).toHaveLength(2);
   });
 });
