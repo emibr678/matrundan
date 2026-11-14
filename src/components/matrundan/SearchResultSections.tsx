@@ -44,6 +44,7 @@ export function SearchResultSections({
   showNearestAreaLabel,
   pagination,
   disabled,
+  readOnly = false,
 }: {
   available: PlaceSuggestion[];
   sourceMatches: SourceMatchResult[];
@@ -61,8 +62,10 @@ export function SearchResultSections({
   showNearestAreaLabel: boolean;
   pagination?: React.ReactNode;
   disabled: boolean;
+  readOnly?: boolean;
 }) {
   const signalSuggestions = React.useMemo(() => {
+    if (readOnly) return [];
     const seen = new Set<string>();
     return [...sourceMatches.map((match) => match.result), ...available, ...existing].filter(
       (suggestion) => {
@@ -76,7 +79,7 @@ export function SearchResultSections({
         return true;
       },
     );
-  }, [available, existing, sourceMatches]);
+  }, [available, existing, sourceMatches, readOnly]);
   const signals = usePlaceDataSignalsForSuggestions(signalSuggestions);
   const ownOpenReportKeys = useOwnOpenPlaceSuggestionReportKeys();
   const signalFor = React.useCallback(
@@ -101,6 +104,14 @@ export function SearchResultSections({
   );
   const statusFooterFor = React.useCallback(
     (suggestion: PlaceSuggestion, signal?: PlaceDataSignal): React.ReactNode | undefined => {
+      if (readOnly)
+        return (
+          <span className="text-[11px] text-muted-foreground">
+            {suggestion.searchEvidence?.kind === "association"
+              ? "Möjlig kökskoppling: italienskt (inte verifierad meny)"
+              : "Direkt taggat i OSM (inte verifierad meny)"}
+          </span>
+        );
       const ownReportOpen = hasOwnOpenReport(suggestion);
       const supporting =
         suggestion.searchMatchType === "tolerant"
@@ -122,7 +133,7 @@ export function SearchResultSections({
         </div>
       );
     },
-    [hasOwnOpenReport],
+    [hasOwnOpenReport, readOnly],
   );
 
   const orderedAvailable = [
@@ -220,12 +231,15 @@ export function SearchResultSections({
                 }
                 onSelect={() => {
                   onSelect(result.externalId);
+                  if (readOnly) return;
                   if (bulkMode && canBulkAddSuggestion(result)) onToggleSelected(result);
                   else onAdd(result);
                 }}
                 footer={statusFooterFor(result, signal)}
                 action={
-                  bulkMode && canBulkAddSuggestion(result) ? (
+                  readOnly ? (
+                    <span className="text-[11px] text-muted-foreground">Ej tilläggsbart</span>
+                  ) : bulkMode && canBulkAddSuggestion(result) ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox
                         checked={bulkSelected}
