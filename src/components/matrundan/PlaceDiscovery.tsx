@@ -66,6 +66,9 @@ import {
   selectMapCandidates,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { APP_ENVIRONMENT } from "@/lib/app-environment";
+import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
+import { OsmStagingSearchResults } from "./OsmStagingSearchResults";
 import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
@@ -102,6 +105,7 @@ const EXPLICIT_MORE_BUDGET: SearchBudget = { requests: 5, credits: 20 };
 
 export interface PlaceDiscoverySnapshot {
   query: string;
+  searchSource?: "geoapify" | "osm";
   nameHints?: PlaceNameHint[];
   canonicalHints?: PlaceSuggestion[];
   nameHintsKey?: string;
@@ -169,8 +173,17 @@ export function PlaceDiscovery({
 }) {
   const navigate = useNavigate();
   const { state, submitting } = useStore();
-  const { mode, activeGroupId, exampleMode } = useSession();
+  const { mode, activeGroupId, exampleMode, user } = useSession();
   const isLive = mode === "live";
+  const canCompareOsm = canUseStagingTestTools({
+    environment: APP_ENVIRONMENT,
+    signedIn: Boolean(user),
+    liveMode: isLive,
+  });
+  const [searchSource, setSearchSource] = React.useState<"geoapify" | "osm">(
+    snapshot?.searchSource ?? "geoapify",
+  );
+  const osmMode = canCompareOsm && searchSource === "osm";
   const groupId = isLive ? activeGroupId : state.group.id;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canLinkSources = currentRole === "ägare" || currentRole === "admin";
@@ -209,6 +222,7 @@ export function PlaceDiscovery({
     snapshot?.radiusKm ?? state.group.defaultSearchRadiusKm ?? 1,
   );
   const currentSearchKey = JSON.stringify([
+    osmMode ? "osm" : "geoapify",
     query.trim(),
     selectedFilter?.id ?? null,
     radiusKm,
@@ -274,6 +288,7 @@ export function PlaceDiscovery({
   React.useEffect(() => {
     onSnapshotChange?.({
       query,
+      searchSource,
       nameHints,
       canonicalHints,
       nameHintsKey,
@@ -314,6 +329,7 @@ export function PlaceDiscovery({
     nextOffset,
     onSnapshotChange,
     query,
+    searchSource,
     radiusKm,
     resultView,
     results,
@@ -330,7 +346,7 @@ export function PlaceDiscovery({
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
 
   const nameHintsActive =
-    isLive && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
+    isLive && !osmMode && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
 
   // Two independent reads run in parallel: Geoapify for discovery, the
   // group's existing authenticated read-model for private canonical hints.
@@ -683,6 +699,18 @@ export function PlaceDiscovery({
   );
 
   React.useEffect(() => {
+    if (osmMode) {
+      // Isolated index results never enter Geoapify identity resolution or add actions.
+      setResults([]);
+      setResultsForSearchKey(currentSearchKey);
+      setCompletedSearchKey(currentSearchKey);
+      setLoading(false);
+      setError(null);
+      setFailedAreas([]);
+      setHasMore(false);
+      setAreaProgress({ offsets: {}, exhaustedIds: [] });
+      return;
+    }
     // Vänta in gömda förslag: fyllnaden till 20 handlingsbara träffar räknar mot
     // hiddenKeys, så en sökning som startar under laddningen kan bli underfylld.
     if (hiddenLoading) return;
@@ -844,6 +872,7 @@ export function PlaceDiscovery({
     fillProviderPages,
     hiddenLoading,
     isLive,
+    osmMode,
     nameHintsActive,
     query,
     effectiveQuery,
@@ -977,6 +1006,7 @@ export function PlaceDiscovery({
     }
     if (
       selectedFilter ||
+      osmMode ||
       !isLive ||
       !groupId ||
       hiddenLoading ||
@@ -1058,6 +1088,7 @@ export function PlaceDiscovery({
     hasMore,
     hiddenLoading,
     isLive,
+    osmMode,
     loading,
     loadingMore,
     mapFilling,
@@ -1477,6 +1508,21 @@ export function PlaceDiscovery({
         />
       </div>
 
+      {canCompareOsm && !editingMobileAreas ? (
+        <div className="flex min-w-0 flex-wrap items-center gap-2" data-testid="staging-search-source">
+          <span className="text-xs text-muted-foreground">Sökkälla · stagingprov:</span>
+          <Button type="button" size="sm" className="min-h-9"
+            variant={!osmMode ? "secondary" : "outline"}
+            aria-pressed={!osmMode} onClick={() => setSearchSource("geoapify")}>
+            Geoapify
+          </Button>
+          <Button type="button" size="sm" className="min-h-9"
+            variant={osmMode ? "secondary" : "outline"}
+            aria-pressed={osmMode} onClick={() => { setSearchSource("osm"); setBulkMode(false); onClearSelected(); }}>
+            OSM
+          </Button>
+        </div>
+      ) : null}
       {selectedFilter && !editingMobileAreas ? (
         <div className="flex min-w-0 items-center gap-2" data-testid="active-place-search-filter">
           <span className="text-xs text-muted-foreground">{selectedFilter.groupLabel}:</span>
@@ -1546,7 +1592,15 @@ export function PlaceDiscovery({
             : "max-lg:min-h-[min(40dvh,16rem)] lg:overflow-visible"
         }
       >
-        {activeAreas.length === 0 ? (
+        {osmMode ? (
+          <OsmStagingSearchResults
+            areas={activeAreas}
+            radiusKm={radiusKm}
+            filterId={selectedFilter?.id ?? null}
+            view={resultView}
+            onViewChange={setResultView}
+          />
+        ) : activeAreas.length === 0 ? (
           <Empty text="Sök och välj minst ett sökområde." />
         ) : isInitialSearchLoading ? (
           <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
