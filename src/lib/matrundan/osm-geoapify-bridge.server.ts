@@ -5,7 +5,10 @@
 import { GEOAPIFY_DISCOVERY_CATEGORIES } from "./geoapify-place-search";
 import { normalizePlaceFeature, type NormalizedPlaceSuggestion } from "./geoapify-normalize";
 import { placeDistanceKm } from "./place-discovery";
-import { fetchVerifiedProviderPlace, type VerifiedProviderPlace } from "./verified-provider-place.server";
+import {
+  fetchVerifiedProviderPlace,
+  type VerifiedProviderPlace,
+} from "./verified-provider-place.server";
 
 export interface OsmSource {
   osmType: "node" | "way" | "relation";

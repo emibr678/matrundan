@@ -78,7 +78,6 @@ export const searchOsmStagingPreview = createServerFn({ method: "POST" })
     return parsed;
   });
 
-
 /**
  * H2a: an OSM-only search row becomes addable only after the authenticated
  * server has resolved the exact OSM object to a verified Geoapify Places ID.
