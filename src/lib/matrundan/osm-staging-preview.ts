@@ -1,5 +1,6 @@
 /** Staging-only search comparison. OSM evidence is never saved as place metadata. */
-import { searchConceptById } from "./search-catalogue";
+import { relatedSearchConcepts, searchConceptById } from "./search-catalogue";
+import { rankNewPlaceSearchPage } from "./place-search-pagination";
 import type { PlaceSuggestion } from "./places-provider";
 import type { PlaceCategory } from "./types";
 
@@ -27,13 +28,17 @@ export function isOsmPreviewFilter(id: string | null | undefined): id is OsmPrev
   return OSM_PREVIEW_FILTER_IDS.some((known) => known === id);
 }
 
-/** Deliberately limited to the three agreed search concepts, not all 38. */
+/** OSM cuisine mappings reuse the canonical search catalogue.
+ * A separate three-filter pilot gate controls which mappings are exposed.
+ */
+export function osmConceptCuisineTokens(id: string, phase: OsmPreviewPhase): string[] {
+  const concepts = phase === "direct" ? [searchConceptById(id)] : relatedSearchConcepts(id);
+  return [...new Set(concepts.flatMap((concept) => concept?.tokens ?? []))]
+    .filter((token) => /^[a-z0-9_:-]{1,64}$/.test(token));
+}
+
 export function osmPreviewTokens(id: OsmPreviewFilterId, phase: OsmPreviewPhase): string[] {
-  if (phase === "related") return id === "specialty:pasta" ? ["italian"] : [];
-  if (id === "specialty:pasta") return ["pasta"];
-  if (id === "specialty:ramen") return ["ramen"];
-  // Follow the agreed catalogue's Asian family instead of inventing new OSM mappings.
-  return [...(searchConceptById("search:asiatiskt")?.tokens ?? [])];
+  return osmConceptCuisineTokens(id, phase);
 }
 
 export function osmPreviewKey(row: Pick<OsmPreviewRow, "osmType" | "osmId">): string {
@@ -59,6 +64,8 @@ export function osmPreviewSuggestion(
     kind: "provider",
     provider: "openstreetmap",
     externalId: osmPreviewKey(row),
+    resultKey: "provider:openstreetmap:" + osmPreviewKey(row),
+    searchIdentityKey: "osm:" + osmPreviewKey(row),
     name: row.name || "Matställe utan namn",
     category: osmCategory(row),
     address: "",
@@ -95,4 +102,40 @@ export function mergeOsmPreviewPages(
       return true;
     }),
   ];
+}
+
+/** One read-only mixed list. Only exact OSM object identity may deduplicate.
+ * Geoapify remains the only addable provider for this staging pilot.
+ */
+export function mergeHybridPreviewResults(
+  geoapify: PlaceSuggestion[],
+  osm: PlaceSuggestion[],
+  query: string,
+): PlaceSuggestion[] {
+  const merged = new Map<string, PlaceSuggestion>();
+  for (const result of geoapify) {
+    const key = result.searchIdentityKey ?? (result.provider ?? "unknown") + ":" + result.externalId;
+    merged.set(key, result);
+  }
+  for (const result of osm) {
+    const key = result.searchIdentityKey ?? "openstreetmap:" + result.externalId;
+    const existing = merged.get(key);
+    if (!existing) {
+      merged.set(key, result);
+      continue;
+    }
+    // Keep Geoapify's server-reviewed identity and addable action intact.
+    // OSM provides only ephemeral search evidence, not persisted cuisines.
+    if (existing.provider !== "openstreetmap") {
+      merged.set(key, {
+        ...existing,
+        searchEvidence:
+          existing.searchEvidence?.kind === "association" &&
+          result.searchEvidence?.kind !== "association"
+            ? result.searchEvidence
+            : existing.searchEvidence ?? result.searchEvidence,
+      });
+    }
+  }
+  return rankNewPlaceSearchPage([...merged.values()], query);
 }
