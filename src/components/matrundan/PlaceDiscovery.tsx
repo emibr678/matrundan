@@ -353,6 +353,7 @@ export function PlaceDiscovery({
     filterId: selectedFilter?.id ?? null,
     searchKey: currentSearchKey,
   });
+  const { hasMore: osmHasMore, loadMore: loadOsmMore, loadingMore: osmLoadingMore } = osmSearch;
 
   const nameHintsActive =
     isLive && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
@@ -952,12 +953,12 @@ export function PlaceDiscovery({
       setQueuedMore(true);
       return;
     }
-    if (osmSearch.hasMore && !osmSearch.loadingMore) {
-      await osmSearch.loadMore();
+    if (osmHasMore && !osmLoadingMore) {
+      await loadOsmMore();
       setDisplayLimit(targetActionable);
       return;
     }
-    if (!hasMore || !isLive || loadingMore || osmSearch.loadingMore) return;
+    if (!hasMore || !isLive || loadingMore || osmLoadingMore) return;
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -1005,9 +1006,9 @@ export function PlaceDiscovery({
     loadingMore,
     mapFilling,
     nextOffset,
-    osmSearch.hasMore,
-    osmSearch.loadMore,
-    osmSearch.loadingMore,
+    osmHasMore,
+    loadOsmMore,
+    osmLoadingMore,
     results,
     shownActionableCount,
   ]);

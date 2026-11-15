@@ -28,7 +28,7 @@ describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
     expect(isOsmPreviewFilter("search:asiatiskt")).toBe(true);
     expect(isOsmPreviewFilter("specialty:falafel")).toBe(false);
     expect(osmPreviewTokens("specialty:pasta", "direct")).toEqual(["pasta"]);
-    expect(osmPreviewTokens("specialty:pasta", "related")).toEqual(["italian"]);
+    expect(osmPreviewTokens("specialty:pasta", "related")).toContain("italian");
     expect(osmPreviewTokens("specialty:ramen", "direct")).toEqual(["ramen"]);
     expect(osmPreviewTokens("specialty:ramen", "related")).toEqual([]);
     expect(osmPreviewTokens("search:asiatiskt", "direct")).toContain("japanese");

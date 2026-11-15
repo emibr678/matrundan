@@ -133,7 +133,7 @@ export function useOsmHybridSearch({
     return () => {
       cancelled = true;
     };
-  }, [searchKey, attempt, eligible, area?.id, area?.lat, area?.lng, filter, radius]);
+  }, [searchKey, attempt, eligible, area, filter, radius]);
 
   const ready = state.key === searchKey && eligible;
   const hasMore = Boolean(
