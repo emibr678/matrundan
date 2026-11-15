@@ -6,6 +6,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { IS_STAGING } from "@/lib/app-environment";
 import { osmPreviewTokens } from "./osm-staging-preview";
+import { providerIdentityReviewSchema } from "./place-discovery.schemas";
+import type { PlaceSuggestion } from "./places-provider";
 
 const cursorSchema = z.object({
   g: z.number().int().positive(),
@@ -74,4 +76,86 @@ export const searchOsmStagingPreview = createServerFn({ method: "POST" })
     if (parsed.status === "ok" && (!parsed.generation || (parsed.hasMore && !parsed.cursor)))
       throw new Error("OSM-indexet returnerade ett ofullständigt svar.");
     return parsed;
+  });
+
+
+/**
+ * H2a: an OSM-only search row becomes addable only after the authenticated
+ * server has resolved the exact OSM object to a verified Geoapify Places ID.
+ * There is intentionally NO OSM-specific write/RPC in this staging pilot.
+ */
+export const resolveOsmStagingSelection = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input) =>
+    z
+      .object({
+        groupId: z.string().uuid(),
+        osmType: z.enum(["node", "way", "relation"]),
+        osmId: z.string().regex(/^[1-9][0-9]{0,18}$/),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }): Promise<PlaceSuggestion> => {
+    if (!IS_STAGING) throw new Error("Den kompletterande sökkällan kan bara användas i staging.");
+    const access = await context.supabase.rpc("get_place_discovery_context_v1", {
+      _group_id: data.groupId,
+    });
+    if (access.error) throw new Error("Gruppen kunde inte verifieras.");
+
+    const source = { osmType: data.osmType, osmId: data.osmId };
+    const { resolveOsmGeoapifyIdentity } = await import("./osm-geoapify-bridge.server");
+    let provider: Awaited<ReturnType<typeof resolveOsmGeoapifyIdentity>>;
+    try {
+      provider = await resolveOsmGeoapifyIdentity(source);
+    } catch {
+      // No automatic fallback to client-supplied coordinates or a fake
+      // Geoapify source. A manual addition remains a separate explicit action.
+      throw new Error(
+        "Kartträffen kunde inte verifieras. Prova att söka efter namnet eller lägg till manuellt.",
+      );
+    }
+
+    const response = await context.supabase.rpc("match_place_discovery_candidates_v1", {
+      _group_id: data.groupId,
+      _items: [
+        {
+          externalId: provider.externalId,
+          name: provider.name,
+          category: provider.category,
+          cuisines: provider.cuisines,
+          address: provider.address,
+          area: provider.area,
+          city: provider.city,
+          lat: provider.lat,
+          lng: provider.lng,
+          osmType: data.osmType,
+          osmId: data.osmId,
+        },
+      ],
+    });
+    if (response.error) throw new Error("Matstället kunde inte kontrolleras mot gruppen.");
+    const review = z
+      .array(providerIdentityReviewSchema)
+      .parse(response.data)
+      .find((item) => item.providerPlaceId === provider.externalId);
+    if (!review) throw new Error("Matställets identitet kunde inte verifieras.");
+    return {
+      kind: "provider",
+      provider: "geoapify",
+      externalId: provider.externalId,
+      resultKey: "provider:geoapify:" + provider.externalId,
+      searchIdentityKey: "osm:" + data.osmType + ":" + data.osmId,
+      name: provider.name,
+      category: provider.category,
+      cuisines: provider.cuisines,
+      address: provider.address,
+      area: provider.area ?? undefined,
+      city: provider.city,
+      lat: provider.lat,
+      lng: provider.lng,
+      // Only public identity metadata is sent back to the client. This is
+      // revalidated by the existing write server via expectedSource.
+      raw: JSON.stringify(source),
+      identity: review,
+    };
   });

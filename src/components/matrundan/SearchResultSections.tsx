@@ -194,7 +194,9 @@ export function SearchResultSections({
         {available.length > 0 ? (
           orderedAvailable.flatMap((result, index) => {
             const bulkSelected = selectedResultIds.has(result.externalId);
-            const rowReadOnly = readOnly || result.provider === "openstreetmap";
+            const rowReadOnly = readOnly;
+            const bulkEligible =
+              result.provider !== "openstreetmap" && canBulkAddSuggestion(result);
             const signal = signalFor(result);
             const previous = orderedAvailable.slice(0, index);
             const firstNearby =
@@ -224,7 +226,7 @@ export function SearchResultSections({
                 signal={signal}
                 selected={!bulkMode && selectedId === result.externalId}
                 bulkSelected={bulkSelected}
-                bulkMode={!rowReadOnly && bulkMode && canBulkAddSuggestion(result)}
+                bulkMode={!rowReadOnly && bulkMode && bulkEligible}
                 showNearestAreaLabel={showNearestAreaLabel}
                 interactionLabel={
                   bulkMode
@@ -234,7 +236,7 @@ export function SearchResultSections({
                 onSelect={() => {
                   onSelect(result.externalId);
                   if (rowReadOnly) return;
-                  if (bulkMode && canBulkAddSuggestion(result)) onToggleSelected(result);
+                  if (bulkMode && bulkEligible) onToggleSelected(result);
                   else onAdd(result);
                 }}
                 footer={statusFooterFor(result, signal)}
@@ -243,7 +245,7 @@ export function SearchResultSections({
                     <span className="text-[11px] text-muted-foreground">
                       Ej tilläggsbart i testet
                     </span>
-                  ) : bulkMode && canBulkAddSuggestion(result) ? (
+                  ) : bulkMode && bulkEligible ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox
                         checked={bulkSelected}
