@@ -66,6 +66,14 @@ import {
   selectMapCandidates,
 } from "@/lib/matrundan/place-search-pagination";
 import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-provider";
+import { APP_ENVIRONMENT } from "@/lib/app-environment";
+import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
+import { useOsmHybridSearch } from "@/lib/matrundan/use-osm-hybrid-search";
+import {
+  isOsmPreviewFilter,
+  mergeHybridPreviewResults,
+  retainHybridPreviewOrder,
+} from "@/lib/matrundan/osm-staging-preview";
 import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
@@ -169,8 +177,13 @@ export function PlaceDiscovery({
 }) {
   const navigate = useNavigate();
   const { state, submitting } = useStore();
-  const { mode, activeGroupId, exampleMode } = useSession();
+  const { mode, activeGroupId, exampleMode, user } = useSession();
   const isLive = mode === "live";
+  const canCompareOsm = canUseStagingTestTools({
+    environment: APP_ENVIRONMENT,
+    signedIn: Boolean(user),
+    liveMode: isLive,
+  });
   const groupId = isLive ? activeGroupId : state.group.id;
   const currentRole = state.members.find((member) => member.id === state.currentUserId)?.role;
   const canLinkSources = currentRole === "ägare" || currentRole === "admin";
@@ -328,6 +341,23 @@ export function PlaceDiscovery({
     const selected = savedAreas.filter((area) => selectedAreaIds.includes(area.id));
     return [...selected, ...temporaryAreas].slice(0, 5);
   }, [savedAreas, selectedAreaIds, temporaryAreas]);
+
+  // Only the tested point/radius cases run this staging experiment. The token
+  // mapping is generic and derives from the main Matrundan search catalogue.
+  const osmPreviewEnabled =
+    canCompareOsm &&
+    activeAreas.length === 1 &&
+    searchAreaMode(activeAreas[0]) === "point" &&
+    (radiusKm === 3 || radiusKm === 5) &&
+    isOsmPreviewFilter(selectedFilter?.id);
+  const osmSearch = useOsmHybridSearch({
+    enabled: osmPreviewEnabled,
+    area: activeAreas[0] ?? null,
+    radiusKm,
+    filterId: selectedFilter?.id ?? null,
+    searchKey: currentSearchKey,
+  });
+  const { hasMore: osmHasMore, loadMore: loadOsmMore, loadingMore: osmLoadingMore } = osmSearch;
 
   const nameHintsActive =
     isLive && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
@@ -853,10 +883,48 @@ export function PlaceDiscovery({
     retry,
   ]);
 
+  // Wait for the first result page from both sources, then freeze displayed
+  // order across subsequent provider pages. Avoid resorting rows under users.
+  const [hybridPresentation, setHybridPresentation] = React.useState<{
+    key: string;
+    rows: PlaceSuggestion[];
+  }>({ key: "", rows: [] });
+  React.useEffect(() => {
+    if (!osmPreviewEnabled || completedSearchKey !== currentSearchKey || !osmSearch.settled) return;
+    const incoming = mergeHybridPreviewResults(
+      results,
+      osmSearch.rows,
+      selectedFilter ? "" : effectiveQuery,
+    );
+    setHybridPresentation((previous) => ({
+      key: currentSearchKey,
+      rows:
+        previous.key === currentSearchKey
+          ? retainHybridPreviewOrder(previous.rows, incoming)
+          : incoming,
+    }));
+  }, [
+    completedSearchKey,
+    currentSearchKey,
+    effectiveQuery,
+    osmPreviewEnabled,
+    osmSearch.rows,
+    osmSearch.settled,
+    results,
+    selectedFilter,
+  ]);
+
   const filteredResults = React.useMemo(
     () =>
       presentPlaceSearchResults(
-        (resultMatchesSearch ? results : [])
+        (osmPreviewEnabled
+          ? hybridPresentation.key === currentSearchKey
+            ? hybridPresentation.rows
+            : []
+          : resultMatchesSearch
+            ? results
+            : []
+        )
           .map((result) => {
             const resolution = resolutions[result.externalId];
             return resolution
@@ -877,7 +945,15 @@ export function PlaceDiscovery({
           })
           .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
       ),
-    [hiddenKeys, resolutions, resultMatchesSearch, results],
+    [
+      currentSearchKey,
+      hiddenKeys,
+      hybridPresentation,
+      osmPreviewEnabled,
+      resolutions,
+      resultMatchesSearch,
+      results,
+    ],
   );
   const visibleResults = React.useMemo(
     () =>
@@ -893,8 +969,12 @@ export function PlaceDiscovery({
     isActionableSuggestion,
   );
   const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
-  const canShowMore = bufferedRemaining > 0 || hasMore;
-  const searchInFlight = loading || hiddenLoading || !resultMatchesSearch;
+  const canShowMore = bufferedRemaining > 0 || hasMore || osmSearch.hasMore;
+  const searchInFlight =
+    loading ||
+    hiddenLoading ||
+    !resultMatchesSearch ||
+    (osmPreviewEnabled && (!osmSearch.settled || hybridPresentation.key !== currentSearchKey));
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
@@ -909,7 +989,12 @@ export function PlaceDiscovery({
       setQueuedMore(true);
       return;
     }
-    if (!hasMore || !isLive || loadingMore) return;
+    if (osmHasMore && !osmLoadingMore) {
+      await loadOsmMore();
+      setDisplayLimit(targetActionable);
+      return;
+    }
+    if (!hasMore || !isLive || loadingMore || osmLoadingMore) return;
     const requestId = requestRef.current;
     setLoadingMore(true);
     try {
@@ -957,6 +1042,9 @@ export function PlaceDiscovery({
     loadingMore,
     mapFilling,
     nextOffset,
+    osmHasMore,
+    loadOsmMore,
+    osmLoadingMore,
     results,
     shownActionableCount,
   ]);
@@ -1180,16 +1268,21 @@ export function PlaceDiscovery({
       lat: result.lat,
       lng: result.lng,
       category: result.category,
-      actionable: true,
-      bulkSelectable: statusForResult(result) === "available" && canBulkAddSuggestion(result),
+      actionable: result.provider !== "openstreetmap",
+      bulkSelectable:
+        result.provider !== "openstreetmap" &&
+        statusForResult(result) === "available" &&
+        canBulkAddSuggestion(result),
       actionLabel:
-        statusForResult(result) === "existing"
-          ? "Öppna stället"
-          : statusForResult(result) === "linkable" || needsPlaceComparison(result)
-            ? "Granska matchning"
-            : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
-              ? "Återställ"
-              : "Lägg till",
+        result.provider === "openstreetmap"
+          ? "Ej tilläggsbart i stagingprovet"
+          : statusForResult(result) === "existing"
+            ? "Öppna stället"
+            : statusForResult(result) === "linkable" || needsPlaceComparison(result)
+              ? "Granska matchning"
+              : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
+                ? "Återställ"
+                : "Lägg till",
       bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
       eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}${result.searchAreaGroup === "nearby" ? " · utanför vald radie" : ""}`,
       description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
@@ -1230,8 +1323,12 @@ export function PlaceDiscovery({
       selectedResultIds={selectedResultIds}
       bulkMode={bulkMode}
       onSelect={setSelectedId}
-      onToggleSelected={onToggleSelected}
-      onAdd={onBeginAdd}
+      onToggleSelected={(result) => {
+        if (result.provider !== "openstreetmap") onToggleSelected(result);
+      }}
+      onAdd={(result) => {
+        if (result.provider !== "openstreetmap") onBeginAdd(result);
+      }}
       onLinkSource={onLinkSource}
       places={state.places}
       showNearestAreaLabel={activeAreas.length > 1}
@@ -1255,7 +1352,7 @@ export function PlaceDiscovery({
       onSelect={handleMapSelect}
       onAction={(item) => {
         const result = mapResults.find((candidate) => candidate.externalId === item.id);
-        if (!result) return;
+        if (!result || result.provider === "openstreetmap") return;
         const sourceMatch = allSourceMatches.find((match) => match.result.externalId === item.id);
         if (sourceMatch) {
           onLinkSource(sourceMatch);
@@ -1272,7 +1369,12 @@ export function PlaceDiscovery({
         bulkMode
           ? (item) => {
               const result = mapResults.find((candidate) => candidate.externalId === item.id);
-              if (result && statusForResult(result) === "available") onToggleSelected(result);
+              if (
+                result &&
+                result.provider !== "openstreetmap" &&
+                statusForResult(result) === "available"
+              )
+                onToggleSelected(result);
             }
           : undefined
       }
@@ -1576,6 +1678,17 @@ export function PlaceDiscovery({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
               </div>
             ) : null}
+            {osmPreviewEnabled && osmSearch.error ? (
+              <div
+                className="rounded-xl border border-border/70 bg-muted/30 p-3 text-xs"
+                role="status"
+              >
+                En kompletterande sökkälla kunde inte nås. Övriga resultat visas.{" "}
+                <Button type="button" variant="link" size="sm" onClick={osmSearch.retry}>
+                  Försök igen
+                </Button>
+              </div>
+            ) : null}
             {failedAreas.length > 0 ? (
               <div className="rounded-xl border border-amber-300/60 bg-amber-50/60 px-3 py-2 text-xs text-amber-900 dark:bg-amber-950/20 dark:text-amber-200">
                 Kunde inte söka i {failedAreas.join(", ")}. Övriga resultat visas.
@@ -1622,7 +1735,9 @@ export function PlaceDiscovery({
               <>
                 {actionableResultCount > 0 ? (
                   <>
-                    <h3 className="text-sm font-medium lg:hidden">Ställen att lägga till</h3>
+                    <h3 className="text-sm font-medium lg:hidden">
+                      {osmPreviewEnabled ? "Sökresultat" : "Ställen att lägga till"}
+                    </h3>
                     <div className="lg:hidden">
                       <ResultToggle value={resultView} onChange={setResultView} />
                       <div className="mt-2 flex min-h-11 items-center justify-between gap-3">
@@ -1631,7 +1746,7 @@ export function PlaceDiscovery({
                             ? `Visar ${mappableResultCount} ställen på kartan`
                             : `Visar ${actionableResultCount}${confirmedMore ? "+" : ""} ${actionableResultCount === 1 ? "träff" : "träffar"}${!confirmedMore && hasMore ? " hittills" : " i listan"}`}
                         </span>
-                        {availableResults.length > 0 ? (
+                        {availableResults.some((result) => result.provider !== "openstreetmap") ? (
                           <Button
                             type="button"
                             variant="ghost"
@@ -1656,8 +1771,10 @@ export function PlaceDiscovery({
                       </div>
                     </div>
                     <div className="hidden min-h-11 items-center justify-between gap-3 lg:flex">
-                      <h3 className="text-sm font-medium">Ställen att lägga till</h3>
-                      {availableResults.length > 0 ? (
+                      <h3 className="text-sm font-medium">
+                        {osmPreviewEnabled ? "Sökresultat" : "Ställen att lägga till"}
+                      </h3>
+                      {availableResults.some((result) => result.provider !== "openstreetmap") ? (
                         <Button
                           type="button"
                           variant="ghost"
@@ -1681,6 +1798,20 @@ export function PlaceDiscovery({
                     <div className="hidden lg:block">{resultSections}</div>
                   </>
                 )}
+                {osmPreviewEnabled && osmSearch.rows.length > 0 ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    Kompletterande OSM-träffar är skrivskyddade i staging. ©
+                    OpenStreetMap-bidragsgivare ·{" "}
+                    <a
+                      href="https://www.openstreetmap.org/copyright"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
+                      ODbL
+                    </a>
+                  </p>
+                ) : null}
                 {unmappedCount > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
                     {unmappedCount} {unmappedCount === 1 ? "träff saknar" : "träffar saknar"}{" "}
