@@ -2,8 +2,11 @@
 import * as React from "react";
 import { searchOsmStagingPreview, type OsmStagingPreviewResponse } from "./osm-staging.functions";
 import {
-  isOsmPreviewFilter, mergeOsmPreviewPages, osmPreviewSuggestion,
-  type OsmPreviewFilterId, type OsmPreviewPhase,
+  isOsmPreviewFilter,
+  mergeOsmPreviewPages,
+  osmPreviewSuggestion,
+  type OsmPreviewFilterId,
+  type OsmPreviewPhase,
 } from "./osm-staging-preview";
 import type { PlaceSuggestion } from "./places-provider";
 import type { SearchArea, SearchRadiusKm } from "./types";
@@ -22,13 +25,24 @@ interface State {
 }
 function blank(key: string): State {
   return {
-    key, pending: false, loadingMore: false, rows: [], generation: null,
-    directCursor: null, relatedStarted: false, relatedCursor: null, error: null,
+    key,
+    pending: false,
+    loadingMore: false,
+    rows: [],
+    generation: null,
+    directCursor: null,
+    relatedStarted: false,
+    relatedCursor: null,
+    error: null,
   };
 }
 
 export function useOsmHybridSearch({
-  enabled, area, radiusKm, filterId, searchKey,
+  enabled,
+  area,
+  radiusKm,
+  filterId,
+  searchKey,
 }: {
   enabled: boolean;
   area: SearchArea | null;
@@ -57,49 +71,78 @@ export function useOsmHybridSearch({
       try {
         const direct = await searchOsmStagingPreview({
           data: {
-            lat: center.lat, lng: center.lng, radiusKm: selectedRadius,
-            filterId: selectedFilter, phase: "direct", cursor: null,
+            lat: center.lat,
+            lng: center.lng,
+            radiusKm: selectedRadius,
+            filterId: selectedFilter,
+            phase: "direct",
+            cursor: null,
           },
         });
         if (cancelled || currentKey.current !== searchKey) return;
         if (direct.status !== "ok") throw new Error("OSM-indexet är inte inläst i staging.");
         let rows = direct.results.map((row) =>
-          osmPreviewSuggestion(row, selectedFilter, "direct", center.id, center.label));
+          osmPreviewSuggestion(row, selectedFilter, "direct", center.id, center.label),
+        );
         let relatedStarted = false;
         let relatedCursor: Cursor | null = null;
         if (!direct.hasMore && selectedFilter === "specialty:pasta") {
           const related = await searchOsmStagingPreview({
             data: {
-              lat: center.lat, lng: center.lng, radiusKm: selectedRadius,
-              filterId: selectedFilter, phase: "related", cursor: null,
+              lat: center.lat,
+              lng: center.lng,
+              radiusKm: selectedRadius,
+              filterId: selectedFilter,
+              phase: "related",
+              cursor: null,
             },
           });
           if (cancelled || currentKey.current !== searchKey) return;
           if (related.status !== "ok" || related.generation !== direct.generation)
             throw new Error("OSM-indexet ändrades under sökningen. Försök igen.");
-          rows = mergeOsmPreviewPages(rows, related.results.map((row) =>
-            osmPreviewSuggestion(row, selectedFilter, "related", center.id, center.label)));
+          rows = mergeOsmPreviewPages(
+            rows,
+            related.results.map((row) =>
+              osmPreviewSuggestion(row, selectedFilter, "related", center.id, center.label),
+            ),
+          );
           relatedStarted = true;
           relatedCursor = related.cursor ?? null;
         }
         if (!cancelled && currentKey.current === searchKey) {
           setState({
-            key: searchKey, pending: false, loadingMore: false, rows,
-            generation: direct.generation ?? null, directCursor: direct.cursor ?? null,
-            relatedStarted, relatedCursor, error: null,
+            key: searchKey,
+            pending: false,
+            loadingMore: false,
+            rows,
+            generation: direct.generation ?? null,
+            directCursor: direct.cursor ?? null,
+            relatedStarted,
+            relatedCursor,
+            error: null,
           });
         }
       } catch (error) {
         if (!cancelled && currentKey.current === searchKey)
-          setState({ ...blank(searchKey), error: error instanceof Error ? error.message : "OSM-sökningen misslyckades." });
+          setState({
+            ...blank(searchKey),
+            error: error instanceof Error ? error.message : "OSM-sökningen misslyckades.",
+          });
       }
     })();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [searchKey, attempt, eligible, area?.id, area?.lat, area?.lng, filter, radius]);
 
   const ready = state.key === searchKey && eligible;
-  const hasMore = Boolean(ready && state.generation &&
-    (state.directCursor || (filter === "specialty:pasta" && !state.relatedStarted) || state.relatedCursor));
+  const hasMore = Boolean(
+    ready &&
+    state.generation &&
+    (state.directCursor ||
+      (filter === "specialty:pasta" && !state.relatedStarted) ||
+      state.relatedCursor),
+  );
 
   const loadMore = React.useCallback(async () => {
     if (!ready || !hasMore || !area || !radius || !filter || moreInFlight.current) return;
@@ -107,36 +150,56 @@ export function useOsmHybridSearch({
     const prior = state;
     const phase: OsmPreviewPhase = prior.directCursor ? "direct" : "related";
     const cursor = phase === "direct" ? prior.directCursor : prior.relatedCursor;
-    setState((current) => current.key === searchKey
-      ? { ...current, loadingMore: true, error: null } : current);
+    setState((current) =>
+      current.key === searchKey ? { ...current, loadingMore: true, error: null } : current,
+    );
     try {
       const page = await searchOsmStagingPreview({
         data: {
-          lat: area.lat, lng: area.lng, radiusKm: radius,
-          filterId: filter, phase, cursor,
+          lat: area.lat,
+          lng: area.lng,
+          radiusKm: radius,
+          filterId: filter,
+          phase,
+          cursor,
         },
       });
       if (currentKey.current !== searchKey) return;
       if (page.status !== "ok" || page.generation !== prior.generation)
         throw new Error("OSM-indexet ändrades under sökningen. Sök igen för att fortsätta.");
-      setState((current) => current.key !== searchKey ? current : {
-        ...current,
-        rows: mergeOsmPreviewPages(current.rows, page.results.map((row) =>
-          osmPreviewSuggestion(row, filter, phase, area.id, area.label))),
-        directCursor: phase === "direct" ? (page.cursor ?? null) : current.directCursor,
-        relatedStarted: current.relatedStarted || phase === "related",
-        relatedCursor: phase === "related" ? (page.cursor ?? null) : current.relatedCursor,
-      });
+      setState((current) =>
+        current.key !== searchKey
+          ? current
+          : {
+              ...current,
+              rows: mergeOsmPreviewPages(
+                current.rows,
+                page.results.map((row) =>
+                  osmPreviewSuggestion(row, filter, phase, area.id, area.label),
+                ),
+              ),
+              directCursor: phase === "direct" ? (page.cursor ?? null) : current.directCursor,
+              relatedStarted: current.relatedStarted || phase === "related",
+              relatedCursor: phase === "related" ? (page.cursor ?? null) : current.relatedCursor,
+            },
+      );
     } catch (error) {
       if (currentKey.current === searchKey)
-        setState((current) => current.key === searchKey
-          ? { ...current, error: error instanceof Error ? error.message : "Kunde inte hämta fler OSM-träffar." }
-          : current);
+        setState((current) =>
+          current.key === searchKey
+            ? {
+                ...current,
+                error:
+                  error instanceof Error ? error.message : "Kunde inte hämta fler OSM-träffar.",
+              }
+            : current,
+        );
     } finally {
       moreInFlight.current = false;
       if (currentKey.current === searchKey)
-        setState((current) => current.key === searchKey
-          ? { ...current, loadingMore: false } : current);
+        setState((current) =>
+          current.key === searchKey ? { ...current, loadingMore: false } : current,
+        );
     }
   }, [area, filter, hasMore, radius, ready, searchKey, state]);
 

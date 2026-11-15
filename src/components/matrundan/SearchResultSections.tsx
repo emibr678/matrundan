@@ -69,7 +69,8 @@ export function SearchResultSections({
     const seen = new Set<string>();
     return [...sourceMatches.map((match) => match.result), ...available, ...existing].filter(
       (suggestion) => {
-        if (suggestion.kind === "canonical" || suggestion.provider === "openstreetmap") return false;
+        if (suggestion.kind === "canonical" || suggestion.provider === "openstreetmap")
+          return false;
         const key = placeSignalKey({
           provider: suggestion.provider,
           providerPlaceId: suggestion.externalId,
@@ -239,7 +240,9 @@ export function SearchResultSections({
                 footer={statusFooterFor(result, signal)}
                 action={
                   rowReadOnly ? (
-                    <span className="text-[11px] text-muted-foreground">Ej tilläggsbart i testet</span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Ej tilläggsbart i testet
+                    </span>
                   ) : bulkMode && canBulkAddSuggestion(result) ? (
                     <label className="flex h-11 w-11 cursor-pointer items-center justify-center rounded-full hover:bg-muted/70">
                       <Checkbox

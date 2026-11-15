@@ -33,8 +33,9 @@ export function isOsmPreviewFilter(id: string | null | undefined): id is OsmPrev
  */
 export function osmConceptCuisineTokens(id: string, phase: OsmPreviewPhase): string[] {
   const concepts = phase === "direct" ? [searchConceptById(id)] : relatedSearchConcepts(id);
-  return [...new Set(concepts.flatMap((concept) => concept?.tokens ?? []))]
-    .filter((token) => /^[a-z0-9_:-]{1,64}$/.test(token));
+  return [...new Set(concepts.flatMap((concept) => concept?.tokens ?? []))].filter((token) =>
+    /^[a-z0-9_:-]{1,64}$/.test(token),
+  );
 }
 
 export function osmPreviewTokens(id: OsmPreviewFilterId, phase: OsmPreviewPhase): string[] {
@@ -114,7 +115,8 @@ export function mergeHybridPreviewResults(
 ): PlaceSuggestion[] {
   const merged = new Map<string, PlaceSuggestion>();
   for (const result of geoapify) {
-    const key = result.searchIdentityKey ?? (result.provider ?? "unknown") + ":" + result.externalId;
+    const key =
+      result.searchIdentityKey ?? (result.provider ?? "unknown") + ":" + result.externalId;
     merged.set(key, result);
   }
   for (const result of osm) {
@@ -133,7 +135,7 @@ export function mergeHybridPreviewResults(
           existing.searchEvidence?.kind === "association" &&
           result.searchEvidence?.kind !== "association"
             ? result.searchEvidence
-            : existing.searchEvidence ?? result.searchEvidence,
+            : (existing.searchEvidence ?? result.searchEvidence),
       });
     }
   }

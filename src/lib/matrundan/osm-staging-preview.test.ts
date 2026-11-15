@@ -64,8 +64,12 @@ describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
       provider: "geoapify",
       searchEvidence: { intentId: "specialty:pasta", kind: "association" as const },
       identity: {
-        providerPlaceId: "geoapify-id", providerVersion: "",
-        knownPlace: null, candidates: [], reviewRequired: true, identityConflict: false,
+        providerPlaceId: "geoapify-id",
+        providerVersion: "",
+        knownPlace: null,
+        candidates: [],
+        reviewRequired: true,
+        identityConflict: false,
       },
     };
     const merged = mergeHybridPreviewResults([geoapify], [osm], "");
@@ -73,7 +77,13 @@ describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
     expect(merged[0].provider).toBe("geoapify");
     expect(merged[0].identity).toEqual(geoapify.identity);
     expect(merged[0].searchEvidence?.kind).toBe("metadata");
-    const other = osmPreviewSuggestion({ ...row, osmId: 124 }, "specialty:pasta", "direct", "a", "Stockholm");
+    const other = osmPreviewSuggestion(
+      { ...row, osmId: 124 },
+      "specialty:pasta",
+      "direct",
+      "a",
+      "Stockholm",
+    );
     expect(mergeHybridPreviewResults([geoapify], [other], "")).toHaveLength(2);
   });
 

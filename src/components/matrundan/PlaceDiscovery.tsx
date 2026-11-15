@@ -887,7 +887,10 @@ export function PlaceDiscovery({
               osmSearch.rows,
               selectedFilter ? "" : effectiveQuery,
             )
-          : (resultMatchesSearch ? results : []))
+          : resultMatchesSearch
+            ? results
+            : []
+        )
           .map((result) => {
             const resolution = resolutions[result.externalId];
             return resolution
@@ -908,7 +911,16 @@ export function PlaceDiscovery({
           })
           .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
       ),
-    [effectiveQuery, hiddenKeys, osmPreviewEnabled, osmSearch.rows, resolutions, resultMatchesSearch, results, selectedFilter],
+    [
+      effectiveQuery,
+      hiddenKeys,
+      osmPreviewEnabled,
+      osmSearch.rows,
+      resolutions,
+      resultMatchesSearch,
+      results,
+      selectedFilter,
+    ],
   );
   const visibleResults = React.useMemo(
     () =>
@@ -1227,14 +1239,13 @@ export function PlaceDiscovery({
       actionLabel:
         result.provider === "openstreetmap"
           ? "Ej tilläggsbart i stagingprovet"
-          :
-        statusForResult(result) === "existing"
-          ? "Öppna stället"
-          : statusForResult(result) === "linkable" || needsPlaceComparison(result)
-            ? "Granska matchning"
-            : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
-              ? "Återställ"
-              : "Lägg till",
+          : statusForResult(result) === "existing"
+            ? "Öppna stället"
+            : statusForResult(result) === "linkable" || needsPlaceComparison(result)
+              ? "Granska matchning"
+              : (result.canonical ?? unambiguousPlaceCandidate(result))?.groupStatus === "archived"
+                ? "Återställ"
+                : "Lägg till",
       bulkSelected: bulkMode && selectedResultIds.has(result.externalId),
       eyebrow: `${CATEGORY_LABEL[result.category]}${areaContext}${result.searchAreaGroup === "nearby" ? " · utanför vald radie" : ""}`,
       description: [result.address, result.area, result.city].filter(Boolean).join(" · "),
@@ -1321,7 +1332,12 @@ export function PlaceDiscovery({
         bulkMode
           ? (item) => {
               const result = mapResults.find((candidate) => candidate.externalId === item.id);
-              if (result && result.provider !== "openstreetmap" && statusForResult(result) === "available") onToggleSelected(result);
+              if (
+                result &&
+                result.provider !== "openstreetmap" &&
+                statusForResult(result) === "available"
+              )
+                onToggleSelected(result);
             }
           : undefined
       }
@@ -1626,7 +1642,10 @@ export function PlaceDiscovery({
               </div>
             ) : null}
             {osmPreviewEnabled && osmSearch.error ? (
-              <div className="rounded-xl border border-border/70 bg-muted/30 p-3 text-xs" role="status">
+              <div
+                className="rounded-xl border border-border/70 bg-muted/30 p-3 text-xs"
+                role="status"
+              >
                 En kompletterande sökkälla kunde inte nås. Övriga resultat visas.{" "}
                 <Button type="button" variant="link" size="sm" onClick={osmSearch.retry}>
                   Försök igen
@@ -1744,8 +1763,14 @@ export function PlaceDiscovery({
                 )}
                 {osmPreviewEnabled && osmSearch.rows.length > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
-                    Kompletterande OSM-träffar är skrivskyddade i staging. © OpenStreetMap-bidragsgivare ·{" "}
-                    <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">
+                    Kompletterande OSM-träffar är skrivskyddade i staging. ©
+                    OpenStreetMap-bidragsgivare ·{" "}
+                    <a
+                      href="https://www.openstreetmap.org/copyright"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline"
+                    >
                       ODbL
                     </a>
                   </p>
