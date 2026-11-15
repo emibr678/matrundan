@@ -3,6 +3,7 @@ import {
   isOsmPreviewFilter,
   mergeOsmPreviewPages,
   mergeHybridPreviewResults,
+  retainHybridPreviewOrder,
   osmConceptCuisineTokens,
   osmPreviewKey,
   osmPreviewSuggestion,
@@ -85,6 +86,30 @@ describe("staging: OSM som skrivskyddad sökkälla (#512)", () => {
       "Stockholm",
     );
     expect(mergeHybridPreviewResults([geoapify], [other], "")).toHaveLength(2);
+  });
+
+  test("Visa fler bevarar visade raders ordning även när nya kandidater rankas högre", () => {
+    const first = osmPreviewSuggestion(
+      { ...row, osmId: 1, name: "Först", distanceM: 2000 },
+      "specialty:pasta",
+      "direct",
+      "a",
+      "Stockholm",
+    );
+    const second = osmPreviewSuggestion(
+      { ...row, osmId: 2, name: "Sedan", distanceM: 1000 },
+      "specialty:pasta",
+      "direct",
+      "a",
+      "Stockholm",
+    );
+    const incoming = mergeHybridPreviewResults([], [first, second], "");
+    expect(incoming[0].externalId).toBe("way:2");
+    expect(retainHybridPreviewOrder([first], incoming).map((item) => item.externalId)).toEqual([
+      "way:1",
+      "way:2",
+    ]);
+    expect(retainHybridPreviewOrder([first], [])).toEqual([]);
   });
 
   test("olika OSM-typer med samma namn/id förblir separata träffar", () => {

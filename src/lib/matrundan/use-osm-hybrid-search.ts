@@ -208,6 +208,7 @@ export function useOsmHybridSearch({
     pending: ready ? state.pending : false,
     loadingMore: ready ? state.loadingMore : false,
     hasMore,
+    settled: ready && !state.pending && (state.generation !== null || state.error !== null),
     error: ready ? state.error : null,
     loadMore,
     retry: () => setAttempt((value) => value + 1),

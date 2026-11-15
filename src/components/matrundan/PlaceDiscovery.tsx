@@ -69,7 +69,11 @@ import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { useOsmHybridSearch } from "@/lib/matrundan/use-osm-hybrid-search";
-import { isOsmPreviewFilter, mergeHybridPreviewResults } from "@/lib/matrundan/osm-staging-preview";
+import {
+  isOsmPreviewFilter,
+  mergeHybridPreviewResults,
+  retainHybridPreviewOrder,
+} from "@/lib/matrundan/osm-staging-preview";
 import { formatPlaceAddressWithCity } from "@/lib/matrundan/place-location";
 import { formatSearchDistanceKm } from "@/lib/matrundan/search-distance";
 import {
@@ -879,19 +883,47 @@ export function PlaceDiscovery({
     retry,
   ]);
 
+  // Wait for the first result page from both sources, then freeze displayed
+  // order across subsequent provider pages. Avoid resorting rows under users.
+  const [hybridPresentation, setHybridPresentation] = React.useState<{
+    key: string;
+    rows: PlaceSuggestion[];
+  }>({ key: "", rows: [] });
+  React.useEffect(() => {
+    if (!osmPreviewEnabled || completedSearchKey !== currentSearchKey || !osmSearch.settled) return;
+    const incoming = mergeHybridPreviewResults(
+      results,
+      osmSearch.rows,
+      selectedFilter ? "" : effectiveQuery,
+    );
+    setHybridPresentation((previous) => ({
+      key: currentSearchKey,
+      rows:
+        previous.key === currentSearchKey
+          ? retainHybridPreviewOrder(previous.rows, incoming)
+          : incoming,
+    }));
+  }, [
+    completedSearchKey,
+    currentSearchKey,
+    effectiveQuery,
+    osmPreviewEnabled,
+    osmSearch.rows,
+    osmSearch.settled,
+    results,
+    selectedFilter,
+  ]);
+
   const filteredResults = React.useMemo(
     () =>
       presentPlaceSearchResults(
         (osmPreviewEnabled
-          ? mergeHybridPreviewResults(
-              resultMatchesSearch ? results : [],
-              osmSearch.rows,
-              selectedFilter ? "" : effectiveQuery,
-            )
+          ? hybridPresentation.key === currentSearchKey
+            ? hybridPresentation.rows
+            : []
           : resultMatchesSearch
             ? results
-            : []
-        )
+            : [])
           .map((result) => {
             const resolution = resolutions[result.externalId];
             return resolution
@@ -913,14 +945,13 @@ export function PlaceDiscovery({
           .filter((result) => !hiddenKeys.has(hiddenPlaceSuggestionKey(result))),
       ),
     [
-      effectiveQuery,
+      currentSearchKey,
       hiddenKeys,
+      hybridPresentation,
       osmPreviewEnabled,
-      osmSearch.rows,
       resolutions,
       resultMatchesSearch,
       results,
-      selectedFilter,
     ],
   );
   const visibleResults = React.useMemo(
@@ -938,7 +969,12 @@ export function PlaceDiscovery({
   );
   const bufferedRemaining = Math.max(0, bufferedActionableCount - shownActionableCount);
   const canShowMore = bufferedRemaining > 0 || hasMore || osmSearch.hasMore;
-  const searchInFlight = loading || hiddenLoading || !resultMatchesSearch || osmSearch.pending;
+  const searchInFlight =
+    loading ||
+    hiddenLoading ||
+    !resultMatchesSearch ||
+    (osmPreviewEnabled &&
+      (!osmSearch.settled || hybridPresentation.key !== currentSearchKey));
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 

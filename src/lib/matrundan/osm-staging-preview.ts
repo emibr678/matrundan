@@ -141,3 +141,23 @@ export function mergeHybridPreviewResults(
   }
   return rankNewPlaceSearchPage([...merged.values()], query);
 }
+
+/** Keep previously displayed rows in place when a provider page arrives later.
+ * A fresh first search is still globally relevance-ranked by mergeHybridPreviewResults.
+ */
+export function retainHybridPreviewOrder(
+  previous: PlaceSuggestion[],
+  next: PlaceSuggestion[],
+): PlaceSuggestion[] {
+  const keyOf = (row: PlaceSuggestion) =>
+    row.searchIdentityKey ?? (row.provider ?? "unknown") + ":" + row.externalId;
+  const nextByKey = new Map(next.map((row) => [keyOf(row), row]));
+  const seen = new Set(previous.map(keyOf));
+  return [
+    ...previous.flatMap((row) => {
+      const updated = nextByKey.get(keyOf(row));
+      return updated ? [updated] : [];
+    }),
+    ...next.filter((row) => !seen.has(keyOf(row))),
+  ];
+}
