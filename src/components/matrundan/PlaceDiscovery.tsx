@@ -923,7 +923,8 @@ export function PlaceDiscovery({
             : []
           : resultMatchesSearch
             ? results
-            : [])
+            : []
+        )
           .map((result) => {
             const resolution = resolutions[result.externalId];
             return resolution
@@ -973,8 +974,7 @@ export function PlaceDiscovery({
     loading ||
     hiddenLoading ||
     !resultMatchesSearch ||
-    (osmPreviewEnabled &&
-      (!osmSearch.settled || hybridPresentation.key !== currentSearchKey));
+    (osmPreviewEnabled && (!osmSearch.settled || hybridPresentation.key !== currentSearchKey));
   const isReloadingResults = searchInFlight && visibleResults.length > 0;
   const isInitialSearchLoading = searchInFlight && visibleResults.length === 0;
 
