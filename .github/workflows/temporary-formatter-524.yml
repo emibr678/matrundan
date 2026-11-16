@@ -1,0 +1,30 @@
+# Temporary formatter diagnostic for H2a; no write permissions or secrets.
+name: Temporary formatter diagnostics 524
+on:
+  push:
+    branches: [feature/osm-verified-add-512]
+    paths: [.github/workflows/temporary-formatter-524.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+      - run: bun install --frozen-lockfile
+      - name: Read-only Prettier output
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r file; do
+            printf '__FORMAT_BEGIN__%s\n' "$file"
+            bunx prettier --log-level silent "$file" | base64 -w 120 | sed 's/^/__FORMAT_DATA__/'
+            printf '__FORMAT_END__%s\n' "$file"
+          done <<'FILES'
+          src/components/matrundan/PlaceDiscovery.tsx
+          src/lib/matrundan/osm-geoapify-bridge.server.ts
+          src/lib/matrundan/osm-staging.functions.ts
+          FILES
