@@ -6,7 +6,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { IS_STAGING } from "@/lib/app-environment";
 import { osmPreviewTokens } from "./osm-staging-preview";
-import { verifyOsmIndexSelection } from "./osm-geoapify-bridge.server";
+
 import { providerIdentityReviewSchema } from "./place-discovery.schemas";
 import type { PlaceSuggestion } from "./places-provider";
 
@@ -116,7 +116,9 @@ export const resolveOsmStagingSelection = createServerFn({ method: "POST" })
       name: string,
       args: Record<string, unknown>,
     ) => Promise<{ data: unknown; error: { code?: string } | null }>;
-    const { resolveOsmGeoapifyIdentity } = await import("./osm-geoapify-bridge.server");
+    const { resolveOsmGeoapifyIdentity, verifyOsmIndexSelection } = await import(
+      "./osm-geoapify-bridge.server"
+    );
     let provider: Awaited<ReturnType<typeof resolveOsmGeoapifyIdentity>>;
     try {
       const location = await verifyOsmIndexSelection(
