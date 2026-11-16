@@ -69,6 +69,7 @@ import { getPlacesProvider, type PlaceSuggestion } from "@/lib/matrundan/places-
 import { APP_ENVIRONMENT } from "@/lib/app-environment";
 import { canUseStagingTestTools } from "@/lib/matrundan/staging-test-tools";
 import { useOsmHybridSearch } from "@/lib/matrundan/use-osm-hybrid-search";
+import { resolveOsmStagingSelection } from "@/lib/matrundan/osm-staging.functions";
 import {
   isOsmPreviewFilter,
   mergeHybridPreviewResults,
@@ -265,6 +266,8 @@ export function PlaceDiscovery({
     snapshot?.budgetRemaining ?? AUTO_SEARCH_BUDGET,
   );
   const [loadingMore, setLoadingMore] = React.useState(false);
+  const [osmResolvingId, setOsmResolvingId] = React.useState<string | null>(null);
+  const osmSelectionScopeRef = React.useRef("");
   const [queuedMore, setQueuedMore] = React.useState(false);
   const [mapFilling, setMapFilling] = React.useState(false);
   const completedMapFillKeyRef = React.useRef<string | null>(null);
@@ -282,7 +285,7 @@ export function PlaceDiscovery({
       snapshot?.resultsForSearchKey === currentSearchKey,
   );
   const previousBulkBusyRef = React.useRef(false);
-  const interactionsDisabled = submitting || bulkBusy;
+  const interactionsDisabled = submitting || bulkBusy || osmResolvingId !== null;
 
   React.useEffect(() => {
     onSnapshotChange?.({
@@ -358,6 +361,52 @@ export function PlaceDiscovery({
     searchKey: currentSearchKey,
   });
   const { hasMore: osmHasMore, loadMore: loadOsmMore, loadingMore: osmLoadingMore } = osmSearch;
+
+  // Do not open a provider result after the user changes group or search.
+  osmSelectionScopeRef.current = JSON.stringify([groupId, currentSearchKey]);
+  React.useEffect(() => {
+    setOsmResolvingId(null);
+  }, [groupId, currentSearchKey]);
+
+  async function beginAddSuggestion(result: PlaceSuggestion): Promise<void> {
+    if (result.provider !== "openstreetmap") {
+      onBeginAdd(result);
+      return;
+    }
+    if (!canCompareOsm || !osmPreviewEnabled || !groupId || osmResolvingId) return;
+    const parsed = /^(node|way|relation):([1-9][0-9]{0,18})$/.exec(result.externalId);
+    if (!parsed || result.lat == null || result.lng == null || !selectedFilter) {
+      toast.error("Kartträffens identitet eller position gick inte att läsa.");
+      return;
+    }
+    const scope = osmSelectionScopeRef.current;
+    setOsmResolvingId(result.externalId);
+    try {
+      const confirmed = await resolveOsmStagingSelection({
+        data: {
+          groupId,
+          osmType: parsed[1] as "node" | "way" | "relation",
+          osmId: parsed[2],
+          lat: result.lat!,
+          lng: result.lng!,
+          filterId: selectedFilter!.id as
+            "specialty:pasta" | "specialty:ramen" | "search:asiatiskt",
+          phase: result.searchEvidence?.kind === "association" ? "related" : "direct",
+        },
+      });
+      if (scope !== osmSelectionScopeRef.current) return;
+      onBeginAdd(confirmed);
+    } catch (error) {
+      if (scope !== osmSelectionScopeRef.current) return;
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Matstället kunde inte verifieras. Prova att lägga till manuellt.",
+      );
+    } finally {
+      if (scope === osmSelectionScopeRef.current) setOsmResolvingId(null);
+    }
+  }
 
   const nameHintsActive =
     isLive && !selectedFilter && mobileMode === "search" && query.trim().length >= 3;
@@ -1268,14 +1317,16 @@ export function PlaceDiscovery({
       lat: result.lat,
       lng: result.lng,
       category: result.category,
-      actionable: result.provider !== "openstreetmap",
+      actionable: true,
       bulkSelectable:
         result.provider !== "openstreetmap" &&
         statusForResult(result) === "available" &&
         canBulkAddSuggestion(result),
       actionLabel:
         result.provider === "openstreetmap"
-          ? "Ej tilläggsbart i stagingprovet"
+          ? osmResolvingId === result.externalId
+            ? "Verifierar…"
+            : "Lägg till"
           : statusForResult(result) === "existing"
             ? "Öppna stället"
             : statusForResult(result) === "linkable" || needsPlaceComparison(result)
@@ -1327,7 +1378,7 @@ export function PlaceDiscovery({
         if (result.provider !== "openstreetmap") onToggleSelected(result);
       }}
       onAdd={(result) => {
-        if (result.provider !== "openstreetmap") onBeginAdd(result);
+        void beginAddSuggestion(result);
       }}
       onLinkSource={onLinkSource}
       places={state.places}
@@ -1352,7 +1403,11 @@ export function PlaceDiscovery({
       onSelect={handleMapSelect}
       onAction={(item) => {
         const result = mapResults.find((candidate) => candidate.externalId === item.id);
-        if (!result || result.provider === "openstreetmap") return;
+        if (!result) return;
+        if (result.provider === "openstreetmap") {
+          void beginAddSuggestion(result);
+          return;
+        }
         const sourceMatch = allSourceMatches.find((match) => match.result.externalId === item.id);
         if (sourceMatch) {
           onLinkSource(sourceMatch);
@@ -1431,7 +1486,7 @@ export function PlaceDiscovery({
       if (placeId) void navigate({ to: "/matstallen/$placeId", params: { placeId } });
       return;
     }
-    onBeginAdd(suggestion);
+    void beginAddSuggestion(suggestion);
   };
 
   return (
@@ -1678,6 +1733,11 @@ export function PlaceDiscovery({
                 <Loader2 className="h-3.5 w-3.5 animate-spin" /> Söker…
               </div>
             ) : null}
+            {osmResolvingId ? (
+              <p className="text-xs text-muted-foreground" role="status">
+                Verifierar matstället mot karttjänsten…
+              </p>
+            ) : null}
             {osmPreviewEnabled && osmSearch.error ? (
               <div
                 className="rounded-xl border border-border/70 bg-muted/30 p-3 text-xs"
@@ -1800,7 +1860,7 @@ export function PlaceDiscovery({
                 )}
                 {osmPreviewEnabled && osmSearch.rows.length > 0 ? (
                   <p className="text-[11px] text-muted-foreground">
-                    Kompletterande OSM-träffar är skrivskyddade i staging. ©
+                    OSM-träffar verifieras mot karttjänsten innan de kan läggas till. ©
                     OpenStreetMap-bidragsgivare ·{" "}
                     <a
                       href="https://www.openstreetmap.org/copyright"
