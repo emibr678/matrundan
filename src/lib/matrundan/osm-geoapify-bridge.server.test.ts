@@ -127,6 +127,83 @@ describe("H2a: exakt OSM-identitet via dokumenterat Geoapify Places (#512)", () 
     ).rejects.toThrow("OSM_PLACE_AMBIGUOUS");
   });
 
+  test("avvisar två olika Geoapify-ID:n för samma OSM-objekt på olika sidor", async () => {
+    const source: OsmSource = { osmType: "node", osmId: "318324117" };
+    const urls: URL[] = [];
+    await expect(
+      findVerifiedGeoapifyPlaceForOsm(
+        source,
+        location,
+        async (url) => {
+          urls.push(url);
+          return {
+            features: url.searchParams.has("offset")
+              ? [place(source, "second-provider-id")]
+              : [
+                  place(source, "first-provider-id"),
+                  ...Array.from({ length: 49 }, (_, i) =>
+                    place({ ...source, osmId: String(i + 1) }, "other-" + i),
+                  ),
+                ],
+          };
+        },
+        async () => {
+          throw new Error("No provider verification should run on ambiguous sources");
+        },
+      ),
+    ).rejects.toThrow("OSM_PLACE_AMBIGUOUS");
+    expect(urls.map((url) => url.searchParams.get("offset"))).toEqual([null, "50"]);
+  });
+
+  test("godkänner första sidans exakta ID först när nästa sida är kontrollerad", async () => {
+    const source: OsmSource = { osmType: "node", osmId: "318324117" };
+    const result = await findVerifiedGeoapifyPlaceForOsm(
+      source,
+      location,
+      async (url) => ({
+        features: url.searchParams.has("offset")
+          ? []
+          : [
+              place(source, "places-123"),
+              ...Array.from({ length: 49 }, (_, i) =>
+                place({ ...source, osmId: String(i + 1) }, "other-" + i),
+              ),
+            ],
+      }),
+      async (id) => {
+        expect(id).toBe("places-123");
+        return verified(source);
+      },
+    );
+    expect(result.externalId).toBe("places-123");
+  });
+
+  test("avvisar ofullständig sökning om alla tre Places-sidor är fulla", async () => {
+    const source: OsmSource = { osmType: "node", osmId: "318324117" };
+    let queried = 0;
+    await expect(
+      findVerifiedGeoapifyPlaceForOsm(
+        source,
+        location,
+        async () => {
+          queried += 1;
+          return {
+            features: [
+              place(source, "places-123"),
+              ...Array.from({ length: 49 }, (_, i) =>
+                place({ ...source, osmId: String(i + 1) }, "other-" + i),
+              ),
+            ],
+          };
+        },
+        async () => {
+          throw new Error("Incomplete scan must never produce a verified ID");
+        },
+      ),
+    ).rejects.toThrow("OSM_PLACE_INCOMPLETE");
+    expect(queried).toBe(3);
+  });
+
   test("utan Places-träff sker ingen osäker fallback", async () => {
     const source: OsmSource = { osmType: "node", osmId: "35176980" };
     await expect(

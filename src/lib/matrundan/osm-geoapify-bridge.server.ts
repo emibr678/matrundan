@@ -96,6 +96,9 @@ export async function findVerifiedGeoapifyPlaceForOsm(
   if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))
     throw new Error("OSM_PLACE_UNVERIFIED");
   let selected: NormalizedPlaceSuggestion | null = null;
+  let fullyScanned = false;
+  // Scan every available page, even after the first exact match. Another
+  // Places ID for the same OSM object might appear on a later page.
   for (const offset of [0, 50, 100]) {
     const url = new URL("https://api.geoapify.com/v2/places");
     url.searchParams.set("categories", GEOAPIFY_DISCOVERY_CATEGORIES.join(","));
@@ -119,8 +122,14 @@ export async function findVerifiedGeoapifyPlaceForOsm(
       }
       selected = candidate;
     }
-    if (selected || (page.features?.length ?? 0) < 50) break;
+    if ((page.features?.length ?? 0) < 50) {
+      fullyScanned = true;
+      break;
+    }
   }
+  // We cannot establish unique identity if the capped search may have more
+  // unseen pages. Never pick an arbitrary ID from an incomplete result set.
+  if (!fullyScanned) throw new Error("OSM_PLACE_INCOMPLETE");
   if (!selected) throw new Error("OSM_PLACE_UNVERIFIED");
   // Fetch the genuine Places ID again on the server; the final write path
   // independently verifies it once more with expectedSource.
