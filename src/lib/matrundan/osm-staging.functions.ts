@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { IS_STAGING } from "@/lib/app-environment";
 import { osmPreviewTokens } from "./osm-staging-preview";
+import { verifyOsmIndexSelection } from "./osm-geoapify-bridge.server";
 import { providerIdentityReviewSchema } from "./place-discovery.schemas";
 import type { PlaceSuggestion } from "./places-provider";
 
@@ -91,6 +92,10 @@ export const resolveOsmStagingSelection = createServerFn({ method: "POST" })
         groupId: z.string().uuid(),
         osmType: z.enum(["node", "way", "relation"]),
         osmId: z.string().regex(/^[1-9][0-9]{0,18}$/),
+        lat: z.number().finite().min(-90).max(90),
+        lng: z.number().finite().min(-180).max(180),
+        filterId: inputSchema.shape.filterId,
+        phase: inputSchema.shape.phase,
       })
       .parse(input),
   )
@@ -102,10 +107,35 @@ export const resolveOsmStagingSelection = createServerFn({ method: "POST" })
     if (access.error) throw new Error("Gruppen kunde inte verifieras.");
 
     const source = { osmType: data.osmType, osmId: data.osmId };
+    // Re-check the selected OSM ID against the server-owned staging snapshot.
+    // The supplied position is only an approximate locator, not identity proof.
+    // A mismatched, old, out-of-scope or no-longer-indexed row fails closed.
+    const tokens = osmPreviewTokens(data.filterId, data.phase);
+    if (!tokens.length) throw new Error("OSM-sökvalet kunde inte verifieras.");
+    const call = context.supabase.rpc.bind(context.supabase) as unknown as (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ data: unknown; error: { code?: string } | null }>;
     const { resolveOsmGeoapifyIdentity } = await import("./osm-geoapify-bridge.server");
     let provider: Awaited<ReturnType<typeof resolveOsmGeoapifyIdentity>>;
     try {
-      provider = await resolveOsmGeoapifyIdentity(source);
+      const location = await verifyOsmIndexSelection(
+        source,
+        { lat: data.lat, lng: data.lng },
+        async (cursor) => {
+          const response = await call("osm_staging_search_v1", {
+            _lat: data.lat,
+            _lng: data.lng,
+            _radius_km: 0.05,
+            _tokens: tokens,
+            _limit: 20,
+            _cursor: cursor ?? null,
+          });
+          if (response.error) throw new Error("OSM_PLACE_UNVERIFIED");
+          return responseSchema.parse(response.data);
+        },
+      );
+      provider = await resolveOsmGeoapifyIdentity(source, location);
     } catch {
       // No automatic fallback to client-supplied coordinates or a fake
       // Geoapify source. A manual addition remains a separate explicit action.

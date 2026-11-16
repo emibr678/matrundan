@@ -1,6 +1,6 @@
-/** Strict, staging-only OSM -> Geoapify Places identity bridge.
- * A Geoapify OSM-ID details lookup is NOT automatically a Places identity.
- * Do not use this module to copy source data into group or canonical metadata.
+/** Staging-only OSM selection through the documented Geoapify Places API.
+ * The index and the Geoapify Places response must agree on exact OSM type+ID.
+ * Never infer a Geoapify Places ID from an unsupported Place Details query.
  */
 import { GEOAPIFY_DISCOVERY_CATEGORIES } from "./geoapify-place-search";
 import { normalizePlaceFeature, type NormalizedPlaceSuggestion } from "./geoapify-normalize";
@@ -14,15 +14,55 @@ export interface OsmSource {
   osmType: "node" | "way" | "relation";
   osmId: string;
 }
+export type OsmCoordinate = { lat: number; lng: number };
+type OsmIndexPage = {
+  status: "ok" | "not_loaded";
+  results: Array<OsmCoordinate & { osmType: OsmSource["osmType"]; osmId: number; distanceM: number }>;
+  hasMore: boolean;
+  cursor?: unknown;
+};
 type GeoapifyPayload = { features?: unknown[] };
 type Lookup = (url: URL) => Promise<GeoapifyPayload>;
 
-const SOURCE_KIND: Record<OsmSource["osmType"], string> = {
-  node: "n",
-  way: "w",
-  relation: "r",
-};
 const MAX_MATCH_DISTANCE_KM = 0.15;
+const MAX_INDEX_SEARCH_PAGES = 5;
+
+/** Verify the clicked row still exists in the staging index and is at the
+ * requested position before consuming Geoapify credits. The caller supplies
+ * an authenticated, catalogue-token-scoped index page reader.
+ */
+export async function verifyOsmIndexSelection(
+  source: OsmSource,
+  requested: OsmCoordinate,
+  pageReader: (cursor: unknown) => Promise<OsmIndexPage>,
+): Promise<OsmCoordinate> {
+  if (!Number.isFinite(requested.lat) || !Number.isFinite(requested.lng))
+    throw new Error("OSM_PLACE_UNVERIFIED");
+  let cursor: unknown = null;
+  for (let pageNumber = 0; pageNumber < MAX_INDEX_SEARCH_PAGES; pageNumber++) {
+    const page = await pageReader(cursor);
+    if (page.status !== "ok") break;
+    const selected = page.results.find(
+      (candidate) =>
+        candidate.osmType === source.osmType &&
+        Number.isSafeInteger(candidate.osmId) &&
+        String(candidate.osmId) === source.osmId,
+    );
+    if (selected) {
+      if (
+        selected.distanceM > 15 ||
+        !Number.isFinite(selected.lat) ||
+        !Number.isFinite(selected.lng) ||
+        placeDistanceKm(requested, selected) > 0.015
+      )
+        break;
+      return { lat: selected.lat, lng: selected.lng };
+    }
+    if (!page.hasMore || !page.cursor) break;
+    cursor = page.cursor;
+  }
+  throw new Error("OSM_PLACE_UNVERIFIED");
+}
 
 /** Check the exact OSM object identifier, never a fuzzy name/coordinate match. */
 export function normalizedExactOsmPlace(
@@ -41,44 +81,24 @@ export function normalizedExactOsmPlace(
   return raw.osmType === source.osmType && raw.osmId === source.osmId ? place : null;
 }
 
-export function selectOsmDetail(
-  payload: GeoapifyPayload,
-  source: OsmSource,
-): NormalizedPlaceSuggestion {
-  const details = (payload.features ?? []).filter(
-    (feature) =>
-      feature &&
-      typeof feature === "object" &&
-      (feature as { properties?: { feature_type?: unknown } }).properties?.feature_type ===
-        "details",
-  );
-  if (details.length !== 1) throw new Error("OSM_PLACE_UNVERIFIED");
-  const match = normalizedExactOsmPlace(details[0], source);
-  if (!match) throw new Error("OSM_PLACE_UNVERIFIED");
-  return match;
-}
-
-/** Read-only adapter; the returned provider ID is verified again by the
- * existing server-side Geoapify Place Details path during the final write.
+/** Geoapify Place Details documents lookups by Geoapify place ID or lat/lon,
+ * NOT by osm_id/osm_type. Discover by documented Places circle search, then
+ * fetch fresh Place Details for its genuine ID; fail closed if none matches.
  */
 export async function findVerifiedGeoapifyPlaceForOsm(
   source: OsmSource,
+  location: OsmCoordinate,
   lookup: Lookup,
   verify: typeof fetchVerifiedProviderPlace = fetchVerifiedProviderPlace,
 ): Promise<VerifiedProviderPlace> {
-  const osmLookup = new URL("https://api.geoapify.com/v2/place-details");
-  osmLookup.searchParams.set("osm_id", source.osmId);
-  osmLookup.searchParams.set("osm_type", SOURCE_KIND[source.osmType]);
-  osmLookup.searchParams.set("features", "details");
-  osmLookup.searchParams.set("lang", "sv");
-  const detail = selectOsmDetail(await lookup(osmLookup), source);
-
+  if (!Number.isFinite(location.lat) || !Number.isFinite(location.lng))
+    throw new Error("OSM_PLACE_UNVERIFIED");
   let selected: NormalizedPlaceSuggestion | null = null;
-  for (const offset of [0, 50]) {
+  for (const offset of [0, 50, 100]) {
     const url = new URL("https://api.geoapify.com/v2/places");
     url.searchParams.set("categories", GEOAPIFY_DISCOVERY_CATEGORIES.join(","));
-    url.searchParams.set("filter", "circle:" + detail.lng + "," + detail.lat + ",150");
-    url.searchParams.set("bias", "proximity:" + detail.lng + "," + detail.lat);
+    url.searchParams.set("filter", "circle:" + location.lng + "," + location.lat + ",150");
+    url.searchParams.set("bias", "proximity:" + location.lng + "," + location.lat);
     url.searchParams.set("limit", "50");
     if (offset) url.searchParams.set("offset", String(offset));
     url.searchParams.set("lang", "sv");
@@ -86,10 +106,8 @@ export async function findVerifiedGeoapifyPlaceForOsm(
     const candidates = (page.features ?? []).flatMap((feature) => {
       const place = normalizedExactOsmPlace(feature, source);
       if (!place) return [];
-      return placeDistanceKm(
-        { lat: detail.lat!, lng: detail.lng! },
-        { lat: place.lat!, lng: place.lng! },
-      ) <= MAX_MATCH_DISTANCE_KM
+      return placeDistanceKm(location, { lat: place.lat!, lng: place.lng! }) <=
+        MAX_MATCH_DISTANCE_KM
         ? [place]
         : [];
     });
@@ -102,15 +120,11 @@ export async function findVerifiedGeoapifyPlaceForOsm(
     if (selected || (page.features?.length ?? 0) < 50) break;
   }
   if (!selected) throw new Error("OSM_PLACE_UNVERIFIED");
-  // The selected ID must be an actual Places ID and remain tied to the same
-  // OSM object in a fresh server-side Place Details request.
+  // Fetch the genuine Places ID again on the server; the final write path
+  // independently verifies it once more with expectedSource.
   const verified = await verify(selected.externalId, true, source);
-  if (
-    placeDistanceKm(
-      { lat: detail.lat!, lng: detail.lng! },
-      { lat: verified.lat, lng: verified.lng },
-    ) > MAX_MATCH_DISTANCE_KM
-  ) {
+  if (placeDistanceKm(location, { lat: verified.lat, lng: verified.lng }) >
+    MAX_MATCH_DISTANCE_KM) {
     throw new Error("OSM_PLACE_UNVERIFIED");
   }
   return verified;
@@ -131,6 +145,9 @@ async function lookupGeoapify(url: URL): Promise<GeoapifyPayload> {
 }
 
 /** Auth and group permission checks are performed by the calling server fn. */
-export function resolveOsmGeoapifyIdentity(source: OsmSource): Promise<VerifiedProviderPlace> {
-  return findVerifiedGeoapifyPlaceForOsm(source, lookupGeoapify);
+export function resolveOsmGeoapifyIdentity(
+  source: OsmSource,
+  location: OsmCoordinate,
+): Promise<VerifiedProviderPlace> {
+  return findVerifiedGeoapifyPlaceForOsm(source, location, lookupGeoapify);
 }

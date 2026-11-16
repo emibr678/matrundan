@@ -375,8 +375,8 @@ export function PlaceDiscovery({
     }
     if (!canCompareOsm || !osmPreviewEnabled || !groupId || osmResolvingId) return;
     const parsed = /^(node|way|relation):([1-9][0-9]{0,18})$/.exec(result.externalId);
-    if (!parsed) {
-      toast.error("Kartträffens identitet gick inte att läsa.");
+    if (!parsed || result.lat == null || result.lng == null || !selectedFilter) {
+      toast.error("Kartträffens identitet eller position gick inte att läsa.");
       return;
     }
     const scope = osmSelectionScopeRef.current;
@@ -387,6 +387,10 @@ export function PlaceDiscovery({
           groupId,
           osmType: parsed[1] as "node" | "way" | "relation",
           osmId: parsed[2],
+          lat: result.lat!,
+          lng: result.lng!,
+          filterId: selectedFilter!.id as "specialty:pasta" | "specialty:ramen" | "search:asiatiskt",
+          phase: result.searchEvidence?.kind === "association" ? "related" : "direct",
         },
       });
       if (scope !== osmSelectionScopeRef.current) return;
