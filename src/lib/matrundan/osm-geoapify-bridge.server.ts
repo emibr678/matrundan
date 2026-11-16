@@ -17,7 +17,9 @@ export interface OsmSource {
 export type OsmCoordinate = { lat: number; lng: number };
 type OsmIndexPage = {
   status: "ok" | "not_loaded";
-  results: Array<OsmCoordinate & { osmType: OsmSource["osmType"]; osmId: number; distanceM: number }>;
+  results: Array<
+    OsmCoordinate & { osmType: OsmSource["osmType"]; osmId: number; distanceM: number }
+  >;
   hasMore: boolean;
   cursor?: unknown;
 };
@@ -123,8 +125,7 @@ export async function findVerifiedGeoapifyPlaceForOsm(
   // Fetch the genuine Places ID again on the server; the final write path
   // independently verifies it once more with expectedSource.
   const verified = await verify(selected.externalId, true, source);
-  if (placeDistanceKm(location, { lat: verified.lat, lng: verified.lng }) >
-    MAX_MATCH_DISTANCE_KM) {
+  if (placeDistanceKm(location, { lat: verified.lat, lng: verified.lng }) > MAX_MATCH_DISTANCE_KM) {
     throw new Error("OSM_PLACE_UNVERIFIED");
   }
   return verified;

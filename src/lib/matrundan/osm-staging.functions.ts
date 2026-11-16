@@ -116,9 +116,8 @@ export const resolveOsmStagingSelection = createServerFn({ method: "POST" })
       name: string,
       args: Record<string, unknown>,
     ) => Promise<{ data: unknown; error: { code?: string } | null }>;
-    const { resolveOsmGeoapifyIdentity, verifyOsmIndexSelection } = await import(
-      "./osm-geoapify-bridge.server"
-    );
+    const { resolveOsmGeoapifyIdentity, verifyOsmIndexSelection } =
+      await import("./osm-geoapify-bridge.server");
     let provider: Awaited<ReturnType<typeof resolveOsmGeoapifyIdentity>>;
     try {
       const location = await verifyOsmIndexSelection(

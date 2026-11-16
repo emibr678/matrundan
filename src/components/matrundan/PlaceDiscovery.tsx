@@ -389,7 +389,8 @@ export function PlaceDiscovery({
           osmId: parsed[2],
           lat: result.lat!,
           lng: result.lng!,
-          filterId: selectedFilter!.id as "specialty:pasta" | "specialty:ramen" | "search:asiatiskt",
+          filterId: selectedFilter!.id as
+            "specialty:pasta" | "specialty:ramen" | "search:asiatiskt",
           phase: result.searchEvidence?.kind === "association" ? "related" : "direct",
         },
       });
