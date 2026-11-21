@@ -3126,6 +3126,17 @@ export type Database = {
         Args: { _type: string; _user_id: string }
         Returns: boolean
       }
+      osm_staging_search_v1: {
+        Args: {
+          _cursor?: Json
+          _lat: number
+          _limit?: number
+          _lng: number
+          _radius_km?: number
+          _tokens?: string[]
+        }
+        Returns: Json
+      }
       personal_journey_can_view_global_stats_v1: {
         Args: { _subject_id: string; _viewer_id: string }
         Returns: boolean
