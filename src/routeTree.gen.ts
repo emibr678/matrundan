@@ -17,6 +17,7 @@ import { Route as IntegritetRouteImport } from './routes/integritet'
 import { Route as MatstallenRouteImport } from './routes/matstallen'
 import { Route as MinMatresaRouteImport } from './routes/min-matresa'
 import { Route as NyttLosenordRouteImport } from './routes/nytt-losenord'
+import { Route as OsmSokprovRouteImport } from './routes/osm-sokprov'
 import { Route as PlacemapdiagnostikRouteImport } from './routes/placemapdiagnostik'
 import { Route as PlatsunderhallRouteImport } from './routes/platsunderhall'
 import { Route as RapporteradeFelRouteImport } from './routes/rapporterade-fel'
@@ -67,6 +68,11 @@ const MinMatresaRoute = MinMatresaRouteImport.update({
 const NyttLosenordRoute = NyttLosenordRouteImport.update({
   id: '/nytt-losenord',
   path: '/nytt-losenord',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OsmSokprovRoute = OsmSokprovRouteImport.update({
+  id: '/osm-sokprov',
+  path: '/osm-sokprov',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PlacemapdiagnostikRoute = PlacemapdiagnostikRouteImport.update({
@@ -136,6 +142,7 @@ export interface FileRoutesByFullPath {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/min-matresa': typeof MinMatresaRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
+  '/osm-sokprov': typeof OsmSokprovRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
@@ -156,6 +163,7 @@ export interface FileRoutesByTo {
   '/integritet': typeof IntegritetRoute
   '/matstallen': typeof MatstallenRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
+  '/osm-sokprov': typeof OsmSokprovRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
@@ -178,6 +186,7 @@ export interface FileRoutesById {
   '/matstallen': typeof MatstallenRouteWithChildren
   '/min-matresa': typeof MinMatresaRouteWithChildren
   '/nytt-losenord': typeof NyttLosenordRoute
+  '/osm-sokprov': typeof OsmSokprovRoute
   '/placemapdiagnostik': typeof PlacemapdiagnostikRoute
   '/platsunderhall': typeof PlatsunderhallRoute
   '/rapporterade-fel': typeof RapporteradeFelRoute
@@ -201,6 +210,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/min-matresa'
     | '/nytt-losenord'
+    | '/osm-sokprov'
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
@@ -221,6 +231,7 @@ export interface FileRouteTypes {
     | '/integritet'
     | '/matstallen'
     | '/nytt-losenord'
+    | '/osm-sokprov'
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
@@ -242,6 +253,7 @@ export interface FileRouteTypes {
     | '/matstallen'
     | '/min-matresa'
     | '/nytt-losenord'
+    | '/osm-sokprov'
     | '/placemapdiagnostik'
     | '/platsunderhall'
     | '/rapporterade-fel'
@@ -264,6 +276,7 @@ export interface RootRouteChildren {
   MatstallenRoute: typeof MatstallenRouteWithChildren
   MinMatresaRoute: typeof MinMatresaRouteWithChildren
   NyttLosenordRoute: typeof NyttLosenordRoute
+  OsmSokprovRoute: typeof OsmSokprovRoute
   PlacemapdiagnostikRoute: typeof PlacemapdiagnostikRoute
   PlatsunderhallRoute: typeof PlatsunderhallRoute
   RapporteradeFelRoute: typeof RapporteradeFelRoute
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       path: '/nytt-losenord'
       fullPath: '/nytt-losenord'
       preLoaderRoute: typeof NyttLosenordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/osm-sokprov': {
+      id: '/osm-sokprov'
+      path: '/osm-sokprov'
+      fullPath: '/osm-sokprov'
+      preLoaderRoute: typeof OsmSokprovRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/placemapdiagnostik': {
@@ -448,6 +468,7 @@ const rootRouteChildren: RootRouteChildren = {
   MatstallenRoute: MatstallenRouteWithChildren,
   MinMatresaRoute: MinMatresaRouteWithChildren,
   NyttLosenordRoute: NyttLosenordRoute,
+  OsmSokprovRoute: OsmSokprovRoute,
   PlacemapdiagnostikRoute: PlacemapdiagnostikRoute,
   PlatsunderhallRoute: PlatsunderhallRoute,
   RapporteradeFelRoute: RapporteradeFelRoute,
